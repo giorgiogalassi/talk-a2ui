@@ -1,0 +1,16 @@
+{
+  "name": "your-ai-should-not-generate-html-structured-generative-ui-with-angular-and-a2ui",
+  "version": "1.0.0",
+  "description": "Your AI Should Not Generate HTML: Structured Generative UI with Angular and A2UI — Giorgio Galassi",
+  "scripts": {
+    "dev": "slidev",
+    "build": "slidev build",
+    "export": "slidev export"
+  },
+  "author": "Giorgio Galassi",
+  "license": "ISC",
+  "dependencies": {
+    "@slidev/cli": "^52.15.2",
+    "@slidev/theme-default": "^0.25.0"
+  }
+}
