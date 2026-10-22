@@ -1,0 +1,19 @@
+{
+  "name": "a2ui-demo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "start:client": "npm start -w client",
+    "build:client": "npm run build -w client"
+  },
+  "overrides": {
+    "@a2ui/angular": {
+      "@angular/core": "^22.2.3",
+      "@angular/common": "^22.2.3",
+      "@angular/platform-browser": "^22.2.3"
+    }
+  }
+}
