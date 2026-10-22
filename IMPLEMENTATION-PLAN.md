@@ -575,3 +575,12 @@ the Angular client.
 - **2026-10-22** — Decided: the A2A client lives server side (SSR server
   proxy, as in the official Angular sample). Deck section 4 diagram update
   added as an open item.
+- **2026-10-22 (later)** — Demo started on branch `demo`, folder `demo/` (npm workspace). Decided
+  (Giorgio): **agent = the official A2UI Node sample pattern** (`@google/genai` + `@a2ui/agent`,
+  which brings validation, retry-with-error, capability negotiation and a stub mode), replacing
+  the July Genkit plan — `QA.md`'s Genkit/Firestore answers need rewriting, Cloud Run still holds;
+  **`@a2a-js/sdk` 0.3.13 (A2A v0.3)** on both sides, like the official samples, replacing "target
+  v1.0"; Gemini via API key. Angular **22.2.3** with an npm override (`@a2ui/angular@0.13.0` peers
+  Angular 21). `@a2ui/agent` pinned to 0.0.1 (its `main` broke the API on 2026-10-21). Steps 1–2
+  done and checked in a browser: hardcoded render, then the full chain in stub mode. Found: UI
+  actions must reach the agent as `{ version: 'v0.9', action }`. Details in `demo/README.md`.

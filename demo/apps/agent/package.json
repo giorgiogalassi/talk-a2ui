@@ -1,0 +1,24 @@
+{
+  "name": "agent",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A2UI demo agent, adapted from the official A2UI Node restaurant_finder sample (Apache-2.0)",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node --env-file-if-exists=.env dist/src/index.js",
+    "start:stub": "STUB_LLM=true node dist/src/index.js"
+  },
+  "dependencies": {
+    "@a2a-js/sdk": "^0.3.13",
+    "@a2ui/agent": "0.0.1",
+    "@a2ui/web_core": "^0.14.0",
+    "@google/genai": "^2.8.0",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.0.0",
+    "typescript": "5.9.3"
+  }
+}
