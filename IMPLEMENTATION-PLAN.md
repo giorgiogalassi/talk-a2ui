@@ -8,8 +8,7 @@ changelog. For audience-facing "why" answers and anticipated Q&A, see
 **`QA.md`** in this same folder — the two docs cross-reference rather than
 duplicate.
 
-Last updated: 2026-07-24 (session 5 — split out of the combined doc into
-this build-plan file plus `QA.md`).
+Last updated: 2026-10-21 (Angular sample found; client steps 4–6 revised).
 
 ---
 
@@ -342,28 +341,44 @@ to re-prove it works.
    [A2UI — Defining Your Own Catalog](https://a2ui.org/guides/defining-your-own-catalog/) ·
    [A2UI — Component Gallery](https://a2ui.org/reference/components/)
    (the Basic Catalog's own components, as a model for shape/conventions)
-4. **A2A client wiring.** Install `@a2a-js/sdk` (same version pinned in the
-   agent's step 2), use `ClientFactory().createFromUrl(agentBaseUrl)`, call
-   `client.sendMessageStream(...)`. Include
-   `a2uiClientCapabilities.supportedCatalogIds` in the outgoing message
-   metadata, per the protocol's capability-negotiation requirement.
-   *Done when:* a raw test call reaches the locally-running agent and gets a
-   response back.
-   **Links:** [`@a2a-js/sdk` README — Streaming: Client Consuming a Stream](https://github.com/a2aproject/a2a-js#client-consuming-a-stream) ·
+4. **A2A client wiring — in the server, not the browser (revised
+   2026-10-21).** The official Angular sample
+   (`samples/client/angular/projects/restaurant`, present since at least
+   2026-08-12) puts the A2A client in the SSR Express server (`src/server.ts`):
+   `A2AClient.fromCardUrl('<agent>/.well-known/agent-card.json')` with an
+   `X-A2A-Extensions: https://a2ui.org/a2a-extension/a2ui/v0.9` header, exposed
+   to the browser as a plain `POST /a2a` that answers with SSE. The browser
+   never speaks A2A. **Decided for the demo too (Giorgio, 2026-10-22)**: agent credentials and
+   policy enforcement stay server-side, and the agent URL is never exposed.
+   This supersedes the July assumption that the browser itself calls
+   `ClientFactory().createFromUrl(...)`. Still include
+   `a2uiClientCapabilities.supportedCatalogIds` in the outgoing A2A message
+   metadata (the sample sends `a2uiClientCapabilities` on every message).
+   *Done when:* `POST /a2a` with a text query reaches the locally-running
+   agent and streams a response back.
+   **Links:** [Angular sample `server.ts`](https://github.com/a2ui-project/a2ui/blob/main/samples/client/angular/projects/restaurant/src/server.ts) ·
    [A2UI — Catalogs: Catalog Negotiation, Step 2](https://a2ui.org/concepts/catalogs/#step-2-client-advertises-its-support-catalogs-required)
-   (the exact `a2uiClientCapabilities` metadata shape)
-5. **Bridge the A2A stream into `@a2ui/angular`'s renderer.** For each
-   `DataPart` (`mimeType: application/a2ui+json`) arriving in the stream,
-   extract its `data` array and feed each A2UI message into the renderer's
-   message processor. No official Angular-specific reference exists for this
-   bridge — port the logic from the Lit sample, don't expect to copy it.
+5. **Bridge the stream into `@a2ui/angular`'s renderer — adapt, don't port
+   (revised 2026-10-21).** An official Angular bridge now exists:
+   `src/app/client.ts` in the same sample, an `@Injectable` `Client` that
+   POSTs to `/a2a`, parses the SSE `data:` lines, unwraps each part's `data`
+   (array or single object, so it covers both the A2A v1.0 and v0.3
+   `DataPart` shapes) and calls `A2uiRendererService.processMessages(...)`
+   from `@a2ui/angular/v0_9`. `app.ts` renders with `SurfaceComponent`.
+   Adapt this; the Lit `shell/client.ts` is no longer the only reference.
    *Done when:* a message streamed from the real agent (step 8 of the agent
    list) renders in the browser.
-   **Links:** [Lit sample bridge (`client.ts`) — the only official reference](https://github.com/a2ui-project/a2ui/blob/main/samples/client/lit/shell/client.ts) ·
+   **Links:** [Angular sample `client.ts`](https://github.com/a2ui-project/a2ui/blob/main/samples/client/angular/projects/restaurant/src/app/client.ts) ·
+   [Angular sample `app.ts`](https://github.com/a2ui-project/a2ui/blob/main/samples/client/angular/projects/restaurant/src/app/app.ts) ·
    [A2UI — Transports: A2A Protocol](https://a2ui.org/concepts/transports/#a2a-protocol)
 6. **Wire the `actionHandler`.** Configure `A2UI_RENDERER_CONFIG`'s
    `actionHandler` to take dispatched `action`/`event` payloads and send them
-   back to the agent via the step 4 client.
+   back to the agent via the step 4 client. (2026-10-21: the Angular sample
+   does this as `Client.handleAction(userAction)` → `POST /a2a` with
+   `{event}` → `processMessages` on the reply. Per the Actions docs, input
+   changes stay in the local data model; "the data model is only sent to the
+   agent when an event occurs", and `functionCall` actions never reach the
+   agent.)
    *Done when:* clicking a scripted test button in a hardcoded payload
    produces a logged action on the agent side.
    **Links:** [A2UI — Actions: User Interaction Flow](https://a2ui.org/concepts/actions/#user-interaction-flow) ·
@@ -443,17 +458,28 @@ architecture one.
       `DataPart.data` is actually list-shaped in practice (not just in docs),
       and sanity-check the alpha is stable enough to build on given issue
       #452 is still open. Still the single highest-priority open item.
-- [ ] Once the agent is scaffolded, re-verify the A2A ↔ A2UI bridging code
+- [x] ~~Once the agent is scaffolded, re-verify the A2A ↔ A2UI bridging code
       against whatever the Angular sample (or the ported Lit bridge) actually
-      requires — the docs gap noted above means this is likely to surprise us.
+      requires.~~ **2026-10-21:** an official Angular bridge exists (client
+      build order steps 4–5). Remaining check: it targets the v0.9 extension
+      URI and `@a2ui/angular/v0_9`; confirm it works unchanged against a
+      v0.9.1 agent.
+- [x] **Decide where the A2A client lives.** **Decided 2026-10-22 (Giorgio):
+      server side**, as in the official sample. The browser talks only to the
+      app's own `POST /a2a` + SSE; the SSR server is the A2A client.
+- [ ] **Update the deck's pipeline diagram (section 4)** for the server-side
+      A2A client: browser → own API → server (A2A client) → agent.
 - [ ] **Update the deck's section 5c speaker notes** (2026-07-24, session 5):
       currently says `provideExperimentalZonelessChangeDetection` "is still
       experimental as of Angular 19/20." Confirmed out of date — the API is
       stable since v20.2 and is the *default* for new apps as of v21, the
       exact version `@a2ui/angular` requires. Fold into the existing deck
       reconciliation item above rather than treating separately.
-- [ ] **Resolve the Angular catalog API ambiguity** (client build order step
-      2): does `Catalog`/`DynamicComponent`/`inputBinding` sit underneath
+- [ ] **Resolve the Angular catalog API ambiguity** — partly answered
+      2026-10-21: the official Angular sample imports `A2uiRendererService`
+      and `SurfaceComponent` from `@a2ui/angular/v0_9` and types from
+      `@a2ui/web_core/v0_9`. That's the surface the deck's code slides should
+      cite. Still open (client build order step 2): does `Catalog`/`DynamicComponent`/`inputBinding` sit underneath
       `A2UI_RENDERER_CONFIG`/`BasicCatalog`, or are these describing different
       package versions? Needs the empirical check before designing the real
       custom catalog components.
@@ -537,3 +563,15 @@ the Angular client.
   document. No content was dropped — the version-risk mechanics, catalog
   mechanism detail, and Gemini constrained-decoding gotcha moved here from
   `QA.md`'s Q&A sections since they're build detail, not stage-ready answers.
+- **2026-10-21** — Found the official Angular sample
+  (`samples/client/angular/projects/restaurant`) that the July sessions
+  didn't have. Client build order steps 4–5 rewritten: the A2A client
+  moves to the SSR server (`server.ts`, `POST /a2a` + SSE to the browser),
+  and the bridge is adapted from the sample's `client.ts` instead of ported
+  from Lit. Step 6 annotated with the sample's `handleAction` and the
+  Actions docs' local-data-model rule. New open item: decide where the A2A
+  client lives. Catalog API ambiguity partly resolved (`@a2ui/angular/v0_9`
+  exports used by the sample).
+- **2026-10-22** — Decided: the A2A client lives server side (SSR server
+  proxy, as in the official Angular sample). Deck section 4 diagram update
+  added as an open item.
