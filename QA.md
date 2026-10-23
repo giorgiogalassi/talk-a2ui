@@ -159,6 +159,19 @@ and the A2A SDK, Vertex AI for the model, Firestore for session state — the
 same shape as any other production TypeScript backend, which is sort of the
 point of the whole talk.
 
+
+### "Your server uses `A2AClient`, isn't that deprecated?"
+Yes. In `@a2a-js/sdk` 0.3.x, `A2AClient` is marked `@deprecated Use ClientFactory`
+(it only speaks JSON-RPC; `ClientFactory` picks the transport from the agent card).
+The demo keeps it on purpose: the bridge in `demo/apps/client/src/server.ts` has
+the same shape as the official A2UI Angular sample
+(`samples/client/angular/projects/restaurant/src/server.ts`), which also calls
+`A2AClient.fromCardUrl` on `@a2a-js/sdk ^0.3.13` (checked 2026-10-22). Staying
+identical to the reference keeps the demo easy to compare against it. The switch
+to `ClientFactory` is planned for the move to A2A v1.0, or sooner if the sample
+moves first. Nothing about A2UI changes either way: the client only carries the
+messages.
+
 ---
 
 ## See also

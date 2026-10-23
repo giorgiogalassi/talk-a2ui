@@ -13,6 +13,8 @@ The browser never speaks A2A: the client will call the app's own server, which i
 
 ## Status
 
+One Mermaid diagram per phase, drawn as frames of the same graph: `FLOW.md`.
+
 **Step 1, render without an agent — done (2026-10-22).** The client renders a hardcoded A2UI v0.9
 message (`apps/client/src/app/booking-form.json`, copied from the official Node agent sample) with the
 basic catalog. Checked in a browser: typing into fields sends nothing; *Submit Reservation* fires one

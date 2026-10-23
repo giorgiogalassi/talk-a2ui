@@ -8,7 +8,12 @@ changelog. For audience-facing "why" answers and anticipated Q&A, see
 **`QA.md`** in this same folder — the two docs cross-reference rather than
 duplicate.
 
-Last updated: 2026-10-21 (Angular sample found; client steps 4–6 revised).
+Last updated: 2026-10-23 (Zod catalog + policy kept on top of `@a2ui/agent`).
+
+**The abstract is fixed** (Giorgio, 2026-10-23): it is published and accepted,
+so the demo must deliver what it promises, not the other way round. In
+particular "capability negotiation, Zod catalog schemas, server-side policy
+enforcement, client-side validation" all have to be visible in the demo.
 
 ---
 
@@ -89,6 +94,12 @@ or more of those stages.
    itself, current `@google/genai` SDK usage is
    `config.responseJsonSchema = z.toJSONSchema(schema)` paired with
    `config.responseMimeType = 'application/json'`.
+
+   **Superseded 2026-10-23** for the Zod version and the conversion: see
+   "Zod catalog and policy on top of `@a2ui/agent`" below. A2UI's own
+   `@a2ui/web_core` is built on **Zod 3** (`^3.25.76`) and generates the
+   catalog JSON itself (`Catalog.toJson()`), so neither Zod 4 nor
+   `z.toJSONSchema()` is used.
 
    **Precise capability-negotiation mechanism** (confirmed 2026-07-24 against
    current docs): the catalog's wire artifact is a plain JSON Schema file
@@ -432,6 +443,67 @@ architecture one.
 
 ---
 
+## Zod catalog and policy on top of `@a2ui/agent` (decided 2026-10-23)
+
+**Decision (Giorgio):** the switch to the official Node agent sample on
+2026-10-22 keeps both the Zod catalog and server-side policy. The abstract
+promises them. Checked against the installed packages
+(`@a2ui/web_core@0.14.0`, `@a2ui/agent@0.0.1`) on 2026-10-23.
+
+**Zod catalog: use A2UI's own mechanism, not our own converter.**
+- In `@a2ui/web_core`, every component is a `ComponentApi` whose `schema` is a
+  Zod schema (`@a2ui/web_core/catalog`, `types.d.ts`). The basic catalog is
+  written this way. So "Zod is built into A2UI" (deck section 4) holds
+  literally.
+- It is **Zod 3** (`zod@^3.25.76`, also the peer of `@a2ui/angular`). Use the
+  same version in `packages/catalog`; `z.infer` from a Zod 4 schema would not
+  type-check against `ComponentApi`.
+- `packages/catalog`: one `ComponentApi` per component (`TicketList`,
+  `PriorityBadge`, `AssigneeChip`, plus the basic `Button`), assembled with
+  `new Catalog(id, 'v0.9', components)`. `catalog.toJson()` produces the
+  spec-compliant catalog JSON Schema document; that replaces both
+  `z.toJSONSchema()` and `zod-to-json-schema`.
+- **Agent:** load that document with `InMemoryCatalogProvider(doc, 'v0.9',
+  catalogId)` (exported by `@a2ui/agent`) instead of the
+  `FileSystemCatalogProvider` in `src/catalogs.ts`, and pass it to
+  `A2uiGenerator` / `CatalogConfig` as today. The generator's prompt and the
+  processor's validation then both come from the Zod source, so
+  `@a2ui/agent`'s built-in validate-and-retry (`agent.ts`, `MAX_ATTEMPTS = 2`)
+  is validating against our Zod catalog. No separate `.safeParse()` step.
+- **Client:** the Angular catalog components implement the same
+  `ComponentApi` objects (`InferredComponentApiSchemaType<Api>` for props),
+  and the custom catalog id goes into `supportedCatalogIds`. That is the
+  capability negotiation step, already read by `pick-a2ui.ts`.
+- **Check while building:** whether `Catalog.toJson()` output loads cleanly
+  into `InMemoryCatalogProvider` for custom components (the basic catalog
+  goes the other way, file → `Catalog.fromJson`). If it doesn't, write the
+  generated document to `apps/agent/catalogs/` at build time and keep
+  `FileSystemCatalogProvider`; the source of truth is still Zod.
+- The Gemini constrained-decoding gotcha above no longer applies the same
+  way: the sample prompts with the catalog and validates afterwards, it does
+  not pass a `responseJsonSchema`.
+
+**Policy: same `applyPolicy(messages, policy)` as item 6, new hook points.**
+- It runs on A2UI messages **before** `toA2aParts` in `apps/agent/src/agent.ts`,
+  in two places: `streamText()` (each `processor.processChunk(chunk)` result)
+  and `validate()` (the `parseResponse(fullText)` result).
+- Both are needed. In Direct JSON mode the sample publishes streamed parts
+  **before** end-of-turn validation, so a policy applied only in `validate()`
+  would let a forbidden field reach the browser mid-stream. That makes
+  `applyPolicy` a per-message, stateless function, which it already is.
+- Policy object unchanged: `forbiddenDataPaths: ['/tickets/*/internal_notes']`,
+  `disabledActions: ['delete_ticket']`. Log every strip (observability slide).
+- Keep it in its own file (`src/policy.ts`) with a unit test, so the deck can
+  show it whole and the diff against the upstream sample stays small.
+
+**What the demo then shows, against the abstract's pipeline line:**
+capability negotiation (`supportedCatalogIds` → `pick-a2ui.ts`) · Zod catalog
+schemas (`packages/catalog` → `Catalog.toJson()` → agent) · server-side policy
+(`applyPolicy` in the agent) · client-side validation (`@a2ui/web_core` in
+the renderer, `VALIDATION_FAILED` back to the agent, client step 8).
+
+---
+
 ## Open / to revisit as the demo project gets built
 
 - [ ] Reconcile `slides.md` sections 4–5 code samples against the real
@@ -486,6 +558,48 @@ architecture one.
 - [ ] **Resolve whether `@a2ui/web_core` auto-reports `VALIDATION_FAILED`**
       or whether app code must catch and send it manually (client build order
       step 8).
+- [ ] **By 13 Nov 2026: re-check the Angular sample's A2A client.** The
+      demo's `server.ts` uses `A2AClient.fromCardUrl`, deprecated in
+      `@a2a-js/sdk` 0.3.x in favour of `ClientFactory`, because the official
+      sample does the same (checked 2026-10-22, a2ui `main`,
+      `samples/client/angular/projects/restaurant/src/server.ts` lines 26 and
+      231, `@a2a-js/sdk ^0.3.13`). Re-fetch that file by **13 November 2026**,
+      a week before the talk (AngularDay, 20 November 2026, Verona):
+      if it has moved to `ClientFactory` (or to the v1.0 SDK), follow it with
+      `new ClientFactory().createFromUrl(...)` and carry the
+      `X-A2A-Extensions` header over (today a custom `fetchImpl`; the SDK has
+      `withA2AExtensions` via `ServiceParameters`), re-run the stub flow, and
+      update `QA.md`'s "isn't that deprecated?" answer. If it has not moved,
+      leave the demo as is.
+- [ ] **`packages/catalog` on Zod 3 + `Catalog.toJson()`** (decided
+      2026-10-23, section above). *Done when:* the agent loads the generated
+      document, the Angular catalog uses the same `ComponentApi` objects, and
+      a deliberately wrong prop fails `@a2ui/agent` validation and triggers
+      the retry.
+- [ ] **`applyPolicy` in `agent.ts` on both the streamed and the validated
+      path** (section above). *Done when:* a unit test strips
+      `internal_notes` and a `delete_ticket` button, and in the browser the
+      field never appears, not even mid-stream.
+- [ ] **Transport swap: make `server.ts` the only file that knows A2A
+      (added 2026-10-23).** Talk + article beat: A2UI is transport-agnostic
+      (the spec lists A2A, AG-UI, SSE, WebSockets; CopilotKit runs A2UI over
+      AG-UI), so switching transport should touch one adapter, never the
+      catalog, the components or the renderer. Today the A2A shape leaks into
+      the browser: `apps/client/src/app/agent-client.ts` filters
+      `parts` / `kind: 'data'` and reads `contextId`. Move the unwrapping into
+      `server.ts` so the browser's SSE carries plain A2UI messages
+      (`createSurface` / `updateComponents` / `updateDataModel`) plus an
+      opaque session id, and actions go up as plain `{ version, action }`.
+      *Done when:* `agent-client.ts` has no A2A types or field names, and the
+      stub flow still runs end to end.
+      **Stretch, only if the critical path is done by ~6 Nov:** a second
+      adapter behind the same `POST /a2a` contract (an AG-UI one, or a plain
+      SSE agent) switched by env var, to show live that only the adapter
+      changes. Otherwise show the one-file diff on a slide.
+      **Honesty caveat for the slide:** the UI layer doesn't care about the
+      transport, the architecture does. A2A was picked partly for sub-agent
+      delegation later (`QA.md`, "Why A2A protocol as transport"); AG-UI is an
+      agent ↔ app protocol and would give that up.
 
 **Resolved this session (2026-07-24):** capability negotiation mechanism
 (`a2uiClientCapabilities.supportedCatalogIds`) and the `VALIDATION_FAILED`
@@ -584,3 +698,20 @@ the Angular client.
   Angular 21). `@a2ui/agent` pinned to 0.0.1 (its `main` broke the API on 2026-10-21). Steps 1–2
   done and checked in a browser: hardcoded render, then the full chain in stub mode. Found: UI
   actions must reach the agent as `{ version: 'v0.9', action }`. Details in `demo/README.md`.
+- **2026-10-22 (evening)** — Verified `A2AClient` is `@deprecated` in
+  `@a2a-js/sdk` 0.3.14 (use `ClientFactory`). The official Angular sample
+  still uses `A2AClient.fromCardUrl`, so the demo keeps it to stay identical
+  to the reference. Added a pre-talk open item to re-check the sample and
+  follow it if it moves, plus a `QA.md` answer for the question.
+- **2026-10-23** — Added the transport-swap beat (open items): the browser
+  should see only A2UI, with `server.ts` as the single A2A adapter. Found that
+  `agent-client.ts` currently parses A2A `parts`, so the claim isn't true of
+  the demo yet. Second live transport is a stretch goal, not critical path.
+- **2026-10-23 (later)** — Decided (Giorgio): keep the Zod catalog and
+  server-side policy on top of `@a2ui/agent`; the published abstract is
+  fixed, so the demo has to show them. Found: `@a2ui/web_core` defines
+  components as Zod 3 `ComponentApi`s and generates catalog JSON with
+  `Catalog.toJson()`, so the July Zod 4 / `z.toJSONSchema()` plan is
+  superseded. Policy hooks into `agent.ts` before `toA2aParts`, on both the
+  streamed and the validated path. New section "Zod catalog and policy on top
+  of `@a2ui/agent`" and two open items.
