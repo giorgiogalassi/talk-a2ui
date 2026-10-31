@@ -17,9 +17,6 @@ export class AgentClient {
 
   /** A new prompt replaces whatever the agent rendered before. */
   ask(query: string): Promise<void> {
-    for (const surfaceId of Array.from(this.renderer.surfaceGroup.surfacesMap.keys())) {
-      this.renderer.surfaceGroup.deleteSurface(surfaceId);
-    }
     return this.send({ query });
   }
 
@@ -29,6 +26,12 @@ export class AgentClient {
   }
 
   private async send(body: { query?: string; event?: unknown }): Promise<void> {
+    // Every reply carries its whole UI, createSurface included (@a2ui/agent 0.0.2 checks each
+    // reply against a fresh state), so any interaction clears the old surfaces first, as the
+    // official Angular sample does.
+    for (const surfaceId of Array.from(this.renderer.surfaceGroup.surfacesMap.keys())) {
+      this.renderer.surfaceGroup.deleteSurface(surfaceId);
+    }
     this.isLoading.set(true);
     this.error.set(null);
     try {

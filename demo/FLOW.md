@@ -78,7 +78,7 @@ flowchart LR
   class APP,AC,BR,AX,EX,GEN,STUB,LLM,POL,CAT todo
 ```
 
-## Phase 2 — the full chain in stub mode (done 2026-10-22) ← current
+## Phase 2 — the full chain in stub mode (done 2026-10-22)
 
 The browser never speaks A2A: it POSTs to its own server, which is the A2A client. The agent runs
 with `STUB_LLM=true`, so no model is called: it picks a canned example by action name (no action →
@@ -147,17 +147,85 @@ flowchart LR
   class LLM,POL,CAT todo
 ```
 
+## Phase 3 — live model (done 2026-10-31) ← current
+
+`GEMINI_API_KEY` set, so `generateUi` calls Gemini (`gemini-3.6-flash`), which calls the
+`get_restaurants` tool and streams A2UI back; `StubBackend` stays as the fallback when
+`STUB_LLM=true`. Two fixes landed with it (`README.md` → "Incidents"): `@a2ui/agent` 0.0.1 → 0.0.2,
+so the client now clears surfaces on every request; and the agent validates with `@a2ui/web_core`'s
+Zod `basicCatalog`, the one the renderer uses, so a binding cut mid-stream is held back.
+
+```mermaid
+flowchart LR
+  subgraph B["Browser · Angular 22 app"]
+    direction TB
+    U(["User"])
+    APP["App<br/>prompt form"]
+    HC["booking-form.json<br/>hardcoded A2UI message"]
+    AC["AgentClient<br/>ask() · handleAction()<br/>clears surfaces each request"]
+    R["A2uiRendererService<br/>processMessages()"]
+    S["a2ui-v09-surface<br/>BasicCatalog"]
+    LOG["console.log(action)"]
+  end
+  subgraph SV["Client SSR server · :4200"]
+    direction TB
+    BR["POST /a2a bridge<br/>server.ts"]
+    AX["A2AClient<br/>+ X-A2A-Extensions header"]
+  end
+  subgraph AG["Agent · :10002"]
+    direction TB
+    EX["RestaurantExecutor.run<br/>pick version · read action"]
+    GEN["generateUi → answer()<br/>@a2ui/agent 0.0.2 stream<br/>checked per message · 1 retry<br/>web_core basicCatalog (renderer's Zod)"]
+    STUB["StubBackend<br/>canned example per action"]
+    LLM[("Gemini")]
+    POL["applyPolicy<br/>policy.ts"]
+  end
+  subgraph PK["packages/catalog"]
+    direction TB
+    CAT["Zod ComponentApi<br/>→ Catalog.toJson()"]
+  end
+
+  U -->|"types a prompt"| APP
+  APP -->|"ask(query)<br/>clears surfaces"| AC
+  HC ~~~ R
+  AC -->|"fetch POST /a2a<br/>query or event + contextId"| BR
+  BR -->|"text part, or data part<br/>{ version: 'v0.9', action }<br/>+ a2uiClientCapabilities"| AX
+  AX -->|"A2A v0.3 message/stream<br/>JSON-RPC"| EX
+  EX --> GEN
+  GEN -->|"actionName"| STUB
+  GEN -->|"prompt + catalog<br/>get_restaurants tool"| LLM
+  GEN -.->|"A2UI data parts<br/>status working → input-required<br/>(completed after submit)"| AX
+  AX -.->|"stream events"| BR
+  BR -.->|"SSE data: { parts, contextId }"| AC
+  AC -.->|"A2UI messages"| R
+  R --> S
+  S -->|"button → actionHandler<br/>handleAction(action)"| AC
+  S ~~~ LOG
+  GEN ~~~ POL
+  POL ~~~ AX
+  CAT ~~~ GEN
+  CAT ~~~ S
+
+  classDef todo fill:none,stroke:#9aa0a6,stroke-dasharray:4 3,color:#9aa0a6
+  classDef new fill:#e8f0fe,stroke:#1a73e8,stroke-width:2px,color:#0b3d91
+  classDef done fill:#ffffff,stroke:#5f6368,color:#202124
+  classDef gone fill:#f1f3f4,stroke:#dadce0,color:#bdc1c6
+  class AC,GEN,LLM new
+  class U,APP,BR,AX,EX,STUB,R,S done
+  class HC,LOG gone
+  class POL,CAT todo
+```
+
 **Next frames** (planned; `POL` and `CAT` were added to every frame as `todo` on 2026-10-23, so the
 layout won't move when they land):
 
-- **Phase 3, live model:** `LLM` becomes `new`, `GEN ~~~ LLM` becomes a real edge, and `STUB` stays
-  as the fallback used when `STUB_LLM=true`.
 - **Zod catalog + custom components:** `CAT` becomes `new`; `CAT ~~~ GEN` becomes "catalog JSON
   (`InMemoryCatalogProvider`)" and `CAT ~~~ S` becomes "same `ComponentApi`s"; `S` is relabelled
   from `BasicCatalog` to the ticket catalog. See `IMPLEMENTATION-PLAN.md` → "Zod catalog and policy
   on top of `@a2ui/agent`".
 - **Policy:** `POL` becomes `new`; `GEN → AX` turns into `GEN → POL → AX` (the old direct edge goes
-  `~~~`). Policy runs on the streamed and the validated path, before `toA2aParts`.
+  `~~~`). Policy runs in `answer()` on every published message (streamed and non-streamed path),
+  before `toA2aParts`.
 - **Transport swap:** `server.ts` unwraps A2A, so `BR -.-> AC` is relabelled from
   "SSE data: { parts, contextId }" to plain A2UI messages + session id, and `AC` loses its A2A
   field names. No node changes; this is the frame that shows only the adapter moved.

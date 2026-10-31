@@ -18,6 +18,7 @@ import path from 'path';
 
 import {FileSystemCatalogProvider} from '@a2ui/agent';
 import {type CatalogApi} from '@a2ui/web_core/catalog';
+import {basicCatalog} from '@a2ui/web_core/v0_9/basic_catalog';
 
 import {getRepoRootDir} from './tools.js';
 import {VERSIONS, type VersionProfile} from './versions.js';
@@ -26,15 +27,24 @@ import {VERSIONS, type VersionProfile} from './versions.js';
 export type BasicCatalogs = ReadonlyMap<VersionProfile['version'], CatalogApi>;
 
 /**
- * Loads the basic catalog of every served version from the repository.
+ * Loads the basic catalog of every served version.
  *
- * `@a2ui/agent` bundles no catalog, so the agent loads the published documents itself.
- * The v0.9 document states neither a `catalogId` nor a `protocolVersion`, so both come
- * from the version profile.
+ * Demo: v0.9 uses `@a2ui/web_core`'s own Zod catalog, the one the renderer validates with,
+ * instead of the published JSON document. Loaded from JSON, an action's `context` comes back
+ * as `Record<unknown>`, so the agent accepted values the renderer rejects, and the stream
+ * published a binding cut mid-chunk as `{}` (demo/README.md, incident 2). Both produce the
+ * same catalog document, so the model's prompt is unchanged.
+ *
+ * Other versions load the published document, as in the sample. It states neither a
+ * `catalogId` nor a `protocolVersion`, so both come from the version profile.
  */
 export function loadBasicCatalogs(repoRoot: string = getRepoRootDir()): BasicCatalogs {
   const catalogs = new Map<VersionProfile['version'], CatalogApi>();
   for (const profile of VERSIONS) {
+    if (profile.version === 'v0.9' && basicCatalog.id === profile.basicCatalogId) {
+      catalogs.set(profile.version, basicCatalog);
+      continue;
+    }
     const provider = new FileSystemCatalogProvider(
       path.join(repoRoot, profile.basicCatalogPath),
       profile.version,
