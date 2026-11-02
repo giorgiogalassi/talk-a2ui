@@ -23,9 +23,12 @@ basic catalog. Checked in a browser: typing into fields sends nothing; *Submit R
 **Step 2, the full chain in stub mode — done (2026-10-22).** Browser → `POST /a2a` (the client's
 own server) → A2A `message/stream` → agent → A2UI messages back as SSE → renderer. Checked in a
 browser: prompt → restaurant list → *Book Now* → booking form → *Submit* → confirmation.
-- Gotcha found: the agent reads a UI action only inside a v0.9 envelope, `{ version: 'v0.9', action }`.
-  The bare action (and the official Angular sample's legacy `userAction`) is ignored and the agent
-  answers as if it were a new query. The bridge wraps it (`apps/client/src/server.ts`).
+- Gotcha found: the agent reads a UI action inside a v0.9 envelope, `{ version: 'v0.9', action }`,
+  or as the legacy `{ userAction }` (fallback in `apps/agent/src/a2a.ts`). A bare action, which is
+  what the renderer hands the client, is ignored and the agent answers as if it were a new query.
+  The bridge wraps it (`apps/client/src/server.ts`). Corrected 2026-11-02 after testing all three
+  shapes against the stub agent: envelope and `userAction` both return the booking form, the bare
+  action returns the restaurant list again. (This note first said `userAction` was ignored too.)
 - Angular 22 SSR rejects unlisted hosts: `localhost` is in `angular.json` → `security.allowedHosts`.
 
 **Step 3, live model — done (2026-10-31).** `GEMINI_API_KEY` in `apps/agent/.env` (gitignored),
