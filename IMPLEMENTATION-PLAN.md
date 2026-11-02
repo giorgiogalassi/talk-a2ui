@@ -8,7 +8,71 @@ changelog. For audience-facing "why" answers and anticipated Q&A, see
 **`QA.md`** in this same folder — the two docs cross-reference rather than
 duplicate.
 
-Last updated: 2026-10-21 (Angular sample found; client steps 4–6 revised).
+Last updated: 2026-10-31 (phase 3 live model; `@a2ui/agent` 0.0.1 → 0.0.2; Mermaid diagrams added).
+
+**The abstract is fixed** (Giorgio, 2026-10-23): it is published and accepted,
+so the demo must deliver what it promises, not the other way round. In
+particular "capability negotiation, Zod catalog schemas, server-side policy
+enforcement, client-side validation" all have to be visible in the demo.
+
+## At a glance
+
+### Build roadmap
+
+Each phase is one frame in `demo/FLOW.md`, which draws the running system. This graph shows only
+the order and what each phase adds.
+
+```mermaid
+flowchart LR
+  P1["1 · Render without an agent<br/>hardcoded v0.9 message"]
+  P2["2 · Full chain, stub mode<br/>browser → POST /a2a → A2A → agent"]
+  P3["3 · Live model<br/>Gemini via GEMINI_API_KEY"]
+  P4["4 · Zod catalog + ticket domain<br/>packages/catalog"]
+  P5["5 · Server-side policy<br/>applyPolicy"]
+  P6["6 · Client-side validation<br/>VALIDATION_FAILED"]
+  P7["7 · Transport swap<br/>browser sees only A2UI"]
+  D["Deck + QA.md<br/>reconciled with the real demo"]
+  R(["Rehearsal<br/>~6 Nov"])
+  T(["AngularDay<br/>Fri 20 Nov"])
+
+  P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> D --> R --> T
+
+  classDef done fill:#ffffff,stroke:#5f6368,color:#202124
+  classDef next fill:#e8f0fe,stroke:#1a73e8,stroke-width:2px,color:#0b3d91
+  classDef todo fill:none,stroke:#9aa0a6,stroke-dasharray:4 3,color:#5f6368
+  class P1,P2,P3 done
+  class P4 next
+  class P5,P6,P7,D,R,T todo
+```
+
+### Decisions and what they replaced
+
+Left: the July plan. Right: what the demo does now, and why. Details in the changelog at the end.
+
+```mermaid
+flowchart LR
+  subgraph JUL["July plan (2026-07-24)"]
+    direction TB
+    J1["Agent on Genkit<br/>+ Firestore"]
+    J2["A2A v1.0<br/>@a2a-js/sdk@next, alpha"]
+    J3["A2A client in the browser<br/>bridge ported from Lit"]
+    J4["Zod 4 → z.toJSONSchema()<br/>+ own .safeParse() step"]
+  end
+  subgraph NOW["Current (2026-10-21 → 23)"]
+    direction TB
+    N1["Official A2UI Node sample<br/>@google/genai + @a2ui/agent 0.0.2"]
+    N2["A2A v0.3<br/>@a2a-js/sdk 0.3.13, both sides"]
+    N3["A2A client on the SSR server<br/>server.ts, POST /a2a + SSE"]
+    N4["Zod 3 ComponentApi → Catalog.toJson()<br/>agent's own validate + retry"]
+  end
+  KEEP["Kept from July<br/>A2UI v0.9 · Cloud Run · monorepo<br/>policy server side · self-correction loop"]
+
+  J1 -->|"sample brings validation, retry,<br/>negotiation, stub mode (10-22)"| N1
+  J2 -->|"same as the official samples;<br/>v1.0 SDK still alpha (10-22)"| N2
+  J3 -->|"official Angular sample<br/>does it server side (10-21/22)"| N3
+  J4 -->|"A2UI components are already<br/>Zod 3 ComponentApis (10-23)"| N4
+  NOW ~~~ KEEP
+```
 
 ---
 
@@ -89,6 +153,12 @@ or more of those stages.
    itself, current `@google/genai` SDK usage is
    `config.responseJsonSchema = z.toJSONSchema(schema)` paired with
    `config.responseMimeType = 'application/json'`.
+
+   **Superseded 2026-10-23** for the Zod version and the conversion: see
+   "Zod catalog and policy on top of `@a2ui/agent`" below. A2UI's own
+   `@a2ui/web_core` is built on **Zod 3** (`^3.25.76`) and generates the
+   catalog JSON itself (`Catalog.toJson()`), so neither Zod 4 nor
+   `z.toJSONSchema()` is used.
 
    **Precise capability-negotiation mechanism** (confirmed 2026-07-24 against
    current docs): the catalog's wire artifact is a plain JSON Schema file
@@ -432,8 +502,153 @@ architecture one.
 
 ---
 
+## Zod catalog and policy on top of `@a2ui/agent` (decided 2026-10-23)
+
+**Decision (Giorgio):** the switch to the official Node agent sample on
+2026-10-22 keeps both the Zod catalog and server-side policy. The abstract
+promises them. Checked against the installed packages
+(`@a2ui/web_core@0.14.0`, `@a2ui/agent@0.0.1`) on 2026-10-23. `InMemoryCatalogProvider`
+is still exported by 0.0.2 (checked 2026-10-31); the policy hook points changed, see below.
+
+**Zod catalog: use A2UI's own mechanism, not our own converter.**
+- In `@a2ui/web_core`, every component is a `ComponentApi` whose `schema` is a
+  Zod schema (`@a2ui/web_core/catalog`, `types.d.ts`). The basic catalog is
+  written this way. So "Zod is built into A2UI" (deck section 4) holds
+  literally.
+- It is **Zod 3** (`zod@^3.25.76`, also the peer of `@a2ui/angular`). Use the
+  same version in `packages/catalog`; `z.infer` from a Zod 4 schema would not
+  type-check against `ComponentApi`.
+- `packages/catalog`: one `ComponentApi` per component (`TicketList`,
+  `PriorityBadge`, `AssigneeChip`, plus the basic `Button`), assembled with
+  `new Catalog(id, 'v0.9', components)`. `catalog.toJson()` produces the
+  spec-compliant catalog JSON Schema document; that replaces both
+  `z.toJSONSchema()` and `zod-to-json-schema`.
+- **Agent:** load that document with `InMemoryCatalogProvider(doc, 'v0.9',
+  catalogId)` (exported by `@a2ui/agent`) instead of the
+  `FileSystemCatalogProvider` in `src/catalogs.ts`, and pass it to
+  `A2uiGenerator` / `CatalogConfig` as today. The generator's prompt and the
+  processor's validation then both come from the Zod source, so
+  `@a2ui/agent`'s built-in validate-and-retry (`agent.ts`, `MAX_ATTEMPTS = 2`)
+  is validating against our Zod catalog. No separate `.safeParse()` step.
+- **Client:** the Angular catalog components implement the same
+  `ComponentApi` objects (`InferredComponentApiSchemaType<Api>` for props),
+  and the custom catalog id goes into `supportedCatalogIds`. That is the
+  capability negotiation step, already read by `pick-a2ui.ts`.
+- **Check while building:** whether `Catalog.toJson()` output loads cleanly
+  into `InMemoryCatalogProvider` for custom components (the basic catalog
+  goes the other way, file → `Catalog.fromJson`). If it doesn't, write the
+  generated document to `apps/agent/catalogs/` at build time and keep
+  `FileSystemCatalogProvider`; the source of truth is still Zod.
+- The Gemini constrained-decoding gotcha above no longer applies the same
+  way: the sample prompts with the catalog and validates afterwards, it does
+  not pass a `responseJsonSchema`.
+
+One Zod source feeds three consumers: the model's prompt, the agent's validation, and the Angular
+components' input types. Capability negotiation picks which catalog a turn uses.
+
+```mermaid
+flowchart LR
+  subgraph PK["packages/catalog · Zod 3"]
+    direction TB
+    API["ComponentApi per component<br/>TicketList · PriorityBadge<br/>AssigneeChip · Button"]
+    CAT["new Catalog(id, 'v0.9', components)"]
+    JSON["catalog.toJson()<br/>catalog JSON Schema document"]
+    API --> CAT --> JSON
+  end
+  subgraph AG["apps/agent"]
+    direction TB
+    PROV["InMemoryCatalogProvider<br/>(fallback: file + FileSystemCatalogProvider)"]
+    GEN["A2uiGenerator<br/>catalog goes into the prompt"]
+    VAL["validate + 1 retry<br/>MAX_ATTEMPTS = 2"]
+    PICK["pick-a2ui.ts<br/>reads supportedCatalogIds"]
+    PROV --> GEN
+    PROV --> VAL
+  end
+  subgraph CL["apps/client"]
+    direction TB
+    CMP["Angular catalog components<br/>InferredComponentApiSchemaType#60;Api#62;"]
+    CAPS["a2uiClientCapabilities<br/>supportedCatalogIds: [ticket catalog id]"]
+  end
+
+  JSON --> PROV
+  API -->|"same objects"| CMP
+  CAPS -->|"sent with every message"| PICK
+  PICK -->|"chooses catalog"| GEN
+```
+
+**Policy: same `applyPolicy(messages, policy)` as item 6, new hook points.**
+- *Revised 2026-10-31 for `@a2ui/agent` 0.0.2, which removed `streamText()` and `validate()`.*
+  It runs on A2UI messages **before** `toA2aParts` in `answer()` in `apps/agent/src/agent.ts`,
+  in two places: the streaming path's `send()` (each `stream.feed(chunk)` and `stream.close()`
+  result) and the non-streaming path (the `processor.parseResponse(fullText)` result).
+- Both are needed. In Direct JSON mode the stream publishes each message as it grows, before
+  the reply has closed, so a policy applied only at the end would let a forbidden field reach
+  the browser mid-stream. That makes `applyPolicy` a per-message, stateless function, which it
+  already is.
+- Policy object unchanged: `forbiddenDataPaths: ['/tickets/*/internal_notes']`,
+  `disabledActions: ['delete_ticket']`. Log every strip (observability slide).
+- Keep it in its own file (`src/policy.ts`) with a unit test, so the deck can
+  show it whole and the diff against the upstream sample stays small.
+
+One turn, with the planned policy hooks and client-side validation (Direct JSON mode, `@a2ui/agent`
+0.0.2). `applyPolicy` and the `VALIDATION_FAILED` path are not built yet; the retry loop is
+(`generateUi` → `answer()` in `agent.ts`).
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant B as Browser (renderer)
+  participant S as SSR server (A2A client)
+  participant E as Agent: generateUi / answer
+  participant M as Gemini
+  participant P as applyPolicy (planned)
+
+  B->>S: POST /a2a (query or { version: 'v0.9', action })
+  S->>E: A2A message/stream + supportedCatalogIds
+  loop attempt 1..2 (MAX_ATTEMPTS)
+    E->>M: prompt with catalog
+    M-->>E: streamed chunks
+    Note over E,P: send(): stream.feed(chunk), checked per message
+    E->>P: each A2UI message, re-sent whole as it grows
+    P-->>E: forbidden paths stripped, disabled actions removed
+    E-->>S: toA2aParts → published as they arrive
+    S-->>B: SSE
+    Note over E,P: send(): stream.close() checks the end of the reply
+    E->>P: last messages
+    alt valid, with A2UI
+      E-->>S: final status (input-required / completed)
+    else invalid or no A2UI
+      E->>E: retryQuery(error), new processor
+    end
+  end
+  opt both attempts fail
+    E-->>S: text-only fallback
+  end
+  opt renderer rejects a message (client step 8, planned)
+    B->>S: VALIDATION_FAILED
+    S->>E: forwarded as a new turn
+  end
+```
+
+**What the demo then shows, against the abstract's pipeline line:**
+capability negotiation (`supportedCatalogIds` → `pick-a2ui.ts`) · Zod catalog
+schemas (`packages/catalog` → `Catalog.toJson()` → agent) · server-side policy
+(`applyPolicy` in the agent) · client-side validation (`@a2ui/web_core` in
+the renderer, `VALIDATION_FAILED` back to the agent, client step 8).
+
+---
+
 ## Open / to revisit as the demo project gets built
 
+- [ ] **Upstream report for incident 2** (next session, Giorgio 2026-10-31):
+      draft an issue for `a2ui-project/a2ui`: the Node sample loads the basic
+      catalog from JSON, and the JSON → Zod conversion types an action's
+      `context` values as `unknown`, so agent-side validation is looser than
+      the renderer's and a streamed `{}` binding reaches the browser. Before
+      drafting: check their `main` and open issues, and pinpoint which
+      conversion step loses the type. Repro: the 4-case table in
+      `demo/README.md` → "Incidents". Public, under Giorgio's account: draft
+      for review, never post without his OK.
 - [ ] Reconcile `slides.md` sections 4–5 code samples against the real
       `@a2ui/angular` public API (`A2uiRendererService` / `A2UI_RENDERER_CONFIG`
       / `BasicCatalog`), which differs from the internal-path names currently
@@ -486,6 +701,48 @@ architecture one.
 - [ ] **Resolve whether `@a2ui/web_core` auto-reports `VALIDATION_FAILED`**
       or whether app code must catch and send it manually (client build order
       step 8).
+- [ ] **By 13 Nov 2026: re-check the Angular sample's A2A client.** The
+      demo's `server.ts` uses `A2AClient.fromCardUrl`, deprecated in
+      `@a2a-js/sdk` 0.3.x in favour of `ClientFactory`, because the official
+      sample does the same (checked 2026-10-22, a2ui `main`,
+      `samples/client/angular/projects/restaurant/src/server.ts` lines 26 and
+      231, `@a2a-js/sdk ^0.3.13`). Re-fetch that file by **13 November 2026**,
+      a week before the talk (AngularDay, 20 November 2026, Verona):
+      if it has moved to `ClientFactory` (or to the v1.0 SDK), follow it with
+      `new ClientFactory().createFromUrl(...)` and carry the
+      `X-A2A-Extensions` header over (today a custom `fetchImpl`; the SDK has
+      `withA2AExtensions` via `ServiceParameters`), re-run the stub flow, and
+      update `QA.md`'s "isn't that deprecated?" answer. If it has not moved,
+      leave the demo as is.
+- [ ] **`packages/catalog` on Zod 3 + `Catalog.toJson()`** (decided
+      2026-10-23, section above). *Done when:* the agent loads the generated
+      document, the Angular catalog uses the same `ComponentApi` objects, and
+      a deliberately wrong prop fails `@a2ui/agent` validation and triggers
+      the retry.
+- [ ] **`applyPolicy` in `agent.ts` on both the streamed and the validated
+      path** (section above). *Done when:* a unit test strips
+      `internal_notes` and a `delete_ticket` button, and in the browser the
+      field never appears, not even mid-stream.
+- [ ] **Transport swap: make `server.ts` the only file that knows A2A
+      (added 2026-10-23).** Talk + article beat: A2UI is transport-agnostic
+      (the spec lists A2A, AG-UI, SSE, WebSockets; CopilotKit runs A2UI over
+      AG-UI), so switching transport should touch one adapter, never the
+      catalog, the components or the renderer. Today the A2A shape leaks into
+      the browser: `apps/client/src/app/agent-client.ts` filters
+      `parts` / `kind: 'data'` and reads `contextId`. Move the unwrapping into
+      `server.ts` so the browser's SSE carries plain A2UI messages
+      (`createSurface` / `updateComponents` / `updateDataModel`) plus an
+      opaque session id, and actions go up as plain `{ version, action }`.
+      *Done when:* `agent-client.ts` has no A2A types or field names, and the
+      stub flow still runs end to end.
+      **Stretch, only if the critical path is done by ~6 Nov:** a second
+      adapter behind the same `POST /a2a` contract (an AG-UI one, or a plain
+      SSE agent) switched by env var, to show live that only the adapter
+      changes. Otherwise show the one-file diff on a slide.
+      **Honesty caveat for the slide:** the UI layer doesn't care about the
+      transport, the architecture does. A2A was picked partly for sub-agent
+      delegation later (`QA.md`, "Why A2A protocol as transport"); AG-UI is an
+      agent ↔ app protocol and would give that up.
 
 **Resolved this session (2026-07-24):** capability negotiation mechanism
 (`a2uiClientCapabilities.supportedCatalogIds`) and the `VALIDATION_FAILED`
@@ -575,3 +832,54 @@ the Angular client.
 - **2026-10-22** — Decided: the A2A client lives server side (SSR server
   proxy, as in the official Angular sample). Deck section 4 diagram update
   added as an open item.
+- **2026-10-22 (later)** — Demo started on branch `demo`, folder `demo/` (npm workspace). Decided
+  (Giorgio): **agent = the official A2UI Node sample pattern** (`@google/genai` + `@a2ui/agent`,
+  which brings validation, retry-with-error, capability negotiation and a stub mode), replacing
+  the July Genkit plan — `QA.md`'s Genkit/Firestore answers need rewriting, Cloud Run still holds;
+  **`@a2a-js/sdk` 0.3.13 (A2A v0.3)** on both sides, like the official samples, replacing "target
+  v1.0"; Gemini via API key. Angular **22.2.3** with an npm override (`@a2ui/angular@0.13.0` peers
+  Angular 21). `@a2ui/agent` pinned to 0.0.1 (its `main` broke the API on 2026-10-21). Steps 1–2
+  done and checked in a browser: hardcoded render, then the full chain in stub mode. Found: UI
+  actions must reach the agent as `{ version: 'v0.9', action }`. Details in `demo/README.md`.
+- **2026-10-22 (evening)** — Verified `A2AClient` is `@deprecated` in
+  `@a2a-js/sdk` 0.3.14 (use `ClientFactory`). The official Angular sample
+  still uses `A2AClient.fromCardUrl`, so the demo keeps it to stay identical
+  to the reference. Added a pre-talk open item to re-check the sample and
+  follow it if it moves, plus a `QA.md` answer for the question.
+- **2026-10-23** — Added the transport-swap beat (open items): the browser
+  should see only A2UI, with `server.ts` as the single A2A adapter. Found that
+  `agent-client.ts` currently parses A2A `parts`, so the claim isn't true of
+  the demo yet. Second live transport is a stretch goal, not critical path.
+- **2026-10-23 (later)** — Decided (Giorgio): keep the Zod catalog and
+  server-side policy on top of `@a2ui/agent`; the published abstract is
+  fixed, so the demo has to show them. Found: `@a2ui/web_core` defines
+  components as Zod 3 `ComponentApi`s and generates catalog JSON with
+  `Catalog.toJson()`, so the July Zod 4 / `z.toJSONSchema()` plan is
+  superseded. Policy hooks into `agent.ts` before `toA2aParts`, on both the
+  streamed and the validated path. New section "Zod catalog and policy on top
+  of `@a2ui/agent`" and two open items.
+- **2026-10-31** — Phase 3 (live model) started: Gemini via `GEMINI_API_KEY`
+  in `apps/agent/.env`, model `gemini-3.6-flash`. **`@a2ui/agent` upgraded
+  0.0.1 → 0.0.2** (Giorgio): 0.0.1's streaming parser dropped `path` from
+  streamed `updateDataModel` messages and then suppressed the complete one, so
+  the live list rendered empty. 0.0.2 (released 2026-10-24) rewrote the parser;
+  `src/agent.ts` replaced with the sample's file at the release commit
+  `409ded29cc`. Knock-on: every reply now re-sends `createSurface`, so the
+  client clears surfaces before every request, as the official Angular sample
+  does. Policy hook points revised (`streamText()`/`validate()` no longer
+  exist; now `answer()`'s `send()` and the `parseResponse` path). Found a
+  second issue (open): mid-stream, a data binding cut before its `"path"`
+  is published as `{}` and fails the renderer's Zod validation. Not a parser
+  bug: the parser holds what the agent's state rejects, but the agent's
+  JSON-loaded catalog types an action's `context` as `Record<unknown>`, while
+  the renderer's hand-written Zod accepts only literals, `{path}` or a
+  function call. Argues for step 4's single Zod source on both sides. Both
+  incidents written up in `demo/README.md` → "Incidents". Mermaid diagrams
+  added: build roadmap, decisions and what they replaced (top of this file),
+  catalog flow and one-turn sequence (Zod catalog and policy section).
+- **2026-10-31 (later)** — Phase 3 done: live flow checked end to end in a
+  browser (list → form → submit → confirmation), stub re-checked. Incident 2
+  fixed (Giorgio): the agent serves v0.9 with `@a2ui/web_core`'s Zod
+  `basicCatalog`, the renderer's own, instead of the JSON file, so agent and
+  renderer validate with one schema. Same catalog document, so the prompt is
+  unchanged. Phase 3 frame added to `demo/FLOW.md`. Not yet reported upstream.

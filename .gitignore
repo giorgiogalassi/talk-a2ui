@@ -2,3 +2,7 @@ node_modules/
 dist/
 .slidev/
 .DS_Store
+.angular/
+.env
+.env.*
+!.env.example
