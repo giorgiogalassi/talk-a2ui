@@ -19,7 +19,7 @@
         {
           "id": "detail_column",
           "component": "Column",
-          "children": ["detail_title", "detail_meta", "divider", "detail_description", "resolve_button"]
+          "children": ["detail_title", "detail_meta", "divider", "detail_description", "detail_actions"]
         },
         {
           "id": "detail_title",
@@ -77,6 +77,12 @@
           }
         },
         {
+          "id": "detail_actions",
+          "component": "Row",
+          "align": "center",
+          "children": ["resolve_button", "delete_button"]
+        },
+        {
           "id": "resolve_button",
           "component": "Button",
           "variant": "primary",
@@ -99,6 +105,27 @@
           "id": "resolve_text",
           "component": "Text",
           "text": "Mark as resolved"
+        },
+        {
+          "id": "delete_button",
+          "component": "Button",
+          "variant": "borderless",
+          "child": "delete_text",
+          "action": {
+            "event": {
+              "name": "delete_ticket",
+              "context": {
+                "ticketId": {
+                  "path": "/ticket/id"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "delete_text",
+          "component": "Text",
+          "text": "Delete ticket"
         }
       ]
     }

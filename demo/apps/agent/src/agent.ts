@@ -32,6 +32,7 @@ import type {A2uiFormat} from './config.js';
 import {loadExamples} from './examples.js';
 import type {ModelBackend, TurnInput} from './model.js';
 import {pickA2ui} from './pick-a2ui.js';
+import {enforcePolicy} from './policy.js';
 import {buildSystemPrompt, FALLBACK_TEXT, retryQuery} from './prompt.js';
 import {buildUserQuery} from './user-query.js';
 import {VERSIONS, type VersionProfile} from './versions.js';
@@ -198,7 +199,9 @@ export class RestaurantExecutor implements AgentExecutor {
       const stream = processor.openStream();
       const parts: Part[] = [];
       const send = (ready: ResponsePart[]) => {
-        const a2aParts = ready.flatMap(toA2aParts);
+        // Demo: the server-side policy (src/policy.ts) checks every message before it is
+        // published, each re-send of a growing message included.
+        const a2aParts = enforcePolicy(ready).flatMap(toA2aParts);
         if (a2aParts.length > 0) {
           parts.push(...a2aParts);
           publish(a2aParts);
@@ -215,7 +218,8 @@ export class RestaurantExecutor implements AgentExecutor {
     for await (const chunk of this.backend.streamTurn(turn)) {
       fullText += chunk;
     }
-    const parts = processor.parseResponse(fullText).flatMap(toA2aParts);
+    // Demo: the same policy on the validated whole reply.
+    const parts = enforcePolicy(processor.parseResponse(fullText)).flatMap(toA2aParts);
     if (parts.some(part => part.kind === 'data')) {
       publish?.(parts);
     }

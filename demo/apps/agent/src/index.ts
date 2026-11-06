@@ -79,8 +79,15 @@ export async function createApp(options: {env?: NodeJS.ProcessEnv; port?: number
 
   const backend: ModelBackend =
     mode === 'stub'
-      ? // Demo: STUB_INVALID_FIRST=true makes each turn's first attempt fail validation.
-        new StubBackend(format, ticketCatalogs, undefined, env.STUB_INVALID_FIRST === 'true')
+      ? // Demo: STUB_INVALID_FIRST=true makes each turn's first attempt fail validation;
+        // STUB_LEAKY=true serves internal notes for the policy to strip.
+        new StubBackend(
+          format,
+          ticketCatalogs,
+          undefined,
+          env.STUB_INVALID_FIRST === 'true',
+          env.STUB_LEAKY === 'true',
+        )
       : new GeminiBackend({
           apiKey: env.GEMINI_API_KEY!,
           modelName: resolveModelName(env),

@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
+import fs from 'fs';
 import path from 'path';
 
+import type {AgentToRendererMessage} from '@a2ui/agent';
 import {Chat, FunctionCall, GoogleGenAI, PartListUnion, type ThinkingLevel} from '@google/genai';
 
 import type {BasicCatalogs} from './catalogs.js';
@@ -145,6 +147,14 @@ export class StubBackend implements ModelBackend {
      * fails and the retry answers with the valid response. Shows the retry without a model.
      */
     private readonly invalidFirstAttempt = false,
+    /**
+     * Demo: when true (`STUB_LEAKY=true`), the replies are what a careless model would write:
+     * every ticket in the data model keeps its `internal_notes`, and the detail view shows
+     * them in an extra Text (the Delete button is in the example already). Valid against the
+     * catalog, so only the policy (src/policy.ts) stops them. The reply streams in small
+     * chunks, so each message is re-sent many times as it grows and the notes appear mid-stream.
+     */
+    private readonly leaky = false,
   ) {
     for (const profile of VERSIONS) {
       const catalog = catalogs.get(profile.version)!;
@@ -153,9 +163,10 @@ export class StubBackend implements ModelBackend {
       const invalid: Record<string, string> = {};
       // Demo: the ticket flow: list, then one ticket, then the resolved confirmation.
       for (const name of ['ticket_list', 'ticket_detail', 'ticket_resolved']) {
-        const example = readMessages(
+        const read = readMessages(
           path.join(packageRoot, 'examples', profile.version, `${name}.json`),
         );
+        const example = leaky ? leakInternalNotes(read, packageRoot) : read;
         byExample[name] = toResponseText(profile, catalog, format, [...notice, ...example]);
         invalid[name] = toResponseText(profile, catalog, format, [
           ...notice,
@@ -179,9 +190,37 @@ export class StubBackend implements ModelBackend {
     const isRetry = query.startsWith('Your previous response was invalid.');
     const responses = this.invalidFirstAttempt && !isRetry ? this.invalidResponses : this.responses;
     const text = responses.get(profile.version)![exampleName];
-    const chunkSize = Math.ceil(text.length / 4);
+    // Demo: STUB_LEAKY streams 80-character chunks, so the notes show up in re-sends.
+    const chunkSize = this.leaky ? 80 : Math.ceil(text.length / 4);
     for (let start = 0; start < text.length; start += chunkSize) {
       yield text.substring(start, start + chunkSize);
     }
   }
+}
+
+/**
+ * Demo: the example messages with each ticket's `internal_notes` (from assets/tickets.json)
+ * put back into the data model, and, where a detail view binds `/ticket`, a Text showing them.
+ * What `STUB_LEAKY=true` serves.
+ */
+export function leakInternalNotes(messages: AgentToRendererMessage[], packageRoot: string): AgentToRendererMessage[] {
+  const tickets = JSON.parse(fs.readFileSync(path.join(packageRoot, 'assets', 'tickets.json'), 'utf-8')) as {
+    id: string;
+    internal_notes: string;
+  }[];
+  const notes = new Map(tickets.map(t => [t.id, t.internal_notes]));
+  const withNotes = (t: Record<string, unknown>) => ({...t, internal_notes: notes.get(t.id as string) ?? ''});
+  return (JSON.parse(JSON.stringify(messages)) as Record<string, any>[]).map(message => {
+    const value = message.updateDataModel?.value;
+    if (Array.isArray(value?.tickets)) value.tickets = value.tickets.map(withNotes);
+    if (value?.ticket) value.ticket = withNotes(value.ticket);
+    const components = message.updateComponents?.components as Record<string, any>[] | undefined;
+    const column = components?.find(c => c.id === 'detail_column');
+    if (components && column) {
+      column.children.splice(column.children.indexOf('detail_description') + 1, 0, 'detail_notes');
+      const at = components.findIndex(c => c.id === 'detail_description') + 1;
+      components.splice(at, 0, {id: 'detail_notes', component: 'Text', variant: 'caption', text: {path: '/ticket/internal_notes'}});
+    }
+    return message;
+  }) as AgentToRendererMessage[];
 }
