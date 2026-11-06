@@ -8,6 +8,7 @@ import express from 'express';
 import { join } from 'node:path';
 import { A2AClient } from '@a2a-js/sdk/client';
 import { MessageSendParams, Part } from '@a2a-js/sdk';
+import { TICKET_CATALOG_ID } from '@demo/catalog';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
@@ -22,10 +23,12 @@ const angularApp = new AngularNodeAppEngine();
 const AGENT_URL = process.env['AGENT_URL'] ?? 'http://localhost:10002';
 const A2UI_EXTENSION = 'https://a2ui.org/a2a-extension/a2ui/v0.9';
 
-// The catalogs this app's renderer registers. The agent may only compose from these.
+// The catalogs the agent may compose from: the ticket catalog, by the id packages/catalog
+// defines and the renderer registers (app.config.ts). Capability negotiation: the agent's
+// pick-a2ui.ts reads this list and builds its prompt and validation from these catalogs only.
 const A2UI_CLIENT_CAPABILITIES = {
   'v0.9': {
-    supportedCatalogIds: ['https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json'],
+    supportedCatalogIds: [TICKET_CATALOG_ID],
   },
 };
 

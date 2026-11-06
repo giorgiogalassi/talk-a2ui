@@ -26,7 +26,7 @@ import {
 } from '@a2ui/agent';
 
 import {readInboundMessage, TaskEvents, toA2aParts} from './a2a.js';
-import type {BasicCatalogs} from './catalogs.js';
+import type {BasicCatalogs, TicketCatalogs} from './catalogs.js';
 import type {A2uiFormat} from './config.js';
 import {loadExamples} from './examples.js';
 import type {ModelBackend, TurnInput} from './model.js';
@@ -39,7 +39,7 @@ import {VERSIONS, type VersionProfile} from './versions.js';
 const MAX_ATTEMPTS = 2;
 
 /**
- * Answers restaurant requests with A2UI, in the version the renderer asks for.
+ * Answers support-ticket requests with A2UI, in the version the renderer asks for.
  *
  * The A2A SDK calls `execute` once per incoming message. `run` holds the steps of one
  * turn, so start reading there; the private methods after it do the work of each step.
@@ -52,14 +52,18 @@ export class RestaurantExecutor implements AgentExecutor {
     private readonly format: A2uiFormat,
     private readonly backend: ModelBackend,
     private readonly catalogs: BasicCatalogs,
+    // Demo: the ticket catalog (packages/catalog), registered next to the basic one.
+    ticketCatalogs: TicketCatalogs,
   ) {
     for (const profile of VERSIONS) {
       const catalog = catalogs.get(profile.version)!;
-      const examples = loadExamples(profile, catalog, format);
+      // Demo: the examples are ticket UIs, so they are the ticket catalog's.
+      const ticketCatalog = ticketCatalogs.get(profile.version)!;
+      const examples = loadExamples(profile, ticketCatalog, format);
       this.generators.set(
         profile.version,
-        new A2uiGenerator([new CatalogConfig(catalog)], {
-          [catalog.id]: examples.catalogExamplesString,
+        new A2uiGenerator([new CatalogConfig(catalog), new CatalogConfig(ticketCatalog)], {
+          [ticketCatalog.id]: examples.catalogExamplesString,
         }),
       );
     }
@@ -99,7 +103,8 @@ export class RestaurantExecutor implements AgentExecutor {
     const {parts, published} = await this.generateUi(turn, catalogIds, publish);
 
     // 6. End the turn. Published parts are not repeated in the final status.
-    const finalState = actionName === 'submit_booking' ? 'completed' : 'input-required';
+    // Demo: resolving a ticket ends the flow, as submitting a booking did.
+    const finalState = actionName === 'resolve_ticket' ? 'completed' : 'input-required';
     events.status(finalState, true, published ? [] : parts);
   }
 

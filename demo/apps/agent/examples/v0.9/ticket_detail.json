@@ -1,0 +1,123 @@
+[
+  {
+    "version": "v0.9",
+    "createSurface": {
+      "surfaceId": "ticket-detail",
+      "catalogId": "https://github.com/giorgiogalassi/talk-a2ui/demo/catalogs/tickets/v0_9/catalog.json"
+    }
+  },
+  {
+    "version": "v0.9",
+    "updateComponents": {
+      "surfaceId": "ticket-detail",
+      "components": [
+        {
+          "id": "root",
+          "component": "Card",
+          "child": "detail_column"
+        },
+        {
+          "id": "detail_column",
+          "component": "Column",
+          "children": ["detail_title", "detail_meta", "divider", "detail_description", "resolve_button"]
+        },
+        {
+          "id": "detail_title",
+          "component": "Text",
+          "variant": "h2",
+          "text": {
+            "path": "/ticket/title"
+          }
+        },
+        {
+          "id": "detail_meta",
+          "component": "Row",
+          "align": "center",
+          "children": ["detail_id", "detail_priority", "detail_assignee", "detail_status"]
+        },
+        {
+          "id": "detail_id",
+          "component": "Text",
+          "variant": "caption",
+          "text": {
+            "path": "/ticket/id"
+          }
+        },
+        {
+          "id": "detail_priority",
+          "component": "PriorityBadge",
+          "priority": {
+            "path": "/ticket/priority"
+          }
+        },
+        {
+          "id": "detail_assignee",
+          "component": "AssigneeChip",
+          "name": {
+            "path": "/ticket/assignee"
+          }
+        },
+        {
+          "id": "detail_status",
+          "component": "Text",
+          "variant": "caption",
+          "text": {
+            "path": "/ticket/status"
+          }
+        },
+        {
+          "id": "divider",
+          "component": "Divider"
+        },
+        {
+          "id": "detail_description",
+          "component": "Text",
+          "text": {
+            "path": "/ticket/description"
+          }
+        },
+        {
+          "id": "resolve_button",
+          "component": "Button",
+          "variant": "primary",
+          "child": "resolve_text",
+          "action": {
+            "event": {
+              "name": "resolve_ticket",
+              "context": {
+                "ticketId": {
+                  "path": "/ticket/id"
+                },
+                "title": {
+                  "path": "/ticket/title"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "resolve_text",
+          "component": "Text",
+          "text": "Mark as resolved"
+        }
+      ]
+    }
+  },
+  {
+    "version": "v0.9",
+    "updateDataModel": {
+      "surfaceId": "ticket-detail",
+      "path": "/",
+      "value": {
+        "ticket": {
+          "id": "TCK-1042",
+          "title": "Checkout fails with a 502 on card payments",
+          "status": "open",
+          "priority": "urgent",
+          "assignee": "Giulia Rossi",
+          "description": "Since the 09:00 deploy, card payments at checkout return a 502. PayPal still works."
+        }
+      }
+    }
+  }
+]

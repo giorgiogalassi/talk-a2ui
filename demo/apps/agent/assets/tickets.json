@@ -1,0 +1,74 @@
+[
+  {
+    "id": "TCK-1042",
+    "title": "Checkout fails with a 502 on card payments",
+    "status": "open",
+    "priority": "urgent",
+    "assignee": "Giulia Rossi",
+    "description": "Since the 09:00 deploy, card payments at checkout return a 502. PayPal still works.",
+    "internal_notes": "Customer is Acme Corp, on a 2M EUR contract renewal this month. Do not mention the outage to other accounts."
+  },
+  {
+    "id": "TCK-1041",
+    "title": "Password reset email never arrives",
+    "status": "in_progress",
+    "priority": "high",
+    "assignee": "Marco Bianchi",
+    "description": "Users on outlook.com addresses do not receive the reset email. Spam folder checked.",
+    "internal_notes": "Our SPF record still lists the old mail provider. Fix pending in infra ticket OPS-77."
+  },
+  {
+    "id": "TCK-1039",
+    "title": "Export to CSV drops accented characters",
+    "status": "open",
+    "priority": "medium",
+    "assignee": null,
+    "description": "Names like 'Nicolò' come out as 'Nicol?' in the CSV export from the reports page.",
+    "internal_notes": "Probably the Latin-1 encoder in the legacy export service. Owner left the company."
+  },
+  {
+    "id": "TCK-1037",
+    "title": "Dashboard loads slowly on Monday mornings",
+    "status": "in_progress",
+    "priority": "high",
+    "assignee": "Sara Conti",
+    "description": "The main dashboard takes 20+ seconds between 08:00 and 10:00 every Monday.",
+    "internal_notes": "Weekly report job runs on the same database replica. Customer threatened to churn."
+  },
+  {
+    "id": "TCK-1036",
+    "title": "Typo in the invoice footer",
+    "status": "open",
+    "priority": "low",
+    "assignee": "Luca Ferrari",
+    "description": "The invoice footer says 'Registred office' instead of 'Registered office'.",
+    "internal_notes": "Legal asked to also update the VAT number at the same time."
+  },
+  {
+    "id": "TCK-1033",
+    "title": "Mobile app crashes when uploading a photo",
+    "status": "open",
+    "priority": "high",
+    "assignee": "Giulia Rossi",
+    "description": "On Android 15, attaching a photo larger than 10 MB to a ticket crashes the app.",
+    "internal_notes": "Crashlytics shows an out-of-memory error in the image resizer. Known since 3.2."
+  },
+  {
+    "id": "TCK-1030",
+    "title": "SSO login loops back to the sign-in page",
+    "status": "resolved",
+    "priority": "urgent",
+    "assignee": "Marco Bianchi",
+    "description": "After the identity provider update, SSO users were redirected to sign-in in a loop.",
+    "internal_notes": "Root cause: clock skew on one auth node. Postmortem draft in the wiki, not public."
+  },
+  {
+    "id": "TCK-1028",
+    "title": "Add a dark mode to the customer portal",
+    "status": "open",
+    "priority": "low",
+    "assignee": null,
+    "description": "Several customers asked for a dark theme in the customer portal.",
+    "internal_notes": "Product said no before Q1. Keep it open to track demand."
+  }
+]

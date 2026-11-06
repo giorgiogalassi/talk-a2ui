@@ -71,6 +71,14 @@ export class AgentClient {
     const messages = (event.parts ?? [])
       .filter((part) => part.kind === 'data' && part.data)
       .flatMap((part) => (Array.isArray(part.data) ? part.data : [part.data])) as A2uiMessage[];
+    // A retried reply starts over with its own createSurface, while the failed attempt may have
+    // created that surface already when streaming. The newer createSurface replaces it.
+    for (const message of messages) {
+      const surfaceId = 'createSurface' in message ? message.createSurface.surfaceId : undefined;
+      if (surfaceId && this.renderer.surfaceGroup.surfacesMap.has(surfaceId)) {
+        this.renderer.surfaceGroup.deleteSurface(surfaceId);
+      }
+    }
     if (messages.length > 0) this.renderer.processMessages(messages);
   }
 }

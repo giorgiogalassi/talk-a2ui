@@ -1,0 +1,26 @@
+{
+  "name": "@demo/catalog",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The demo's ticket catalog: one Zod ComponentApi per component, shared by the agent and the Angular client",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@a2ui/web_core": "^0.14.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,53 @@
+[
+  {
+    "version": "v0.9",
+    "createSurface": {
+      "surfaceId": "ticket-resolved",
+      "catalogId": "https://github.com/giorgiogalassi/talk-a2ui/demo/catalogs/tickets/v0_9/catalog.json"
+    }
+  },
+  {
+    "version": "v0.9",
+    "updateComponents": {
+      "surfaceId": "ticket-resolved",
+      "components": [
+        {
+          "id": "root",
+          "component": "Card",
+          "child": "resolved_column"
+        },
+        {
+          "id": "resolved_column",
+          "component": "Column",
+          "children": ["resolved_title", "resolved_text"]
+        },
+        {
+          "id": "resolved_title",
+          "component": "Text",
+          "variant": "h2",
+          "text": {
+            "path": "/title"
+          }
+        },
+        {
+          "id": "resolved_text",
+          "component": "Text",
+          "text": {
+            "path": "/message"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "version": "v0.9",
+    "updateDataModel": {
+      "surfaceId": "ticket-resolved",
+      "path": "/",
+      "value": {
+        "title": "Ticket resolved",
+        "message": "TCK-1042, \"Checkout fails with a 502 on card payments\", is marked as resolved."
+      }
+    }
+  }
+]

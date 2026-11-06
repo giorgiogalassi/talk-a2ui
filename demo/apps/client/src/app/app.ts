@@ -8,7 +8,7 @@ import { AgentClient } from './agent-client';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form (submit)="submit($event, prompt.value)">
-      <input #prompt name="prompt" value="Top 3 Chinese restaurants in New York" [disabled]="agent.isLoading()" />
+      <input #prompt name="prompt" value="Show me the open tickets" [disabled]="agent.isLoading()" />
       <button type="submit" [disabled]="agent.isLoading()">Ask</button>
     </form>
 
