@@ -216,7 +216,7 @@ flowchart LR
   class POL,CAT todo
 ```
 
-## Phase 4 — Zod catalog + ticket domain (done 2026-11-06) ← current
+## Phase 4 — Zod catalog + ticket domain (done 2026-11-06)
 
 `packages/catalog` defines the ticket catalog once, as Zod 3 `ComponentApi`s (`TicketList`,
 `PriorityBadge`, `AssigneeChip` plus the basic `Text`/`Row`/`Column`/`Card`/`Divider`/`Button`),
@@ -288,12 +288,79 @@ flowchart LR
   class POL todo
 ```
 
-**Next frames** (planned; `POL` and `CAT` were added to every frame as `todo` on 2026-10-23, so the
-layout won't move when they land):
+## Phase 5 — server-side policy (done 2026-11-06) ← current
 
-- **Policy:** `POL` becomes `new`; `GEN → AX` turns into `GEN → POL → AX` (the old direct edge goes
-  `~~~`). Policy runs in `answer()` on every published message (streamed and non-streamed path),
-  before `toA2aParts`.
+`answer()` no longer publishes what `@a2ui/agent` emits directly: every message goes through
+`applyPolicy` (`src/policy.ts`) first, on the streaming path (each `stream.feed(chunk)` and
+`stream.close()` result, so every re-send of a growing message) and on the non-streaming path
+(`parseResponse`). It strips forbidden data paths (`internal_notes` under `/tickets/*` and
+`/ticket`) and removes components bound to them or carrying a disabled action (`delete_ticket`),
+mending the tree so the surface stays valid. One log line per strip. `STUB_LEAKY=true` makes the
+stub leak both, in small chunks, so the strip shows mid-stream without a model.
+
+```mermaid
+flowchart LR
+  subgraph B["Browser · Angular 22 app"]
+    direction TB
+    U(["User"])
+    APP["App<br/>prompt form"]
+    HC["booking-form.json<br/>hardcoded A2UI message"]
+    AC["AgentClient<br/>ask() · handleAction()<br/>clears surfaces each request<br/>createSurface replaces"]
+    R["A2uiRendererService<br/>processMessages()"]
+    S["a2ui-v09-surface<br/>ticket catalog: TicketList<br/>PriorityBadge · AssigneeChip"]
+    LOG["console.log(action)"]
+  end
+  subgraph SV["Client SSR server · :4200"]
+    direction TB
+    BR["POST /a2a bridge<br/>server.ts"]
+    AX["A2AClient<br/>+ X-A2A-Extensions header"]
+  end
+  subgraph AG["Agent · :10002"]
+    direction TB
+    EX["RestaurantExecutor.run<br/>pick version · read action"]
+    GEN["generateUi → answer()<br/>@a2ui/agent 0.0.2 stream<br/>checked per message · 1 retry<br/>ticket catalog (Zod)"]
+    STUB["StubBackend<br/>canned ticket UI per action<br/>STUB_LEAKY: notes + Delete"]
+    LLM[("Gemini")]
+    POL["applyPolicy<br/>policy.ts<br/>strips internal_notes<br/>removes delete_ticket"]
+  end
+  subgraph PK["packages/catalog"]
+    direction TB
+    CAT["Zod ComponentApi<br/>→ Catalog.toJson()"]
+  end
+
+  U -->|"types a prompt"| APP
+  APP -->|"ask(query)<br/>clears surfaces"| AC
+  HC ~~~ R
+  AC -->|"fetch POST /a2a<br/>query or event + contextId"| BR
+  BR -->|"text part, or data part<br/>{ version: 'v0.9', action }<br/>+ supportedCatalogIds: [ticket id]"| AX
+  AX -->|"A2A v0.3 message/stream<br/>JSON-RPC"| EX
+  EX --> GEN
+  GEN -->|"actionName"| STUB
+  GEN -->|"prompt + catalog.toJson()<br/>get_tickets tool"| LLM
+  GEN ~~~ AX
+  AX -.->|"stream events"| BR
+  BR -.->|"SSE data: { parts, contextId }"| AC
+  AC -.->|"A2UI messages"| R
+  R --> S
+  S -->|"button → actionHandler<br/>handleAction(action)"| AC
+  S ~~~ LOG
+  GEN -.->|"every A2UI message<br/>each re-send while it grows"| POL
+  POL -.->|"A2UI data parts, filtered<br/>status working → input-required<br/>(completed after resolve)"| AX
+  CAT -->|"new Catalog(…)<br/>prompt: toJson() · validation: Zod"| GEN
+  CAT -->|"same ComponentApi objects<br/>CatalogComponent#60;typeof Api#62;"| S
+
+  classDef todo fill:none,stroke:#9aa0a6,stroke-dasharray:4 3,color:#9aa0a6
+  classDef new fill:#e8f0fe,stroke:#1a73e8,stroke-width:2px,color:#0b3d91
+  classDef done fill:#ffffff,stroke:#5f6368,color:#202124
+  classDef gone fill:#f1f3f4,stroke:#dadce0,color:#bdc1c6
+  class POL,STUB new
+  class U,APP,AC,BR,AX,EX,GEN,LLM,R,S,CAT done
+  class HC,LOG gone
+```
+
+**Next frames** (planned; `POL` and `CAT` were added to every frame as `todo` on 2026-10-23, so the
+layout didn't move when they landed):
+
 - **Transport swap:** `server.ts` unwraps A2A, so `BR -.-> AC` is relabelled from
   "SSE data: { parts, contextId }" to plain A2UI messages + session id, and `AC` loses its A2A
   field names. No node changes; this is the frame that shows only the adapter moved.

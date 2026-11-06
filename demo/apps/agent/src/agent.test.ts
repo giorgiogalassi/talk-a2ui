@@ -9,12 +9,13 @@ import {describe, it, type TestContext} from 'node:test';
 
 import type {Message, TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import type {ExecutionEventBus, RequestContext} from '@a2a-js/sdk/server';
+import {A2uiGenerator, CatalogConfig, DirectJsonFormatFactory} from '@a2ui/agent';
 import {TICKET_CATALOG_ID} from '@demo/catalog';
 
 import {RestaurantExecutor} from './agent.js';
 import {loadBasicCatalogs, loadTicketCatalogs} from './catalogs.js';
 import {readMessages, toResponseText} from './examples.js';
-import type {ModelBackend, TurnInput} from './model.js';
+import {leakInternalNotes, type ModelBackend, type TurnInput} from './model.js';
 import {FALLBACK_TEXT} from './prompt.js';
 import {getPackageRootDir} from './tools.js';
 import {V0_9} from './versions.js';
@@ -37,11 +38,15 @@ function ticketListText(priority?: unknown): string {
 /** A model that answers attempt n with replies[n], in four chunks, and records each query. */
 class ScriptedBackend implements ModelBackend {
   readonly queries: string[] = [];
-  constructor(private readonly replies: string[]) {}
+  constructor(
+    private readonly replies: string[],
+    // Demo: a fixed chunk size instead of four chunks, for the policy tests.
+    private readonly chunkSize?: number,
+  ) {}
   async *streamTurn({query}: TurnInput): AsyncIterable<string> {
     const text = this.replies[this.queries.length];
     this.queries.push(query);
-    const size = Math.ceil(text.length / 4);
+    const size = this.chunkSize ?? Math.ceil(text.length / 4);
     for (let i = 0; i < text.length; i += size) yield text.substring(i, i + size);
   }
 }
@@ -174,3 +179,73 @@ for (const useStreaming of [false, true]) {
     });
   });
 }
+
+// Demo: step 5. The policy runs in answer() on what the stream emits and on the validated
+// whole reply, so a forbidden field never reaches the client, not even in a re-send of a
+// message that is still growing.
+describe('the server-side policy', () => {
+  /** A leaky example, as a careless model would write it: notes in the data, Delete button. */
+  function leakyText(name: string): string {
+    const root = getPackageRootDir();
+    const messages = leakInternalNotes(readMessages(path.join(root, 'examples', 'v0.9', `${name}.json`)), root);
+    return toResponseText(V0_9, ticketCatalog, 'direct_json', messages);
+  }
+  const CHUNK = 80;
+  const chunks = (text: string) => text.match(new RegExp(`[\\s\\S]{1,${CHUNK}}`, 'g'))!;
+  const leaks = (m: unknown) => /internal_notes|delete_ticket/.test(JSON.stringify(m));
+  const isData = (m: Record<string, unknown>) => 'updateDataModel' in m;
+
+  function recordLog(t: TestContext): string[] {
+    const lines: string[] = [];
+    t.mock.method(console, 'log', (...args: unknown[]) => lines.push(args.map(String).join(' ')));
+    return lines;
+  }
+
+  it('without it, the raw stream emits internal_notes in an intermediate re-send', () => {
+    const processor = new A2uiGenerator([
+      new CatalogConfig(loadBasicCatalogs().get('v0.9')!),
+      new CatalogConfig(ticketCatalog),
+    ]).createProcessor({supportedCatalogIds: [TICKET_CATALOG_ID]}, new DirectJsonFormatFactory());
+    const stream = processor.openStream();
+    const emitted: Record<string, unknown>[] = [];
+    for (const chunk of chunks(leakyText('ticket_list'))) {
+      for (const part of stream.feed(chunk)) if (part.type === 'a2ui') emitted.push(...(part.a2ui as never[]));
+    }
+    for (const part of stream.close()) if (part.type === 'a2ui') emitted.push(...(part.a2ui as never[]));
+
+    const data = emitted.filter(isData);
+    assert.ok(data.length > 2, `${data.length} updateDataModel re-sends`);
+    // A re-send before the last one already carries a ticket's notes.
+    assert.ok(data.slice(0, -1).some(m => JSON.stringify(m).includes('internal_notes')));
+  });
+
+  for (const name of ['ticket_list', 'ticket_detail']) {
+    it(`streamed (${name}): no published message carries internal_notes or delete_ticket`, async t => {
+      const log = recordLog(t);
+      const events = await runTurn(new ScriptedBackend([leakyText(name)], CHUNK), true);
+
+      const messages = a2uiMessages(events);
+      assert.ok(messages.filter(isData).length > 1, 'the data model was re-sent as it grew');
+      assert.deepEqual(messages.filter(leaks), []);
+      assert.ok(log.some(l => /^--- policy: stripped \/tickets?\/(\d+\/)?internal_notes ---$/.test(l)), log.join('\n'));
+      if (name === 'ticket_detail') {
+        assert.ok(log.includes('--- policy: removed Button delete_button (action delete_ticket) ---'));
+        assert.ok(messages.some(m => JSON.stringify(m).includes('resolve_button')));
+      }
+      assert.equal(events.at(-1)!.status.state, 'input-required');
+    });
+
+    it(`non-streamed (${name}): the validated reply is filtered the same way`, async t => {
+      const log = recordLog(t);
+      const events = await runTurn(new ScriptedBackend([leakyText(name)], CHUNK), false);
+
+      const messages = a2uiMessages(events);
+      assert.equal(messages.filter(isData).length, 1);
+      assert.deepEqual(messages.filter(leaks), []);
+      assert.ok(log.some(l => l.startsWith('--- policy: stripped ')), log.join('\n'));
+      if (name === 'ticket_detail') {
+        assert.ok(log.includes('--- policy: removed Button delete_button (action delete_ticket) ---'));
+      }
+    });
+  }
+});

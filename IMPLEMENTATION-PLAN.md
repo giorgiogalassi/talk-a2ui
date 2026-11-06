@@ -40,9 +40,9 @@ flowchart LR
   classDef done fill:#ffffff,stroke:#5f6368,color:#202124
   classDef next fill:#e8f0fe,stroke:#1a73e8,stroke-width:2px,color:#0b3d91
   classDef todo fill:none,stroke:#9aa0a6,stroke-dasharray:4 3,color:#5f6368
-  class P1,P2,P3,P4 done
-  class P5 next
-  class P6,P7,D,R,T todo
+  class P1,P2,P3,P4,P5 done
+  class P6 next
+  class P7,D,R,T todo
 ```
 
 ### Decisions and what they replaced
@@ -590,11 +590,13 @@ flowchart LR
   already is.
 - Policy object unchanged: `forbiddenDataPaths: ['/tickets/*/internal_notes']`,
   `disabledActions: ['delete_ticket']`. Log every strip (observability slide).
+  *Built 2026-11-06 with `'/ticket/internal_notes'` added:* the detail view keeps its ticket at
+  `/ticket`, which the pattern above does not cover (`demo/README.md`, incident 5).
 - Keep it in its own file (`src/policy.ts`) with a unit test, so the deck can
   show it whole and the diff against the upstream sample stays small.
 
-One turn, with the planned policy hooks and client-side validation (Direct JSON mode, `@a2ui/agent`
-0.0.2). `applyPolicy` and the `VALIDATION_FAILED` path are not built yet; the retry loop is
+One turn, with the policy hooks and the planned client-side validation (Direct JSON mode, `@a2ui/agent`
+0.0.2). `applyPolicy` is built (2026-11-06); the `VALIDATION_FAILED` path is not yet; the retry loop is
 (`generateUi` → `answer()` in `agent.ts`).
 
 ```mermaid
@@ -604,7 +606,7 @@ sequenceDiagram
   participant S as SSR server (A2A client)
   participant E as Agent: generateUi / answer
   participant M as Gemini
-  participant P as applyPolicy (planned)
+  participant P as applyPolicy (policy.ts)
 
   B->>S: POST /a2a (query or { version: 'v0.9', action })
   S->>E: A2A message/stream + supportedCatalogIds
@@ -728,10 +730,15 @@ the renderer, `VALIDATION_FAILED` back to the agent, client step 8).
       `InMemoryCatalogProvider`, which loads cleanly but loosens an action's
       `context` back to `Record<unknown>` (incident 3). Live model not yet
       re-run on the ticket domain.
-- [ ] **`applyPolicy` in `agent.ts` on both the streamed and the validated
+- [x] **`applyPolicy` in `agent.ts` on both the streamed and the validated
       path** (section above). *Done when:* a unit test strips
       `internal_notes` and a `delete_ticket` button, and in the browser the
       field never appears, not even mid-stream.
+      **Done 2026-11-06** (stub mode; `demo/README.md` step 5): `src/policy.ts`
+      + `policy.test.ts`, executor tests on both paths incl. a growing streamed
+      message, `STUB_LEAKY=true` checked in a headless browser (0
+      `internal_notes` / `delete_ticket` in the SSE). Deviation: the policy also
+      forbids `/ticket/internal_notes` (incident 5). Live model not yet run.
 - [ ] **Transport swap: make `server.ts` the only file that knows A2A
       (added 2026-10-23).** Talk + article beat: A2UI is transport-agnostic
       (the spec lists A2A, AG-UI, SSE, WebSockets; CopilotKit runs A2UI over
@@ -909,3 +916,10 @@ the Angular client.
   ticket so it skips the tool-decision call, an "Agent is working…" state in the client,
   and model errors logged apart from A2UI validation. Measurements in `demo/README.md` →
   "Latency".
+- **2026-11-06 (later)** — Phase 5 done (stub mode): `applyPolicy` in `src/policy.ts`, hooked into
+  `answer()` on the streamed (`feed`/`close`) and the `parseResponse` path; strips forbidden data
+  paths, removes components with a disabled action or a forbidden binding and mends the tree.
+  Detail example gains a *Delete ticket* (`delete_ticket`) button for the policy to remove;
+  `STUB_LEAKY=true` leaks the notes in small chunks. Found: the plan's path pattern missed the
+  detail view's `/ticket` (added), and a stateless filter cannot hide a child id streamed before
+  its component (incident 5). Phase 5 frame in `demo/FLOW.md`; roadmap `next` moved to P6.
