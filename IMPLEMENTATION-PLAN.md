@@ -902,3 +902,10 @@ the Angular client.
   error → retry proven by node:test tests; a streamed retry broke the client
   ("Surface … already exists", incident 4), fixed in `agent-client.ts`. Phase 4
   frame in `demo/FLOW.md`; roadmap `next` moved to P5.
+- **2026-11-06 (latency, first live run on tickets):** 15-20 s before the first UI,
+  ~50 s once. Cause: two sequential model calls per request (tool decision, then UI),
+  default thinking on both, and a Gemini 503 logged as a validation failure. Fixes:
+  thinking `MINIMAL` by default (`GEMINI_THINKING_LEVEL`), `open_ticket` prefetches the
+  ticket so it skips the tool-decision call, an "Agent is working…" state in the client,
+  and model errors logged apart from A2UI validation. Measurements in `demo/README.md` →
+  "Latency".

@@ -13,6 +13,11 @@ export class AgentClient {
   private contextId?: string;
 
   readonly isLoading = signal(false);
+  /**
+   * Demo: true from the request until the first A2UI message arrives. A live turn can take
+   * 10+ s before anything streams (README, "Latency"), and the old UI is already cleared.
+   */
+  readonly waitingForUi = signal(false);
   readonly error = signal<string | null>(null);
 
   /** A new prompt replaces whatever the agent rendered before. */
@@ -33,6 +38,7 @@ export class AgentClient {
       this.renderer.surfaceGroup.deleteSurface(surfaceId);
     }
     this.isLoading.set(true);
+    this.waitingForUi.set(true);
     this.error.set(null);
     try {
       const response = await fetch('/a2a', {
@@ -60,6 +66,7 @@ export class AgentClient {
       this.error.set(error instanceof Error ? error.message : String(error));
     } finally {
       this.isLoading.set(false);
+      this.waitingForUi.set(false);
     }
   }
 
@@ -79,6 +86,9 @@ export class AgentClient {
         this.renderer.surfaceGroup.deleteSurface(surfaceId);
       }
     }
-    if (messages.length > 0) this.renderer.processMessages(messages);
+    if (messages.length > 0) {
+      this.waitingForUi.set(false);
+      this.renderer.processMessages(messages);
+    }
   }
 }

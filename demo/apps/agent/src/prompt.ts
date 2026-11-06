@@ -24,7 +24,7 @@ export const UI_DESCRIPTION_DIRECT_JSON = `
 -   IMPORTANT: When using updateDataModel to update the tickets, you MUST specify \`path: "/"\` with a \`value\` holding \`title\` and \`tickets\`, or \`path: "/tickets"\` with an array of tickets.
 -   IMPORTANT: Always specify the path when using updateDataModel. The part message is ignored when the path is missing.
 -   A ticket's priority is one of \`low\`, \`medium\`, \`high\`, \`urgent\`. An unassigned ticket has an empty assignee.
--   If the query asks for one ticket's details (e.g., "USER_WANTS_TICKET_DETAILS..."), call \`get_tickets\` with its id, then you MUST use the \`TICKET_DETAIL_EXAMPLE\` template.
+-   If the query asks for one ticket's details (e.g., "USER_WANTS_TICKET_DETAILS..."), use the \`TICKET_DATA\` in the query if present (do not call \`get_tickets\` again), otherwise call \`get_tickets\` with its id; then you MUST use the \`TICKET_DETAIL_EXAMPLE\` template.
 -   If the query is a resolved ticket (e.g., "User resolved ticket..."), you MUST use the \`TICKET_RESOLVED_EXAMPLE\` template.
 `;
 
@@ -32,7 +32,7 @@ export const UI_DESCRIPTION_EXPRESS = `
 -   Build every surface with the ticket catalog. Use \`TicketList\`, \`PriorityBadge\` and \`AssigneeChip\` for tickets; never write a priority or an assignee as plain text.
 -   If the query is for a list of tickets, call the \`get_tickets\` tool first, then use the tickets it returns to populate the data model. You MUST use the \`TICKET_LIST_EXAMPLE\` template.
 -   A ticket's priority is one of \`low\`, \`medium\`, \`high\`, \`urgent\`. An unassigned ticket has an empty assignee.
--   If the query asks for one ticket's details (e.g., "USER_WANTS_TICKET_DETAILS..."), call \`get_tickets\` with its id, then you MUST use the \`TICKET_DETAIL_EXAMPLE\` template.
+-   If the query asks for one ticket's details (e.g., "USER_WANTS_TICKET_DETAILS..."), use the \`TICKET_DATA\` in the query if present (do not call \`get_tickets\` again), otherwise call \`get_tickets\` with its id; then you MUST use the \`TICKET_DETAIL_EXAMPLE\` template.
 -   If the query is a resolved ticket (e.g., "User resolved ticket..."), you MUST use the \`TICKET_RESOLVED_EXAMPLE\` template.
 `;
 

@@ -96,6 +96,36 @@ function recordWarnings(t: TestContext): string[] {
 const PRIORITY_ERROR =
   "Validation failed for component 'PriorityBadge' (ticket_priority): priority: Invalid enum value. Expected low | medium | high | urgent, received 'critical'";
 
+/** Demo: a model whose first call fails like Gemini under load, then answers with replies[0]. */
+class OverloadedOnceBackend implements ModelBackend {
+  readonly queries: string[] = [];
+  constructor(private readonly reply: string) {}
+  async *streamTurn({query}: TurnInput): AsyncIterable<string> {
+    this.queries.push(query);
+    if (this.queries.length === 1) {
+      throw new Error(
+        '{"error":{"message":"{\\n  \\"error\\": {\\n    \\"code\\": 503,\\n    \\"message\\": \\"This model is currently experiencing high demand.\\"}}","code":503,"status":"Service Unavailable"}}',
+      );
+    }
+    yield this.reply;
+  }
+}
+
+describe('a failed model call (Gemini 503)', () => {
+  it('is logged as a model error, not a validation failure, and retries the original query', async t => {
+    const warnings = recordWarnings(t);
+    const backend = new OverloadedOnceBackend(ticketListText());
+
+    const events = await runTurn(backend, true);
+
+    assert.equal(warnings.length, 1);
+    assert.match(warnings[0], /^--- Model call failed: 503 .*\(Attempt 1\) ---$/);
+    assert.ok(!warnings[0].includes('A2UI validation failed'));
+    assert.deepEqual(backend.queries, ['Show me the open tickets', 'Show me the open tickets']);
+    assert.equal(events.at(-1)!.status.state, 'input-required');
+  });
+});
+
 for (const useStreaming of [false, true]) {
   describe(`a prop outside the catalog (${useStreaming ? 'streamed' : 'non-streamed'})`, () => {
     it('fails validation on attempt 1 and is retried with the error', async t => {

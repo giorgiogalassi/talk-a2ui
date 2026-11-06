@@ -16,7 +16,7 @@
 
 import path from 'path';
 
-import {Chat, FunctionCall, GoogleGenAI, PartListUnion} from '@google/genai';
+import {Chat, FunctionCall, GoogleGenAI, PartListUnion, type ThinkingLevel} from '@google/genai';
 
 import type {BasicCatalogs} from './catalogs.js';
 import type {A2uiFormat} from './config.js';
@@ -38,6 +38,16 @@ export interface TurnInput {
 export interface ModelBackend {
   /** Streams the model's text for one turn. Tool calls are handled inside. */
   streamTurn(input: TurnInput): AsyncIterable<string>;
+}
+
+/** Demo: MINIMAL unless GEMINI_THINKING_LEVEL says otherwise; DEFAULT omits the setting. */
+export function thinkingConfig(raw: string | undefined): {thinkingConfig?: {thinkingLevel: ThinkingLevel}} {
+  const level = raw?.trim().toUpperCase() || 'MINIMAL';
+  if (level === 'DEFAULT') return {};
+  if (!['MINIMAL', 'LOW', 'MEDIUM', 'HIGH'].includes(level)) {
+    throw new Error(`GEMINI_THINKING_LEVEL must be MINIMAL, LOW, MEDIUM, HIGH or DEFAULT, but it is "${raw}".`);
+  }
+  return {thinkingConfig: {thinkingLevel: level as ThinkingLevel}};
 }
 
 /** Calls Gemini, keeping one chat per conversation and answering its tool calls. */
@@ -65,20 +75,35 @@ export class GeminiBackend implements ModelBackend {
         config: {
           systemInstruction: systemPrompt,
           tools: [{functionDeclarations: [getTicketsDeclaration]}],
+          // Demo: the model thinks before its first token on every call; MINIMAL cut the time to
+          // the first UI token from ~10 s to ~3 s (README, "Latency"). GEMINI_THINKING_LEVEL
+          // overrides it (MINIMAL | LOW | MEDIUM | HIGH); DEFAULT leaves the model's own setting.
+          ...thinkingConfig(process.env.GEMINI_THINKING_LEVEL),
         },
       }),
     );
 
     let input: PartListUnion = query;
+    // Demo: timing per model call, to see where the wait before the first stream goes.
+    const turnStart = Date.now();
+    let call = 0;
     while (true) {
+      call++;
+      const callStart = Date.now();
+      let first = 0;
       const responseStream = await chat.sendMessageStream({message: input});
       const toolCalls: FunctionCall[] = [];
       for await (const chunk of responseStream) {
+        if (!first) first = Date.now();
         if (chunk.text) {
           yield chunk.text;
         }
         toolCalls.push(...(chunk.functionCalls ?? []));
       }
+      console.log(
+        `--- timing: call ${call} first chunk ${first ? first - callStart : -1} ms, done ${Date.now() - callStart} ms ` +
+          `(turn ${Date.now() - turnStart} ms)${toolCalls.length ? ', then tool call' : ''} ---`,
+      );
       if (toolCalls.length === 0) {
         return;
       }

@@ -93,9 +93,15 @@ export interface GetTicketsArgs {
 export function executeGetTickets(
   args: GetTicketsArgs,
   pythonDir: string = resolvePythonSampleDir(),
+  /** Demo: why the agent called it itself, when the model didn't (logged instead of "TOOL CALLED"). */
+  reason?: string,
 ): string {
   const count = typeof args.count === 'number' ? args.count : 8;
-  console.log(`--- TOOL CALLED: get_tickets ${JSON.stringify(args)} ---`);
+  console.log(
+    reason
+      ? `--- get_tickets ${JSON.stringify(args)}, ${reason} ---`
+      : `--- TOOL CALLED: get_tickets ${JSON.stringify(args)} ---`,
+  );
 
   let items: Record<string, unknown>[] = [];
   const filePath = path.join(pythonDir, 'tickets.json');
