@@ -3,7 +3,7 @@
     "version": "v0.9",
     "createSurface": {
       "surfaceId": "stub-notice",
-      "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
+      "catalogId": "https://github.com/giorgiogalassi/talk-a2ui/demo/catalogs/tickets/v0_9/catalog.json"
     }
   },
   {

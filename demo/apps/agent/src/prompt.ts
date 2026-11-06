@@ -14,25 +14,26 @@
  * limitations under the License.
  */
 
+// Demo: the support-ticket domain replaces the sample's restaurant finder.
 export const ROLE_DESCRIPTION =
-  'You are a helpful restaurant finding assistant. Your final output MUST be an A2UI UI definition.';
+  'You are a helpful support desk assistant. You show support tickets to an agent on the support team. Your final output MUST be an A2UI UI definition.';
 
 export const UI_DESCRIPTION_DIRECT_JSON = `
--   If the query is for a list of restaurants, use the restaurant data you have already received from the \`get_restaurants\` tool to populate the \`updateDataModel\` message.
--   IMPORTANT: When using updateDataModel to update items, you MUST specify \`path: "/items"\` in \`updateDataModel\`, and the \`value\` MUST be an array of restaurants.
+-   Build every surface with the ticket catalog. Use \`TicketList\`, \`PriorityBadge\` and \`AssigneeChip\` for tickets; never write a priority or an assignee as plain text.
+-   If the query is for a list of tickets, call the \`get_tickets\` tool first, then use the tickets it returns to populate the \`updateDataModel\` message. You MUST use the \`TICKET_LIST_EXAMPLE\` template.
+-   IMPORTANT: When using updateDataModel to update the tickets, you MUST specify \`path: "/"\` with a \`value\` holding \`title\` and \`tickets\`, or \`path: "/tickets"\` with an array of tickets.
 -   IMPORTANT: Always specify the path when using updateDataModel. The part message is ignored when the path is missing.
--   If the number of restaurants is 5 or fewer, you MUST use the \`SINGLE_COLUMN_LIST_EXAMPLE\` template.
--   If the number of restaurants is more than 5, you MUST use the \`TWO_COLUMN_LIST_EXAMPLE\` template.
--   If the query is to book a restaurant (e.g., "USER_WANTS_TO_BOOK..."), you MUST use the \`BOOKING_FORM_EXAMPLE\` template.
--   If the query is a booking submission (e.g., "User submitted a booking..."), you MUST use the \`CONFIRMATION_EXAMPLE\` template.
+-   A ticket's priority is one of \`low\`, \`medium\`, \`high\`, \`urgent\`. An unassigned ticket has an empty assignee.
+-   If the query asks for one ticket's details (e.g., "USER_WANTS_TICKET_DETAILS..."), use the \`TICKET_DATA\` in the query if present (do not call \`get_tickets\` again), otherwise call \`get_tickets\` with its id; then you MUST use the \`TICKET_DETAIL_EXAMPLE\` template.
+-   If the query is a resolved ticket (e.g., "User resolved ticket..."), you MUST use the \`TICKET_RESOLVED_EXAMPLE\` template.
 `;
 
 export const UI_DESCRIPTION_EXPRESS = `
--   If the query is for a list of restaurants, use the restaurant data you have already received from the \`get_restaurants\` tool to populate the \`updateDataModel\` message.
--   If the number of restaurants is 5 or fewer, you MUST use the \`SINGLE_COLUMN_LIST_EXAMPLE\` template.
--   If the number of restaurants is more than 5, you MUST use the \`TWO_COLUMN_LIST_EXAMPLE\` template.
--   If the query is to book a restaurant (e.g., "USER_WANTS_TO_BOOK..."), you MUST use the \`BOOKING_FORM_EXAMPLE\` template.
--   If the query is a booking submission (e.g., "User submitted a booking..."), you MUST use the \`CONFIRMATION_EXAMPLE\` template.
+-   Build every surface with the ticket catalog. Use \`TicketList\`, \`PriorityBadge\` and \`AssigneeChip\` for tickets; never write a priority or an assignee as plain text.
+-   If the query is for a list of tickets, call the \`get_tickets\` tool first, then use the tickets it returns to populate the data model. You MUST use the \`TICKET_LIST_EXAMPLE\` template.
+-   A ticket's priority is one of \`low\`, \`medium\`, \`high\`, \`urgent\`. An unassigned ticket has an empty assignee.
+-   If the query asks for one ticket's details (e.g., "USER_WANTS_TICKET_DETAILS..."), use the \`TICKET_DATA\` in the query if present (do not call \`get_tickets\` again), otherwise call \`get_tickets\` with its id; then you MUST use the \`TICKET_DETAIL_EXAMPLE\` template.
+-   If the query is a resolved ticket (e.g., "User resolved ticket..."), you MUST use the \`TICKET_RESOLVED_EXAMPLE\` template.
 `;
 
 /** Returns the UI description for the chosen format. */

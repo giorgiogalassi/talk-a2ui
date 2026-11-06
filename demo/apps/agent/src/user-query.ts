@@ -15,6 +15,7 @@
  */
 
 import type {InboundMessage} from './a2a.js';
+import {executeGetTickets} from './tools.js';
 
 /** What the agent needs from one inbound A2A message. */
 export interface UserQuery {
@@ -27,7 +28,7 @@ export interface UserQuery {
 }
 
 /**
- * Turns an inbound message into a model query. UI actions from the restaurant surfaces
+ * Turns an inbound message into a model query. UI actions from the ticket surfaces
  * become the sentences the prompt expects; plain text is passed through.
  */
 export function buildUserQuery({text, action, useStreaming}: InboundMessage): UserQuery {
@@ -37,18 +38,20 @@ export function buildUserQuery({text, action, useStreaming}: InboundMessage): Us
 
   const {name: actionName, context: ctx} = action;
   let query: string;
-  if (actionName === 'book_restaurant') {
-    const restaurantName = (ctx.restaurantName as string) ?? 'Unknown Restaurant';
-    const address = (ctx.address as string) ?? 'Address not provided';
-    const imageUrl = (ctx.imageUrl as string) ?? '';
-    query = `USER_WANTS_TO_BOOK: ${restaurantName}, Address: ${address}, ImageURL: ${imageUrl}`;
-  } else if (actionName === 'submit_booking') {
-    const restaurantName = (ctx.restaurantName as string) ?? 'Unknown Restaurant';
-    const partySize = ctx.partySize !== undefined ? String(ctx.partySize) : 'Unknown Size';
-    const reservationTime = (ctx.reservationTime as string) ?? 'Unknown Time';
-    const dietary = (ctx.dietary as string) ?? 'None';
-    const imageUrl = (ctx.imageUrl as string) ?? '';
-    query = `User submitted a booking for ${restaurantName} for ${partySize} people at ${reservationTime} with dietary requirements: ${dietary}. The image URL is ${imageUrl}`;
+  // Demo: the ticket actions replace book_restaurant and submit_booking.
+  if (actionName === 'open_ticket') {
+    const ticketId = (ctx.ticketId as string) ?? 'Unknown ticket';
+    // Demo: the click already names the ticket, so the agent fetches it here instead of
+    // letting the model spend a whole call deciding to call get_tickets (6-10 s each,
+    // README "Latency"). Free-text questions still go through the model's tool call.
+    const ticket = executeGetTickets({ticketId}, undefined, 'prefetched for open_ticket');
+    query =
+      `USER_WANTS_TICKET_DETAILS: ${ticketId}\n` +
+      `TICKET_DATA (already fetched with get_tickets; do not call it again): ${ticket}`;
+  } else if (actionName === 'resolve_ticket') {
+    const ticketId = (ctx.ticketId as string) ?? 'Unknown ticket';
+    const title = (ctx.title as string) ?? '';
+    query = `User resolved ticket ${ticketId}: "${title}". Confirm that it is marked as resolved.`;
   } else {
     query = `User submitted an event: ${actionName} with data: ${JSON.stringify(ctx)}`;
   }

@@ -40,9 +40,9 @@ flowchart LR
   classDef done fill:#ffffff,stroke:#5f6368,color:#202124
   classDef next fill:#e8f0fe,stroke:#1a73e8,stroke-width:2px,color:#0b3d91
   classDef todo fill:none,stroke:#9aa0a6,stroke-dasharray:4 3,color:#5f6368
-  class P1,P2,P3 done
-  class P4 next
-  class P5,P6,P7,D,R,T todo
+  class P1,P2,P3,P4 done
+  class P5 next
+  class P6,P7,D,R,T todo
 ```
 
 ### Decisions and what they replaced
@@ -523,10 +523,14 @@ is still exported by 0.0.2 (checked 2026-10-31); the policy hook points changed,
   `new Catalog(id, 'v0.9', components)`. `catalog.toJson()` produces the
   spec-compliant catalog JSON Schema document; that replaces both
   `z.toJSONSchema()` and `zod-to-json-schema`.
-- **Agent:** load that document with `InMemoryCatalogProvider(doc, 'v0.9',
-  catalogId)` (exported by `@a2ui/agent`) instead of the
-  `FileSystemCatalogProvider` in `src/catalogs.ts`, and pass it to
-  `A2uiGenerator` / `CatalogConfig` as today. The generator's prompt and the
+- **Agent:** register the Zod `Catalog` object itself with `A2uiGenerator` /
+  `CatalogConfig` (**decided 2026-11-06, Giorgio**, option B). The first plan was
+  to load the `toJson()` document with `InMemoryCatalogProvider(doc, 'v0.9',
+  catalogId)`; it loads cleanly, but rebuilding Zod from JSON Schema loosens an
+  action's `context` back to `Record<unknown>`, so `{ticketId: {}}` passes the
+  agent and fails the renderer: incident 2 again (incident 3,
+  `catalogs.test.ts`). The model still reads the generated document, because
+  the prompt generator writes `catalog.toJson()` into the prompt. The generator's prompt and the
   processor's validation then both come from the Zod source, so
   `@a2ui/agent`'s built-in validate-and-retry (`agent.ts`, `MAX_ATTEMPTS = 2`)
   is validating against our Zod catalog. No separate `.safeParse()` step.
@@ -534,11 +538,9 @@ is still exported by 0.0.2 (checked 2026-10-31); the policy hook points changed,
   `ComponentApi` objects (`InferredComponentApiSchemaType<Api>` for props),
   and the custom catalog id goes into `supportedCatalogIds`. That is the
   capability negotiation step, already read by `pick-a2ui.ts`.
-- **Check while building:** whether `Catalog.toJson()` output loads cleanly
-  into `InMemoryCatalogProvider` for custom components (the basic catalog
-  goes the other way, file → `Catalog.fromJson`). If it doesn't, write the
-  generated document to `apps/agent/catalogs/` at build time and keep
-  `FileSystemCatalogProvider`; the source of truth is still Zod.
+- ~~**Check while building:** whether `Catalog.toJson()` output loads cleanly
+  into `InMemoryCatalogProvider`.~~ It does, but loading it loosens the
+  schema (above), so the agent doesn't use it.
 - The Gemini constrained-decoding gotcha above no longer applies the same
   way: the sample prompts with the catalog and validates afterwards, it does
   not pass a `responseJsonSchema`.
@@ -557,7 +559,7 @@ flowchart LR
   end
   subgraph AG["apps/agent"]
     direction TB
-    PROV["InMemoryCatalogProvider<br/>(fallback: file + FileSystemCatalogProvider)"]
+    PROV["Zod Catalog object<br/>(not the reloaded document: incident 3)"]
     GEN["A2uiGenerator<br/>catalog goes into the prompt"]
     VAL["validate + 1 retry<br/>MAX_ATTEMPTS = 2"]
     PICK["pick-a2ui.ts<br/>reads supportedCatalogIds"]
@@ -570,7 +572,8 @@ flowchart LR
     CAPS["a2uiClientCapabilities<br/>supportedCatalogIds: [ticket catalog id]"]
   end
 
-  JSON --> PROV
+  CAT --> PROV
+  JSON -.->|"written into the prompt"| GEN
   API -->|"same objects"| CMP
   CAPS -->|"sent with every message"| PICK
   PICK -->|"chooses catalog"| GEN
@@ -714,11 +717,17 @@ the renderer, `VALIDATION_FAILED` back to the agent, client step 8).
       `withA2AExtensions` via `ServiceParameters`), re-run the stub flow, and
       update `QA.md`'s "isn't that deprecated?" answer. If it has not moved,
       leave the demo as is.
-- [ ] **`packages/catalog` on Zod 3 + `Catalog.toJson()`** (decided
+- [x] **`packages/catalog` on Zod 3 + `Catalog.toJson()`** (decided
       2026-10-23, section above). *Done when:* the agent loads the generated
       document, the Angular catalog uses the same `ComponentApi` objects, and
       a deliberately wrong prop fails `@a2ui/agent` validation and triggers
       the retry.
+      **Done 2026-11-06** (stub mode; `demo/README.md` step 4). One deviation:
+      the agent registers the Zod `Catalog` itself (the prompt still carries
+      its `toJson()` document) instead of reloading the document with
+      `InMemoryCatalogProvider`, which loads cleanly but loosens an action's
+      `context` back to `Record<unknown>` (incident 3). Live model not yet
+      re-run on the ticket domain.
 - [ ] **`applyPolicy` in `agent.ts` on both the streamed and the validated
       path** (section above). *Done when:* a unit test strips
       `internal_notes` and a `delete_ticket` button, and in the browser the
@@ -883,3 +892,20 @@ the Angular client.
   `basicCatalog`, the renderer's own, instead of the JSON file, so agent and
   renderer validate with one schema. Same catalog document, so the prompt is
   unchanged. Phase 3 frame added to `demo/FLOW.md`. Not yet reported upstream.
+- **2026-11-06** — Phase 4 done (stub mode): `packages/catalog` (`@demo/catalog`,
+  Zod 3.25.76) defines `TicketList`, `PriorityBadge`, `AssigneeChip` as
+  `ComponentApi`s plus six reused basic APIs, `new Catalog(id, 'v0.9', …)`;
+  agent serves it (Zod object, not the reloaded document: incident 3), ticket
+  domain replaces restaurants (`get_tickets`, `internal_notes` in the data for
+  phase 5); Angular components typed with `CatalogComponent<typeof XApi>`;
+  `supportedCatalogIds` carries only the ticket id. Wrong prop → validation
+  error → retry proven by node:test tests; a streamed retry broke the client
+  ("Surface … already exists", incident 4), fixed in `agent-client.ts`. Phase 4
+  frame in `demo/FLOW.md`; roadmap `next` moved to P5.
+- **2026-11-06 (latency, first live run on tickets):** 15-20 s before the first UI,
+  ~50 s once. Cause: two sequential model calls per request (tool decision, then UI),
+  default thinking on both, and a Gemini 503 logged as a validation failure. Fixes:
+  thinking `MINIMAL` by default (`GEMINI_THINKING_LEVEL`), `open_ticket` prefetches the
+  ticket so it skips the tool-decision call, an "Agent is working…" state in the client,
+  and model errors logged apart from A2UI validation. Measurements in `demo/README.md` →
+  "Latency".

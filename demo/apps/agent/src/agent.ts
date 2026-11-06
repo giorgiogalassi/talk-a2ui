@@ -20,13 +20,14 @@ import {
   A2uiGenerator,
   A2uiRequestProcessor,
   CatalogConfig,
+  A2uiError,
   DirectJsonFormatFactory,
   ExpressFormatFactory,
   type ResponsePart,
 } from '@a2ui/agent';
 
 import {readInboundMessage, TaskEvents, toA2aParts} from './a2a.js';
-import type {BasicCatalogs} from './catalogs.js';
+import type {BasicCatalogs, TicketCatalogs} from './catalogs.js';
 import type {A2uiFormat} from './config.js';
 import {loadExamples} from './examples.js';
 import type {ModelBackend, TurnInput} from './model.js';
@@ -38,8 +39,21 @@ import {VERSIONS, type VersionProfile} from './versions.js';
 /** How many times a turn is tried: once, plus one retry after a validation failure, as in Python. */
 const MAX_ATTEMPTS = 2;
 
+/** Demo: the reply was bad A2UI (retry with the error), not a failed model call. */
+const NO_A2UI = 'The response contains no A2UI messages';
+function isInvalidA2ui(e: unknown): boolean {
+  return e instanceof A2uiError || (e instanceof Error && e.message === NO_A2UI);
+}
+
+/** Demo: a Gemini error message is a JSON blob; keep its code and message for the log. */
+function shortError(message: string): string {
+  const code = message.match(/"code":\s*(\d+)/)?.[1];
+  const text = message.match(/"message":\s*"([^"]+)"/)?.[1];
+  return code || text ? `${code ?? ''} ${text ?? ''}`.trim() : message;
+}
+
 /**
- * Answers restaurant requests with A2UI, in the version the renderer asks for.
+ * Answers support-ticket requests with A2UI, in the version the renderer asks for.
  *
  * The A2A SDK calls `execute` once per incoming message. `run` holds the steps of one
  * turn, so start reading there; the private methods after it do the work of each step.
@@ -52,14 +66,18 @@ export class RestaurantExecutor implements AgentExecutor {
     private readonly format: A2uiFormat,
     private readonly backend: ModelBackend,
     private readonly catalogs: BasicCatalogs,
+    // Demo: the ticket catalog (packages/catalog), registered next to the basic one.
+    ticketCatalogs: TicketCatalogs,
   ) {
     for (const profile of VERSIONS) {
       const catalog = catalogs.get(profile.version)!;
-      const examples = loadExamples(profile, catalog, format);
+      // Demo: the examples are ticket UIs, so they are the ticket catalog's.
+      const ticketCatalog = ticketCatalogs.get(profile.version)!;
+      const examples = loadExamples(profile, ticketCatalog, format);
       this.generators.set(
         profile.version,
-        new A2uiGenerator([new CatalogConfig(catalog)], {
-          [catalog.id]: examples.catalogExamplesString,
+        new A2uiGenerator([new CatalogConfig(catalog), new CatalogConfig(ticketCatalog)], {
+          [ticketCatalog.id]: examples.catalogExamplesString,
         }),
       );
     }
@@ -99,7 +117,8 @@ export class RestaurantExecutor implements AgentExecutor {
     const {parts, published} = await this.generateUi(turn, catalogIds, publish);
 
     // 6. End the turn. Published parts are not repeated in the final status.
-    const finalState = actionName === 'submit_booking' ? 'completed' : 'input-required';
+    // Demo: resolving a ticket ends the flow, as submitting a booking did.
+    const finalState = actionName === 'resolve_ticket' ? 'completed' : 'input-required';
     events.status(finalState, true, published ? [] : parts);
   }
 
@@ -138,13 +157,21 @@ export class RestaurantExecutor implements AgentExecutor {
       try {
         const parts = await this.answer({...turn, query}, catalogIds, track);
         if (!parts.some(part => part.kind === 'data')) {
-          throw new Error('The response contains no A2UI messages');
+          throw new Error(NO_A2UI);
         }
         return {parts, published};
       } catch (e) {
         const error = e instanceof Error ? e.message : String(e);
-        console.warn(`--- A2UI validation failed: ${error} (Attempt ${attempt + 1}) ---`);
-        query = retryQuery(this.format, error, turn.query);
+        // Demo: only A2UI problems are validation failures. A model or network error (e.g. a
+        // Gemini 503 "high demand") was logged as "A2UI validation failed" and retried with
+        // a correction prompt; it now has its own line and retries the original query.
+        if (isInvalidA2ui(e)) {
+          console.warn(`--- A2UI validation failed: ${error} (Attempt ${attempt + 1}) ---`);
+          query = retryQuery(this.format, error, turn.query);
+        } else {
+          console.warn(`--- Model call failed: ${shortError(error)} (Attempt ${attempt + 1}) ---`);
+          query = turn.query;
+        }
       }
     }
 

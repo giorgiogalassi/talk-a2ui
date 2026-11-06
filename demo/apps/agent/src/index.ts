@@ -24,7 +24,7 @@ import {agentCardHandler, jsonRpcHandler, UserBuilder} from '@a2a-js/sdk/server/
 import express from 'express';
 
 import {RestaurantExecutor} from './agent.js';
-import {loadBasicCatalogs} from './catalogs.js';
+import {loadBasicCatalogs, loadTicketCatalogs} from './catalogs.js';
 import {resolveLlmMode, resolveModelName, resolveSampleConfig} from './config.js';
 import {GeminiBackend, type ModelBackend, StubBackend} from './model.js';
 import {resolvePythonSampleDir, verifyPythonSampleAssets} from './tools.js';
@@ -32,10 +32,11 @@ import {resolvePythonSampleDir, verifyPythonSampleAssets} from './tools.js';
 const DEFAULT_PORT = 10002;
 
 /** Builds the agent card. A2A clients such as lit read it before sending messages. */
+// Demo: the support-ticket domain replaces the sample's restaurant finder.
 function buildAgentCard(port: number, stub: boolean): AgentCard {
   return {
-    name: stub ? 'Restaurant Agent (stub)' : 'Restaurant Agent',
-    description: 'This agent helps find restaurants based on user criteria.',
+    name: stub ? 'Support Ticket Agent (stub)' : 'Support Ticket Agent',
+    description: 'This agent shows support tickets as A2UI, built from the demo ticket catalog.',
     protocolVersion: '0.3.0',
     version: '1.0.0',
     url: `http://localhost:${port}/a2a/json-rpc`,
@@ -43,11 +44,11 @@ function buildAgentCard(port: number, stub: boolean): AgentCard {
     defaultOutputModes: ['text/plain'],
     skills: [
       {
-        id: 'find_restaurants',
-        name: 'Find Restaurants Tool',
-        description: 'Helps find restaurants based on user criteria (e.g., cuisine, location).',
-        tags: ['restaurant', 'finder'],
-        examples: ['Find me the top 10 chinese restaurants in the US'],
+        id: 'show_tickets',
+        name: 'Show Tickets Tool',
+        description: 'Lists support tickets, shows one ticket, and confirms a resolved ticket.',
+        tags: ['support', 'tickets'],
+        examples: ['Show me the open tickets'],
       },
     ],
     capabilities: {streaming: true},
@@ -73,10 +74,13 @@ export async function createApp(options: {env?: NodeJS.ProcessEnv; port?: number
   const pythonDir = resolvePythonSampleDir();
   verifyPythonSampleAssets(pythonDir);
   const catalogs = loadBasicCatalogs();
+  // Demo: the ticket catalog from packages/catalog.
+  const ticketCatalogs = loadTicketCatalogs();
 
   const backend: ModelBackend =
     mode === 'stub'
-      ? new StubBackend(format, catalogs)
+      ? // Demo: STUB_INVALID_FIRST=true makes each turn's first attempt fail validation.
+        new StubBackend(format, ticketCatalogs, undefined, env.STUB_INVALID_FIRST === 'true')
       : new GeminiBackend({
           apiKey: env.GEMINI_API_KEY!,
           modelName: resolveModelName(env),
@@ -87,7 +91,7 @@ export async function createApp(options: {env?: NodeJS.ProcessEnv; port?: number
   const requestHandler = new DefaultRequestHandler(
     agentCard,
     new InMemoryTaskStore(),
-    new RestaurantExecutor(format, backend, catalogs),
+    new RestaurantExecutor(format, backend, catalogs, ticketCatalogs),
   );
 
   const app = express();
@@ -142,7 +146,7 @@ export async function main() {
 
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : DEFAULT_PORT;
   return app.listen(port, '0.0.0.0', () => {
-    console.log(`Restaurant Agent Node Sample running on port ${port}`);
+    console.log(`Support Ticket Agent (A2UI demo) running on port ${port}`);
     console.log(`Format: ${format}`);
     console.log(
       mode === 'stub'

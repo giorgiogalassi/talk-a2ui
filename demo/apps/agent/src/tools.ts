@@ -42,81 +42,79 @@ export function getRepoRootDir(): string {
 
 /** Verifies that the shared Python assets exist at startup. */
 export function verifyPythonSampleAssets(pythonDir: string = resolvePythonSampleDir()): void {
-  const dataPath = path.join(pythonDir, 'restaurant_data.json');
-  const imagesDir = path.join(pythonDir, 'images');
-
+  // Demo: the ticket data replaces the sample's restaurant data and images.
+  const dataPath = path.join(pythonDir, 'tickets.json');
   if (!fs.existsSync(dataPath)) {
-    throw new Error(
-      `Required restaurant data file not found at ${dataPath}. ` +
-        'Please ensure the Python ADK sample is present.',
-    );
+    throw new Error(`Required ticket data file not found at ${dataPath}.`);
   }
-  // Demo: images are not vendored (19 MB); the restaurant domain is temporary.
-  void imagesDir;
 }
 
-export const getRestaurantsDeclaration: FunctionDeclaration = {
-  name: 'get_restaurants',
+// Demo: the support-ticket domain replaces the sample's get_restaurants tool.
+export const getTicketsDeclaration: FunctionDeclaration = {
+  name: 'get_tickets',
   description:
-    "Call this tool to get a list of restaurants based on a cuisine and location. 'count' is the number of restaurants to return.",
+    "Call this tool to get support tickets. Every filter is optional: 'ticketId' returns one ticket, 'status' and 'priority' narrow the list, 'count' caps it.",
   parameters: {
     type: Type.OBJECT,
     properties: {
-      cuisine: {
+      ticketId: {
         type: Type.STRING,
-        description: 'The cuisine type to search for.',
+        description: 'The id of one ticket, e.g. TCK-1042.',
       },
-      location: {
+      status: {
         type: Type.STRING,
-        description: 'The location to search in.',
+        description: 'One of open, in_progress, resolved.',
+      },
+      priority: {
+        type: Type.STRING,
+        description: 'One of low, medium, high, urgent.',
       },
       count: {
         type: Type.INTEGER,
-        description: 'The number of restaurants to return.',
+        description: 'The maximum number of tickets to return.',
       },
     },
-    required: ['cuisine', 'location'],
   },
 };
 
-export interface GetRestaurantsArgs {
-  cuisine?: string;
-  location?: string;
+export interface GetTicketsArgs {
+  ticketId?: string;
+  status?: string;
+  priority?: string;
   count?: number;
 }
 
 /**
- * Executes the get_restaurants tool, mirroring Python tools.py.
+ * Executes the get_tickets tool over the vendored sample data.
+ *
+ * Demo: it returns whole tickets, `internal_notes` included, as a real backend would. Keeping
+ * that field away from the browser is the server-side policy's job (step 5), not the tool's.
  */
-export function executeGetRestaurants(
-  args: GetRestaurantsArgs,
-  baseUrl: string,
+export function executeGetTickets(
+  args: GetTicketsArgs,
   pythonDir: string = resolvePythonSampleDir(),
+  /** Demo: why the agent called it itself, when the model didn't (logged instead of "TOOL CALLED"). */
+  reason?: string,
 ): string {
-  const cuisine = args.cuisine ?? '';
-  const location = args.location ?? '';
-  const count = typeof args.count === 'number' ? args.count : 5;
+  const count = typeof args.count === 'number' ? args.count : 8;
+  console.log(
+    reason
+      ? `--- get_tickets ${JSON.stringify(args)}, ${reason} ---`
+      : `--- TOOL CALLED: get_tickets ${JSON.stringify(args)} ---`,
+  );
 
-  console.log(`--- TOOL CALLED: get_restaurants (count: ${count}) ---`);
-  console.log(`  - Cuisine: ${cuisine}`);
-  console.log(`  - Location: ${location}`);
-
-  let items: unknown[] = [];
-  const locLower = location.toLowerCase();
-  if (locLower.includes('new york') || locLower.includes('ny')) {
-    const filePath = path.join(pythonDir, 'restaurant_data.json');
-    try {
-      let restaurantDataStr = fs.readFileSync(filePath, 'utf-8');
-      if (baseUrl) {
-        restaurantDataStr = restaurantDataStr.replaceAll('http://localhost:10002', baseUrl);
-        console.log(`Updated base URL from tool context: ${baseUrl}`);
-      }
-      const allItems = JSON.parse(restaurantDataStr) as unknown[];
-      items = allItems.slice(0, count);
-      console.log(`  - Success: Found ${allItems.length} restaurants, returning ${items.length}.`);
-    } catch (e) {
-      console.error(`  - Error reading/parsing restaurant_data.json: ${e}`);
-    }
+  let items: Record<string, unknown>[] = [];
+  const filePath = path.join(pythonDir, 'tickets.json');
+  try {
+    const all = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as Record<string, unknown>[];
+    items = all
+      .filter(t => !args.ticketId || t.id === args.ticketId)
+      .filter(t => !args.status || t.status === args.status)
+      .filter(t => !args.priority || t.priority === args.priority)
+      .slice(0, count);
+    console.log(`  - Success: Found ${all.length} tickets, returning ${items.length}.`);
+  } catch (e) {
+    console.error(`  - Error reading/parsing tickets.json: ${e}`);
   }
 
   return JSON.stringify(items);

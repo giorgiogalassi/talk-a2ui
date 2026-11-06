@@ -19,12 +19,16 @@ import path from 'path';
 import {FileSystemCatalogProvider} from '@a2ui/agent';
 import {type CatalogApi} from '@a2ui/web_core/catalog';
 import {basicCatalog} from '@a2ui/web_core/v0_9/basic_catalog';
+import {ticketCatalog} from '@demo/catalog';
 
 import {getRepoRootDir} from './tools.js';
 import {VERSIONS, type VersionProfile} from './versions.js';
 
 /** The basic catalog of each served version, keyed by version. */
 export type BasicCatalogs = ReadonlyMap<VersionProfile['version'], CatalogApi>;
+
+/** Demo: the ticket catalog of each served version, keyed by version. */
+export type TicketCatalogs = ReadonlyMap<VersionProfile['version'], CatalogApi>;
 
 /**
  * Loads the basic catalog of every served version.
@@ -53,4 +57,19 @@ export function loadBasicCatalogs(repoRoot: string = getRepoRootDir()): BasicCat
     catalogs.set(profile.version, provider.load());
   }
   return catalogs;
+}
+
+/**
+ * Demo: loads the ticket catalog, built in packages/catalog from one Zod `ComponentApi` per
+ * component. The Angular client registers its components with the same objects.
+ *
+ * The agent registers the Zod `Catalog` itself rather than its `toJson()` document loaded back
+ * with `InMemoryCatalogProvider`. The model reads the document either way: the prompt
+ * generator writes `catalog.toJson()` into the prompt. But a catalog loaded from a document
+ * rebuilds its Zod from JSON Schema, and a Button's action `context` comes back as
+ * `Record<unknown>`, the gap behind incident 2 (demo/README.md). The document does load
+ * cleanly; `catalogs.test.ts` checks both, and the gap.
+ */
+export function loadTicketCatalogs(): TicketCatalogs {
+  return new Map([['v0.9', ticketCatalog]]);
 }

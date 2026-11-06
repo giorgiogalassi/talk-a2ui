@@ -147,7 +147,7 @@ flowchart LR
   class LLM,POL,CAT todo
 ```
 
-## Phase 3 — live model (done 2026-10-31) ← current
+## Phase 3 — live model (done 2026-10-31)
 
 `GEMINI_API_KEY` set, so `generateUi` calls Gemini (`gemini-3.6-flash`), which calls the
 `get_restaurants` tool and streams A2UI back; `StubBackend` stays as the fallback when
@@ -216,13 +216,81 @@ flowchart LR
   class POL,CAT todo
 ```
 
+## Phase 4 — Zod catalog + ticket domain (done 2026-11-06) ← current
+
+`packages/catalog` defines the ticket catalog once, as Zod 3 `ComponentApi`s (`TicketList`,
+`PriorityBadge`, `AssigneeChip` plus the basic `Text`/`Row`/`Column`/`Card`/`Divider`/`Button`),
+assembled with `new Catalog(id, 'v0.9', …)`. The agent registers that `Catalog`: the prompt
+carries its `toJson()` document, validation runs on its Zod. The Angular components are typed and
+registered with the same `ComponentApi` objects, and `server.ts` advertises only the ticket
+catalog id. Restaurants are gone: `get_tickets` tool, ticket examples, `open_ticket` /
+`resolve_ticket`. A prop outside the catalog fails validation and is retried once; `AgentClient`
+now lets a retry's `createSurface` replace the surface the failed attempt streamed.
+
+```mermaid
+flowchart LR
+  subgraph B["Browser · Angular 22 app"]
+    direction TB
+    U(["User"])
+    APP["App<br/>prompt form"]
+    HC["booking-form.json<br/>hardcoded A2UI message"]
+    AC["AgentClient<br/>ask() · handleAction()<br/>clears surfaces each request<br/>createSurface replaces"]
+    R["A2uiRendererService<br/>processMessages()"]
+    S["a2ui-v09-surface<br/>ticket catalog: TicketList<br/>PriorityBadge · AssigneeChip"]
+    LOG["console.log(action)"]
+  end
+  subgraph SV["Client SSR server · :4200"]
+    direction TB
+    BR["POST /a2a bridge<br/>server.ts"]
+    AX["A2AClient<br/>+ X-A2A-Extensions header"]
+  end
+  subgraph AG["Agent · :10002"]
+    direction TB
+    EX["RestaurantExecutor.run<br/>pick version · read action"]
+    GEN["generateUi → answer()<br/>@a2ui/agent 0.0.2 stream<br/>checked per message · 1 retry<br/>ticket catalog (Zod)"]
+    STUB["StubBackend<br/>canned ticket UI per action"]
+    LLM[("Gemini")]
+    POL["applyPolicy<br/>policy.ts"]
+  end
+  subgraph PK["packages/catalog"]
+    direction TB
+    CAT["Zod ComponentApi<br/>→ Catalog.toJson()"]
+  end
+
+  U -->|"types a prompt"| APP
+  APP -->|"ask(query)<br/>clears surfaces"| AC
+  HC ~~~ R
+  AC -->|"fetch POST /a2a<br/>query or event + contextId"| BR
+  BR -->|"text part, or data part<br/>{ version: 'v0.9', action }<br/>+ supportedCatalogIds: [ticket id]"| AX
+  AX -->|"A2A v0.3 message/stream<br/>JSON-RPC"| EX
+  EX --> GEN
+  GEN -->|"actionName"| STUB
+  GEN -->|"prompt + catalog.toJson()<br/>get_tickets tool"| LLM
+  GEN -.->|"A2UI data parts<br/>status working → input-required<br/>(completed after resolve)"| AX
+  AX -.->|"stream events"| BR
+  BR -.->|"SSE data: { parts, contextId }"| AC
+  AC -.->|"A2UI messages"| R
+  R --> S
+  S -->|"button → actionHandler<br/>handleAction(action)"| AC
+  S ~~~ LOG
+  GEN ~~~ POL
+  POL ~~~ AX
+  CAT -->|"new Catalog(…)<br/>prompt: toJson() · validation: Zod"| GEN
+  CAT -->|"same ComponentApi objects<br/>CatalogComponent#60;typeof Api#62;"| S
+
+  classDef todo fill:none,stroke:#9aa0a6,stroke-dasharray:4 3,color:#9aa0a6
+  classDef new fill:#e8f0fe,stroke:#1a73e8,stroke-width:2px,color:#0b3d91
+  classDef done fill:#ffffff,stroke:#5f6368,color:#202124
+  classDef gone fill:#f1f3f4,stroke:#dadce0,color:#bdc1c6
+  class CAT,S,GEN,AC new
+  class U,APP,BR,AX,EX,STUB,LLM,R done
+  class HC,LOG gone
+  class POL todo
+```
+
 **Next frames** (planned; `POL` and `CAT` were added to every frame as `todo` on 2026-10-23, so the
 layout won't move when they land):
 
-- **Zod catalog + custom components:** `CAT` becomes `new`; `CAT ~~~ GEN` becomes "catalog JSON
-  (`InMemoryCatalogProvider`)" and `CAT ~~~ S` becomes "same `ComponentApi`s"; `S` is relabelled
-  from `BasicCatalog` to the ticket catalog. See `IMPLEMENTATION-PLAN.md` → "Zod catalog and policy
-  on top of `@a2ui/agent`".
 - **Policy:** `POL` becomes `new`; `GEN → AX` turns into `GEN → POL → AX` (the old direct edge goes
   `~~~`). Policy runs in `answer()` on every published message (streamed and non-streamed path),
   before `toA2aParts`.

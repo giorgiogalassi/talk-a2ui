@@ -8,9 +8,13 @@ import { AgentClient } from './agent-client';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form (submit)="submit($event, prompt.value)">
-      <input #prompt name="prompt" value="Top 3 Chinese restaurants in New York" [disabled]="agent.isLoading()" />
+      <input #prompt name="prompt" value="Show me the open tickets" [disabled]="agent.isLoading()" />
       <button type="submit" [disabled]="agent.isLoading()">Ask</button>
     </form>
+
+    @if (agent.waitingForUi()) {
+      <p class="working" role="status" aria-live="polite">Agent is working…</p>
+    }
 
     @if (agent.error(); as error) {
       <p class="error">{{ error }}</p>
@@ -19,6 +23,12 @@ import { AgentClient } from './agent-client';
     @for (entry of renderer.surfaceGroup.surfacesMap; track entry[0]) {
       <a2ui-v09-surface [surfaceId]="entry[0]" />
     }
+  `,
+  // Demo: a quiet pulse while the agent works, so a long live turn doesn't read as broken.
+  styles: `
+    .working { color: #5f6368; animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: 0.35; } }
+    @media (prefers-reduced-motion: reduce) { .working { animation: none; } }
   `,
 })
 export class App {

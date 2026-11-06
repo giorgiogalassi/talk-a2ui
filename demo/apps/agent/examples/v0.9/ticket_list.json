@@ -1,0 +1,133 @@
+[
+  {
+    "version": "v0.9",
+    "createSurface": {
+      "surfaceId": "tickets",
+      "catalogId": "https://github.com/giorgiogalassi/talk-a2ui/demo/catalogs/tickets/v0_9/catalog.json"
+    }
+  },
+  {
+    "version": "v0.9",
+    "updateComponents": {
+      "surfaceId": "tickets",
+      "components": [
+        {
+          "id": "root",
+          "component": "TicketList",
+          "title": {
+            "path": "/title"
+          },
+          "children": {
+            "componentId": "ticket_row",
+            "path": "/tickets"
+          }
+        },
+        {
+          "id": "ticket_row",
+          "component": "Row",
+          "align": "center",
+          "children": [
+            "ticket_id",
+            "ticket_title",
+            "ticket_status",
+            "ticket_priority",
+            "ticket_assignee",
+            "open_button"
+          ]
+        },
+        {
+          "id": "ticket_id",
+          "component": "Text",
+          "variant": "caption",
+          "text": {
+            "path": "id"
+          }
+        },
+        {
+          "id": "ticket_title",
+          "component": "Text",
+          "weight": 1,
+          "text": {
+            "path": "title"
+          }
+        },
+        {
+          "id": "ticket_status",
+          "component": "Text",
+          "variant": "caption",
+          "text": {
+            "path": "status"
+          }
+        },
+        {
+          "id": "ticket_priority",
+          "component": "PriorityBadge",
+          "priority": {
+            "path": "priority"
+          }
+        },
+        {
+          "id": "ticket_assignee",
+          "component": "AssigneeChip",
+          "name": {
+            "path": "assignee"
+          }
+        },
+        {
+          "id": "open_button",
+          "component": "Button",
+          "variant": "borderless",
+          "child": "open_text",
+          "action": {
+            "event": {
+              "name": "open_ticket",
+              "context": {
+                "ticketId": {
+                  "path": "id"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "open_text",
+          "component": "Text",
+          "text": "Open"
+        }
+      ]
+    }
+  },
+  {
+    "version": "v0.9",
+    "updateDataModel": {
+      "surfaceId": "tickets",
+      "path": "/",
+      "value": {
+        "title": "Open tickets",
+        "tickets": [
+          {
+            "id": "TCK-1042",
+            "title": "Checkout fails with a 502 on card payments",
+            "status": "open",
+            "priority": "urgent",
+            "assignee": "Giulia Rossi"
+          },
+          {
+            "id": "TCK-1041",
+            "title": "Password reset email never arrives",
+            "status": "in_progress",
+            "priority": "high",
+            "assignee": "Marco Bianchi"
+          },
+          {
+            "id": "TCK-1039",
+            "title": "Export to CSV drops accented characters",
+            "status": "open",
+            "priority": "medium",
+            "assignee": ""
+          }
+        ]
+      }
+    }
+  }
+]

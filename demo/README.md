@@ -5,7 +5,7 @@ Demo for the talk *Your AI Should Not Generate HTML*. Plan and decisions: `../IM
 ```
 apps/client      Angular 22 app (SSR server = the A2A client, POST /a2a), renders A2UI via @a2ui/angular
 apps/agent       A2A agent (official Node sample pattern: @google/genai + @a2ui/agent), A2UI v0.9
-packages/catalog (next) the shared component catalog
+packages/catalog the ticket catalog: Zod 3 ComponentApis, shared by agent and client (@demo/catalog)
 ```
 
 The browser never speaks A2A: the client will call the app's own server, which is the A2A client
@@ -39,7 +39,34 @@ model `gemini-3.6-flash`. Checked in a browser, live: prompt → 3 real restaura
 Zod basic catalog, the one the renderer uses.
 - Stub only: the canned confirmation's `[ImageUrl]` placeholder 404s. Stub data, not code.
 
-**Next:** the ticket domain and the custom catalog (step 4).
+**Step 4, Zod catalog + ticket domain — done (2026-11-06), checked in stub mode.**
+`packages/catalog` (`@demo/catalog`, `zod@3.25.76`, the copy `@a2ui/web_core` uses) defines one
+`ComponentApi` per custom component (`TicketList`, `PriorityBadge`, `AssigneeChip`) and reuses the
+basic `TextApi`/`RowApi`/`ColumnApi`/`CardApi`/`DividerApi`/`ButtonApi` as they are, assembled with
+`new Catalog(TICKET_CATALOG_ID, 'v0.9', components, [], { themeSchema, … })`;
+`ticketCatalogDocument()` returns `toJson()`. Id:
+`https://github.com/giorgiogalassi/talk-a2ui/demo/catalogs/tickets/v0_9/catalog.json`.
+- *Agent:* registers that Zod `Catalog` next to the basic one (`src/catalogs.ts`); the prompt carries
+  its `toJson()` document, validation runs on its Zod. Restaurants replaced: `get_tickets` over
+  `assets/tickets.json` (8 tickets, with `internal_notes` for step 5's policy to strip; the tool
+  returns them whole), ticket examples (`ticket_list`, `ticket_detail`, `ticket_resolved`), actions
+  `open_ticket` and `resolve_ticket`, agent card. The stub notice moved to the ticket catalog.
+- *Client:* `apps/client/src/app/catalog/`: three components extending
+  `CatalogComponent<typeof XApi>` (props typed from the Zod schemas, e.g. `priority` is
+  `'low' | 'medium' | 'high' | 'urgent'`), registered with `createComponentImplementation(XApi, …)`
+  in an `AngularCatalog` with the same id. `server.ts` sends `supportedCatalogIds: [TICKET_CATALOG_ID]`
+  only; `BasicCatalog` stays registered in the renderer.
+- *Checked:* `npm test -w agent` (13 node:test tests: a `PriorityBadge` priority of `critical`
+  fails validation, the retry query carries the error, attempt 2's UI is published and `critical`
+  never is, on the streamed and the non-streamed path; both attempts invalid → text fallback; the
+  `toJson()` document loads with `InMemoryCatalogProvider`; examples valid). `ng test` (the renderer
+  catalog holds the agent catalog's schema objects). Stub chain in a headless browser: prompt →
+  ticket list (badges, chips, "Unassigned") → *Open* → detail → *Mark as resolved* → confirmation,
+  no console errors. `STUB_INVALID_FIRST=true` (first attempt sends `critical`) renders the retried
+  list. Express format checked with the stub too.
+- Two things the plan didn't expect: incidents 3 and 4 below.
+
+**Next:** server-side policy, `applyPolicy` (step 5).
 
 ## Incidents
 
@@ -85,19 +112,93 @@ Zod basic catalog, the one the renderer uses.
   deduped. Step 4 extends the same idea to the custom catalog.
 - *Upstream:* the official Node sample loads the same JSON, so it has the same gap. Not reported yet.
 
+**3 · The plan's `InMemoryCatalogProvider` would reopen incident 2 (2026-11-06, decided in code).**
+- *Plan:* load `catalog.toJson()` with `InMemoryCatalogProvider` in the agent.
+- *Found:* it loads cleanly (same id, version `v0.9`, same 9 components; the `PriorityBadge` enum
+  survives). But the provider rebuilds Zod from JSON Schema, so a `Button`'s action `context` is
+  `Record<unknown>` again: `{ ticketId: {} }` passes the reloaded catalog and fails the Zod one,
+  exactly incident 2. `catalogs.test.ts` shows both.
+- *Done instead:* the agent registers the Zod `Catalog` object itself with `CatalogConfig`. The model
+  still reads the generated document (`@a2ui/agent`'s prompt generator writes `catalog.toJson()`),
+  so one Zod source feeds prompt, agent validation and renderer. Switching to the provider is one
+  line in `src/catalogs.ts` if wanted.
+
+**4 · A streamed retry broke the client: "Surface stub-notice already exists." (2026-11-06, fixed).**
+- *Symptom:* with the first attempt invalid (`STUB_INVALID_FIRST=true`), the browser showed that
+  error and no ticket list.
+- *Cause:* when streaming, attempt 1 publishes its `createSurface` messages before the bad component
+  arrives; the retry re-sends them; `MessageProcessor` throws on a second `createSurface` for the
+  same id, and the exception ends the SSE read loop. The agent did its part: `critical` never left it.
+- *Fix:* `agent-client.ts` deletes a surface when a new `createSurface` for its id arrives, so the
+  retry replaces what the failed attempt drew. Checked in the browser with and without the fix.
+
+## Latency (2026-11-06)
+
+**What happened.** First live run on the ticket domain: every request waited 15-20 s before the
+first UI arrived, and one *Open* took about 50 s. Measured with per-call timing in the agent log
+(`--- timing: call N first chunk … ms ---`, `src/model.ts`):
+
+| Request | Call 1 (decides to call `get_tickets`) | Call 2 (writes the UI) | First UI |
+|---|---|---|---|
+| "Show me the open tickets", default thinking | 6.6 s | 10.2 s to first token | ~17 s |
+| same, `MINIMAL` thinking | 10.0 s | 3.0 s | ~13 s |
+| *Open* ticket, default thinking | 15.5 s, then Gemini **503 "high demand"**, whole turn retried | 11.6 s | ~35 s |
+| *Open* ticket, `MINIMAL` thinking | 6.0 s | 7.3 s | ~13 s |
+
+**Why.** Each request was two sequential model calls before any UI: call 1 only returns a
+`get_tickets` function call (nothing streams), then the tool runs (instant), then call 2 writes the
+UI. `gemini-3.6-flash` thinks before its first token on both calls by default. The 50 s case was a
+Gemini 503, which the retry loop logged as "A2UI validation failed" and retried with a correction
+prompt.
+
+**What changed.**
+1. **Thinking defaults to `MINIMAL`** (`src/model.ts`, `thinkingConfig`): call 2's first token went
+   from ~10 s to ~3-7 s. `GEMINI_THINKING_LEVEL` overrides it; `DEFAULT` restores the model's own.
+2. **`open_ticket` skips call 1** (`src/user-query.ts`): the click already names the ticket, so the
+   agent fetches it itself and puts it in the query (`TICKET_DATA`); the prompt says not to call
+   the tool again. Logged as `--- get_tickets {...}, prefetched for open_ticket ---`. Free-text
+   questions still go through the model's tool call, so the demo still shows tool calling.
+3. **The client says it's working** (`apps/client`, `waitingForUi`): "Agent is working…" from the
+   request until the first A2UI message, since the old UI is cleared at once.
+4. **Model errors have their own log line** (`src/agent.ts`): only A2UI errors (`A2uiError`, or a
+   reply with no A2UI) log `--- A2UI validation failed ---` and retry with the error; anything else
+   (e.g. a 503) logs `--- Model call failed: 503 … ---` and retries the original query.
+
+Tests: `latency.test.ts` (thinking default, prefetch) and a 503 case in `agent.test.ts`.
+Re-measure after these changes before the rehearsal.
+
 ## Versions
 
 - Angular **22.2.3**. `@a2ui/angular@0.13.0` declares `@angular/*@^21.2.5` as peers, so the root
   `package.json` overrides them to `^22.2.3`. Builds and renders with no console errors. Drop the
   override once the package lists Angular 22.
+- `zod@3.25.76` in `packages/catalog`, deduped with `@a2ui/web_core`'s and `@a2ui/angular`'s
+  (Zod 3, not 4: `ComponentApi` is typed against Zod 3).
 - `@a2ui/web_core@0.14.0`, `@a2ui/markdown-it@0.2.2`, `@a2ui/agent@0.0.2` (pinned; was 0.0.1 until
   2026-10-31, see incident 1. `src/agent.ts` must match the sample at the pinned release's commit).
 - `@a2a-js/sdk@^0.3.13` on both sides (A2A v0.3), like the official samples (decided 2026-10-22).
 
 ## Run
 
+Run from `demo/`. `-w agent` / `-w client` picks the npm workspace (`apps/agent`, `apps/client`).
+
 ```bash
 npm install
-npm run build -w agent && npm run start:stub -w agent     # terminal 1, :10002
-npm run start:client                                       # terminal 2, http://localhost:4200
+npm run build -w agent                                     # once, and after every agent change (builds packages/catalog too)
+
+# terminal 1, the agent on :10002, one of:
+npm run start:stub -w agent                                # stub: canned ticket replies, no model, no key
+npm run start -w agent                                     # live: Gemini, reads GEMINI_API_KEY from apps/agent/.env
+STUB_INVALID_FIRST=true npm run start:stub -w agent        # stub whose first attempt fails validation (shows the retry)
+GEMINI_THINKING_LEVEL=DEFAULT npm run start -w agent       # live with the model's own thinking (slower, see Latency)
+
+# terminal 2, the client
+npm run start:client                                       # http://localhost:4200
+
+npm test -w agent                                          # agent tests (catalog, validate-and-retry, latency changes)
+npm test -w client -- --watch=false                        # client tests
 ```
+
+Live mode needs `apps/agent/.env` (gitignored) with `GEMINI_API_KEY=...`; copy `apps/agent/.env.example`.
+Optional there: `GEMINI_THINKING_LEVEL` (`MINIMAL` default, `LOW`, `MEDIUM`, `HIGH`, `DEFAULT`), `MODEL_NAME`.
+On stage, keep stub mode ready: a live turn depends on Gemini's load (503s seen on 2026-11-06).
