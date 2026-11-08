@@ -425,32 +425,43 @@ layout: section
 
 # The full pipeline
 
-```
-User Intent
-↓
-LLM (constrained output via JSON Schema)
-↓
-A2UI JSON Payload
-↓
-Capability Negotiation (Zod catalog schemas → JSON Schema → agent)
-↓
-Server-side Policy Enforcement
-↓
-Client Delivery
-↓
-Client-side validation (Zod, built into web_core)
-↓
-Angular Renderer
-↓
-Native Components
+```mermaid {scale: 0.5}
+flowchart LR
+  subgraph BR["Browser"]
+    R["Angular renderer<br/>same Zod catalog"]
+  end
+  subgraph SV["SSR server"]
+    C["A2A client<br/>supportedCatalogIds"]
+  end
+  subgraph AG["Agent · @a2ui/agent"]
+    N["Negotiate<br/>catalog"] --> G["Prompt +<br/>catalog.toJson()"]
+    G --> LLM(["Gemini"]) --> V{"Valid?"}
+    V -- "no: retry, max 2" --> G
+    V -- yes --> P["applyPolicy"]
+  end
+  R -- "POST /a2a" --> C
+  C -- "A2A" --> N
+  P -- "A2A stream" --> C
+  C -- "SSE" --> R
+  R -. "VALIDATION_FAILED" .-> C
 ```
 
 <!--
 Speaker notes:
-Walk this top to bottom slowly — this diagram is the spine of the rest of the talk.
-Two things to flag as you pass them: capability negotiation happens *before* the
-agent generates anything, and validation happens *again* client-side even though
-the schema was already sent upfront. Defense in depth, not a single checkpoint.
+Walk this left to right, then back — this diagram is the spine of the rest of the talk.
+The browser never speaks A2A: it calls our own POST /a2a, and the SSR server is the
+A2A client. Agent URL and credentials never reach the browser.
+Three things to flag as you pass them:
+1. Capability negotiation happens *before* the agent generates anything: the server
+   names the catalogs it supports, the agent builds its prompt and its validation
+   from those catalogs only.
+2. The agent validates its own output against the same Zod catalog and retries once
+   with the error. Two failures and the user gets text, never broken UI.
+3. Policy runs in the agent, after validation and before anything is published,
+   on every streamed message. Valid is not the same as allowed.
+Then the renderer checks again, with the same Zod schemas. Defense in depth, not a
+single checkpoint. The dashed arrow is the way back: a message the renderer rejects
+returns to the agent as a new turn.
 -->
 
 ---
