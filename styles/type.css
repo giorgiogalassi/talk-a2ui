@@ -183,7 +183,7 @@ html.dark:has(.ta-deck) .talk-footer { color: #8a8a8a; }
   flex-direction: column;
 }
 .ta-deck .dg-lane.dg-wide { flex: 1.4 1 0; }
-.ta-deck .dg-label { color: #e08a64; font-size: 0.7rem; margin-bottom: 0.4rem; }
+.ta-deck .dg-label { color: #e08a64; font-size: 0.62rem; margin-bottom: 0.4rem; }
 .ta-deck .dg-lane .mermaid,
 .ta-deck .dg-lane svg { margin: auto; }
 .ta-deck .dg-wire {
@@ -193,7 +193,7 @@ html.dark:has(.ta-deck) .talk-footer { color: #8a8a8a; }
   justify-content: center;
   gap: 0.9rem;
   padding: 0 0.6rem;
-  font-size: 0.6rem;
+  font-size: 0.55rem;
   color: #9aa0a6;
   white-space: nowrap;
 }
