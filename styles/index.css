@@ -1,3 +1,5 @@
+@import './type.css'; /* every rule there is scoped to .ta / .ta-deck */
+
 /* Constrain images on all slides without affecting presenter UI */
 .slidev-layout img {
   max-height: 260px;
@@ -50,4 +52,77 @@
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 500;
+}
+/* ---------------------------------------------------------------
+   Vertical density — keeps content-heavy slides inside the viewport.
+   Global, conservative. Add `class: dense` to a slide's frontmatter
+   for a second, stronger pass on the few that still overflow.
+   --------------------------------------------------------------- */
+
+.slidev-layout h1 {
+  margin-bottom: 0.45em;
+  line-height: 1.15;
+}
+
+.slidev-layout table {
+  margin: 0.5em 0;
+}
+
+.slidev-layout table th,
+.slidev-layout table td {
+  padding-top: 0.28em;
+  padding-bottom: 0.28em;
+  line-height: 1.35;
+}
+
+.slidev-layout ul,
+.slidev-layout ol {
+  margin: 0.5em 0;
+}
+
+.slidev-layout li {
+  margin: 0.22em 0;
+  line-height: 1.45;
+}
+
+.slidev-layout p {
+  margin: 0.5em 0;
+  line-height: 1.5;
+}
+
+.slidev-layout .slidev-code,
+.slidev-layout pre {
+  margin: 0.5em 0;
+  line-height: 1.4;
+}
+
+.slidev-layout .callout {
+  margin: 0.55em 0;
+}
+
+/* Stronger pass — opt in per slide with `class: dense` */
+.slidev-layout.dense {
+  font-size: 0.92em;
+}
+
+.slidev-layout.dense table th,
+.slidev-layout.dense table td {
+  padding-top: 0.18em;
+  padding-bottom: 0.18em;
+  line-height: 1.28;
+}
+
+.slidev-layout.dense li {
+  margin: 0.12em 0;
+  line-height: 1.38;
+}
+
+.slidev-layout.dense p {
+  margin: 0.38em 0;
+}
+
+.slidev-layout.dense .slidev-code,
+.slidev-layout.dense pre {
+  font-size: 0.85em;
+  line-height: 1.32;
 }

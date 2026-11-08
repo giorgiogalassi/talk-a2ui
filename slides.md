@@ -11,13 +11,22 @@ mdc: true
 fonts:
   sans: Roboto
   mono: Roboto Mono
+defaults:
+  layout: ruled
+rule: ['A2UI · AngularDay 2026', 'Structured generative UI']
 ---
 
-# Your AI Should Not Generate HTML
-
-## Structured Generative UI with Angular and A2UI
-
-Giorgio Galassi
+<div class="ta">
+  <div class="ta-hero">
+    <FitText :weight="300" :wdth="100" class="ta-dim">Your AI should not</FitText>
+    <FitText :weight="900" :wdth="100" class="ta-accent">generate HTML.</FitText>
+  </div>
+  <div class="ta-foot">
+    <div><b>Angular + A2UI</b><span>structured generative UI</span></div>
+    <div><b>AngularDay 2026</b><span>Verona · 20 November</span></div>
+    <div><b>Giorgio Galassi</b><span>ggalassi.dev</span></div>
+  </div>
+</div>
 
 <!--
 Speaker notes:
@@ -31,15 +40,21 @@ a solution. Go straight into the real problem instead.
 -->
 
 ---
-layout: section
+rule: ['Part 1', 'The Problem']
 ---
 
-# 1. The Problem
+<div class="ta">
+  <div class="ta-hero">
+    <FitText :weight="900" :wdth="90">The Problem.</FitText>
+  </div>
+</div>
 
 <!--
 ~5 minutes.
 -->
 
+---
+rule: ['The Problem', 'Part 1']
 ---
 
 # Agents are already in production
@@ -57,6 +72,8 @@ in a system they do not fully control.
 Pause after "they hit a wall" — let that land before moving to the quote.
 -->
 
+---
+rule: ['The Problem', 'Part 1']
 ---
 
 # Google says it plainly
@@ -82,6 +99,8 @@ that you don't fully control, that need to hand back something interactive.
 -->
 
 ---
+rule: ['The Problem', 'Part 1']
+---
 
 # What the agent's options look like today
 
@@ -99,6 +118,8 @@ is remote — a different service, a different trust domain — this stops being
 There's no way to inspect what you're about to execute before you execute it.
 -->
 
+---
+rule: ['The Problem', 'Part 1']
 ---
 
 # Option 2 — return data, let the frontend render it
@@ -120,6 +141,8 @@ the agent needs to choose the shape of the response, not just supply values.
 -->
 
 ---
+rule: ['The Problem', 'Part 1']
+---
 
 # Option 3 — nothing
 
@@ -134,6 +157,8 @@ when they hit the wall — chat-only, no rich UI at all, because option 1 is uns
 and option 2 doesn't cover the intent the agent needs to express.
 -->
 
+---
+rule: ['The Problem', 'Part 1']
 ---
 
 # What if there was a fourth option?
@@ -154,15 +179,21 @@ This is the hinge of the whole talk — everything after this slide is the answe
 -->
 
 ---
-layout: section
+rule: ['Part 2', 'The Paradigm Shift']
 ---
 
-# 2. The Paradigm Shift
+<div class="ta">
+  <div class="ta-hero">
+    <FitText :weight="900" :wdth="90">The Paradigm Shift.</FitText>
+  </div>
+</div>
 
 <!--
 ~5 minutes.
 -->
 
+---
+rule: ['The Paradigm Shift', 'Part 2']
 ---
 
 # The LLM becomes a planner and composer, not a code generator
@@ -173,6 +204,8 @@ State this clearly and let it sit as its own slide before backing it with eviden
 This single sentence is the reframe the rest of the talk builds on.
 -->
 
+---
+rule: ['The Paradigm Shift', 'Part 2']
 ---
 
 # This is not hypothetical
@@ -190,6 +223,8 @@ who are going to ask "is this vaporware."
 -->
 
 ---
+rule: ['The Paradigm Shift', 'Part 2']
+---
 
 # The core diagram
 
@@ -206,6 +241,8 @@ Hold here, because the next slide is the objection this diagram immediately rais
 -->
 
 ---
+rule: ['The Paradigm Shift', 'Part 2']
+---
 
 # "Why is AI-generated JSON safer than AI-generated HTML?"
 
@@ -217,6 +254,8 @@ This is the objection-handling moment of the talk. If you skip it, the room
 mentally checks out for the rest of the technical sections.
 -->
 
+---
+rule: ['The Paradigm Shift', 'Part 2']
 ---
 
 # The real argument
@@ -241,6 +280,8 @@ It's safe here specifically because the vocabulary the agent can use is closed
 and known in advance. That's the actual mechanism, not a vibe about data vs. code.
 -->
 
+---
+rule: ['The Paradigm Shift', 'Part 2']
 ---
 
 # Acknowledge maturity, up front
@@ -267,10 +308,15 @@ they should walk away holding onto.
 -->
 
 ---
-layout: section
+rule: ['Part 3', 'Where This Actually Makes Sense']
 ---
 
-# 3. Where This Actually Makes Sense
+<div class="ta">
+  <div class="ta-hero">
+    <FitText :weight="900" :wdth="90">Where This Actually</FitText>
+    <FitText :weight="900" :wdth="90">Makes Sense.</FitText>
+  </div>
+</div>
 
 <!--
 ~5 minutes. Needs a dedicated slide per use case, plus a "when NOT to use this"
@@ -278,6 +324,8 @@ closing slide — do not skip it. The audience will ask "when would I actually
 build this?" before buying into the architecture in section 4 and 5.
 -->
 
+---
+rule: ['Where This Actually Makes Sense', 'Part 3']
 ---
 
 # Enterprise internal tooling at scale
@@ -300,6 +348,8 @@ generation instead of behind it.
 -->
 
 ---
+rule: ['Where This Actually Makes Sense', 'Part 3']
+---
 
 # Financial services dashboards
 
@@ -319,6 +369,8 @@ requirements around what data specific roles are allowed to see — the catalog
 and the role-based policy layer are doing the same enforcement job.
 -->
 
+---
+rule: ['Where This Actually Makes Sense', 'Part 3']
 ---
 
 # Healthcare and clinical decision support
@@ -344,6 +396,8 @@ ever have been rendered, for any payload, at any time.
 -->
 
 ---
+rule: ['Where This Actually Makes Sense', 'Part 3']
+---
 
 # Remote sub-agents in an orchestrator
 
@@ -367,6 +421,8 @@ the sub-agent's internals — the shared catalog is the entire interface between
 -->
 
 ---
+rule: ['Where This Actually Makes Sense', 'Part 3']
+---
 
 # Why the standard approach breaks down
 
@@ -388,6 +444,8 @@ pitch: you're already halfway to building this. A2UI just names the pattern
 and gives it a validation boundary.
 -->
 
+---
+rule: ['Where This Actually Makes Sense', 'Part 3']
 ---
 
 # When NOT to use this
@@ -412,65 +470,109 @@ architecture doesn't apply. Say it plainly and don't hedge it.
 -->
 
 ---
-layout: section
+rule: ['Part 4', 'Anatomy of an A2UI System']
 ---
 
-# 4. Anatomy of an A2UI System
+<div class="ta">
+  <div class="ta-hero">
+    <FitText :weight="900" :wdth="90">Anatomy of an</FitText>
+    <FitText :weight="900" :wdth="90">A2UI System.</FitText>
+  </div>
+</div>
 
 <!--
 ~10 minutes. This is the technical core.
 -->
 
 ---
+rule: ['Anatomy of an A2UI System', 'Part 4']
+---
 
 # The full pipeline
 
-```
-User Intent
-↓
-LLM (constrained output via JSON Schema)
-↓
-A2UI JSON Payload
-↓
-Capability Negotiation (Zod catalog schemas → JSON Schema → agent)
-↓
-Server-side Policy Enforcement
-↓
-Client Delivery
-↓
-Client-side validation (Zod, built into web_core)
-↓
-Angular Renderer
-↓
-Native Components
+<div class="dg">
+<div class="dg-lane">
+<div class="dg-label">// browser</div>
+
+```mermaid {scale: 0.74}
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "11px", "lineColor": "#9aa0a6", "edgeLabelBackground": "#262626"}, "flowchart": {"curve": "basis", "nodeSpacing": 24, "rankSpacing": 44, "padding": 10}}}%%
+flowchart TB
+  B1["A2UI messages"] --> B2["<b>web_core</b><br/>same Zod catalog"] --> B3["Angular<br/>components"]
+  classDef file fill:#2a2a2a,stroke:#454545,stroke-width:1px,color:#9cdcfe
+  classDef step fill:#333333,stroke:#569cd6,stroke-width:2px,color:#f0ebe4
+  class B1 file
+  class B2,B3 step
 ```
 
-<!--
-Speaker notes:
-Walk this top to bottom slowly — this diagram is the spine of the rest of the talk.
-Two things to flag as you pass them: capability negotiation happens *before* the
-agent generates anything, and validation happens *again* client-side even though
-the schema was already sent upfront. Defense in depth, not a single checkpoint.
--->
+</div>
+<div class="dg-wire">
+  <div class="arrow">POST /a2a</div>
+  <div class="arrow left">SSE</div>
+  <div class="arrow dashed">VALIDATION_FAILED</div>
+</div>
+<div class="dg-lane">
+<div class="dg-label">// ssr server</div>
 
+```mermaid {scale: 0.74}
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "11px", "lineColor": "#9aa0a6", "edgeLabelBackground": "#262626"}, "flowchart": {"curve": "basis", "nodeSpacing": 24, "rankSpacing": 44, "padding": 10}}}%%
+flowchart TB
+  S1["<b>A2A client</b><br/>server.ts"] --> S2["supportedCatalogIds"]
+  classDef file fill:#2a2a2a,stroke:#454545,stroke-width:1px,color:#9cdcfe
+  classDef step fill:#333333,stroke:#569cd6,stroke-width:2px,color:#f0ebe4
+  class S1 step
+  class S2 file
+```
+
+</div>
+<div class="dg-wire">
+  <div class="arrow">A2A</div>
+  <div class="arrow left">A2A stream</div>
+</div>
+<div class="dg-lane dg-wide">
+<div class="dg-label">// agent · @a2ui/agent</div>
+
+```mermaid {scale: 0.74}
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "11px", "lineColor": "#9aa0a6", "edgeLabelBackground": "#262626", "primaryTextColor": "#f0ebe4"}, "flowchart": {"curve": "basis", "nodeSpacing": 28, "rankSpacing": 30, "padding": 8}}}%%
+flowchart TB
+  A1["<b>negotiate</b><br/>pick-a2ui.ts"] --> A2["<b>prompt</b><br/>catalog.toJson()"] --> A3["Gemini"] --> A4{"valid?"}
+  A4 -- "no · retry ≤ 2" --> A2
+  A4 -- yes --> A5["<b>applyPolicy</b><br/>strip · disable"]
+  classDef step fill:#333333,stroke:#569cd6,stroke-width:2px,color:#f0ebe4
+  classDef hot fill:#3d3530,stroke:#ce9178,stroke-width:3px,color:#ce9178
+  classDef tool fill:#26302a,stroke:#6a9955,stroke-width:2px,color:#b5cea8
+  class A1,A2,A4 step
+  class A3 tool
+  class A5 hot
+```
+
+</div>
+</div>
+
+
+
+---
+rule: ['Anatomy of an A2UI System', 'Part 4']
 ---
 
 # Zod is not your addition — it's built into A2UI
 
-`@a2ui/web_core` uses Zod internally in two distinct, important ways.
+Every catalog component is a Zod schema (`ComponentApi`): its allowed properties
+and types. One definition, shared by both ends.
 
-**First** — every catalog component is defined with a Zod schema describing its
-allowed properties and types. This schema is the source of truth for the entire
-agent-client contract.
+**Agent** — writes the catalog into the prompt as JSON Schema (`catalog.toJson()`)
+and validates every reply against the same Zod, before anything is sent.
 
-**Second** — before the agent generates a single character of JSON, the renderer
-converts those Zod schemas into JSON Schema and sends them to the agent as a
-capabilities manifest.
+**Renderer** — registers its Angular components with the same objects and checks
+every message again on arrival.
+
+**The wire** — carries only catalog IDs (`supportedCatalogIds`). The protocol
+can also send a catalog inline; the demo doesn't need to.
 
 <div class="text-sm text-gray-400">
 
 Source: [catalog/types.ts#L172-L183](https://github.com/google/A2UI/blob/0af1b1e7/renderers/web_core/src/v0_9/catalog/types.ts#L172-L183) ·
-[client-capabilities.ts#L15-L30](https://github.com/google/A2UI/blob/0af1b1e7/renderers/web_core/src/v0_9/schema/client-capabilities.ts#L15-L30)
+[client-capabilities.ts#L15-L30](https://github.com/google/A2UI/blob/0af1b1e7/renderers/web_core/src/v0_9/schema/client-capabilities.ts#L15-L30) ·
+demo: `packages/catalog`
 
 </div>
 
@@ -479,12 +581,17 @@ Speaker notes:
 This is the point that connects directly back to the "Kneel Before Zod" material
 for anyone who's seen that talk — Zod shows up here in a completely different
 role than runtime validation of form input.
+In the demo, packages/catalog is imported by both the agent and the Angular app:
+the same ComponentApi objects. The browser (through our server) only says which
+catalog it speaks; the agent already holds the schema.
 The agent is constrained upfront: it cannot even attempt to use components or
 property values outside the schema, because it never sees them as options in
-the first place. It's not filtered after the fact — it's absent from the space
-of things the model was ever told it could generate.
+the first place. And if the model drifts anyway, the agent's own validation
+catches it before the user does.
 -->
 
+---
+rule: ['Anatomy of an A2UI System', 'Part 4']
 ---
 
 # Zod defines what the agent is allowed to think
@@ -505,6 +612,8 @@ Let this slide breathe — it's a short, dense idea and it lands better slow.
 This is the sentence people should be quoting after the talk.
 -->
 
+---
+rule: ['Anatomy of an A2UI System', 'Part 4']
 ---
 
 # Validation ownership — who checks what, where
@@ -532,6 +641,8 @@ defeats the whole point.
 -->
 
 ---
+rule: ['Anatomy of an A2UI System', 'Part 4']
+---
 
 # The component registry is the trust boundary
 
@@ -550,6 +661,8 @@ cannot reference anything outside the catalog, full stop.
 -->
 
 ---
+rule: ['Anatomy of an A2UI System', 'Part 4']
+---
 
 # A2UI is not AI magic
 
@@ -567,15 +680,22 @@ which is where Angular specifically enters the picture.
 -->
 
 ---
-layout: section
+rule: ['Part 5', 'Angular as the Rendering Engine']
 ---
 
-# 5. Angular as the Rendering Engine
+<div class="ta">
+  <div class="ta-hero">
+    <FitText :weight="900" :wdth="90">Angular as the</FitText>
+    <FitText :weight="900" :wdth="90">Rendering Engine.</FitText>
+  </div>
+</div>
 
 <!--
 ~15 minutes.
 -->
 
+---
+rule: ['Angular as the Rendering Engine', 'Part 5']
 ---
 
 # A2UI is framework-agnostic
@@ -594,6 +714,8 @@ protocol needs, and that's worth walking through concretely rather than
 asserting.
 -->
 
+---
+rule: ['Angular as the Rendering Engine', 'Part 5']
 ---
 
 # 5a. You write a catalog, not a renderer
@@ -626,6 +748,8 @@ Explorer app — worth pulling up live if time allows.
 -->
 
 ---
+rule: ['Angular as the Rendering Engine', 'Part 5']
+---
 
 # Your entire Angular integration
 
@@ -640,6 +764,8 @@ One element. That's the whole integration surface at the app-shell level.
 Everything else lives in the catalog you write next.
 -->
 
+---
+rule: ['Angular as the Rendering Engine', 'Part 5']
 ---
 
 # What your catalog looks like
@@ -668,6 +794,8 @@ normal Angular component. There's no special DSL to learn beyond this.
 -->
 
 ---
+rule: ['Angular as the Rendering Engine', 'Part 5']
+---
 
 # 5b. Reactivity — Preact signals meet Angular signals
 
@@ -693,6 +821,8 @@ different framework would write its own bridge over the same underlying signal.
 -->
 
 ---
+rule: ['Angular as the Rendering Engine', 'Part 5']
+---
 
 # Inside a catalog component
 
@@ -712,6 +842,8 @@ This is what you actually write inside a catalog component: ordinary Angular
 your component code — the bridge absorbs it entirely.
 -->
 
+---
+rule: ['Angular as the Rendering Engine', 'Part 5']
 ---
 
 # Why the message split matters
@@ -745,6 +877,8 @@ makes fine-grained reactivity possible at all downstream.
 -->
 
 ---
+rule: ['Angular as the Rendering Engine', 'Part 5']
+---
 
 # 5c. Zoneless and streaming — the specific argument
 
@@ -762,6 +896,8 @@ where a skeptical Angular engineer decides whether you actually understand the
 mechanism or are pattern-matching buzzwords.
 -->
 
+---
+rule: ['Angular as the Rendering Engine', 'Part 5']
 ---
 
 # With Zoneless + OnPush
@@ -794,6 +930,8 @@ coarse-grained triggering on top of that.
 -->
 
 ---
+rule: ['Angular as the Rendering Engine', 'Part 5']
+---
 
 # 5d. The "deterministic renderer" claim — stated precisely
 
@@ -824,6 +962,8 @@ does at render time.
 -->
 
 ---
+rule: ['Angular as the Rendering Engine', 'Part 5']
+---
 
 # 5e. Standalone components and the registry pattern
 
@@ -844,15 +984,21 @@ first. That's precisely what standalone gives you.
 -->
 
 ---
-layout: section
+rule: ['Part 6', 'Demo']
 ---
 
-# 6. Demo
+<div class="ta">
+  <div class="ta-hero">
+    <FitText :weight="900" :wdth="90">Demo.</FitText>
+  </div>
+</div>
 
 <!--
 ~10 minutes. Scenario: Enterprise Support Dashboard.
 -->
 
+---
+rule: ['Demo', 'Part 6']
 ---
 
 # The prompt
@@ -866,6 +1012,8 @@ Do not run a live model on stage — use a pre-recorded or scripted demo, per
 the fallback plan. Mention this openly if using the recording.
 -->
 
+---
+rule: ['Demo', 'Part 6']
 ---
 
 # Stage by stage
@@ -883,6 +1031,8 @@ it's the one that visually proves the capability negotiation happened before
 generation, which is the whole argument from section 4.
 -->
 
+---
+rule: ['Demo', 'Part 6']
 ---
 
 # Stage by stage, continued
@@ -902,6 +1052,8 @@ Stage 7 is where the Zoneless/signals argument from 5c becomes visible —
 open the profiler and let the room see exactly one component highlighted.
 -->
 
+---
+rule: ['Demo', 'Part 6']
 ---
 
 # The moment to land
@@ -924,6 +1076,8 @@ talk. Let it sit before moving to the model-choice footnote.
 -->
 
 ---
+rule: ['Demo', 'Part 6']
+---
 
 # On model choice
 
@@ -938,15 +1092,21 @@ transparency about the demo setup.
 -->
 
 ---
-layout: section
+rule: ['Part 7', 'Production Reality']
 ---
 
-# 7. Production Reality
+<div class="ta">
+  <div class="ta-hero">
+    <FitText :weight="900" :wdth="90">Production Reality.</FitText>
+  </div>
+</div>
 
 <!--
 ~5 minutes.
 -->
 
+---
+rule: ['Production Reality', 'Part 7']
 ---
 
 # Security
@@ -976,6 +1136,8 @@ tree would be, since depth and fan-out are cheap to bound-check.
 -->
 
 ---
+rule: ['Production Reality', 'Part 7']
+---
 
 # Reliability
 
@@ -997,6 +1159,8 @@ which means the agent can potentially retry or degrade gracefully, rather than
 the user just seeing a broken page with no explanation anywhere in the system.
 -->
 
+---
+rule: ['Production Reality', 'Part 7']
 ---
 
 # Observability
@@ -1022,6 +1186,8 @@ payload itself is the audit trail.
 -->
 
 ---
+rule: ['Production Reality', 'Part 7']
+---
 
 # Performance
 
@@ -1043,6 +1209,8 @@ mechanism, just name the pieces and let the room recall what they already saw.
 -->
 
 ---
+rule: ['Production Reality', 'Part 7']
+---
 
 # Production-ready Generative UI
 
@@ -1060,15 +1228,21 @@ in one sentence afterward.
 -->
 
 ---
-layout: section
+rule: ['Part 8', 'The Future']
 ---
 
-# 8. The Future
+<div class="ta">
+  <div class="ta-hero">
+    <FitText :weight="900" :wdth="90">The Future.</FitText>
+  </div>
+</div>
 
 <!--
 ~3 minutes.
 -->
 
+---
+rule: ['The Future', 'Part 8']
 ---
 
 # A component that describes itself
@@ -1096,6 +1270,8 @@ of a fixed catalog manifest, individual components self-describe.
 -->
 
 ---
+rule: ['The Future', 'Part 8']
+---
 
 # The broader vision
 
@@ -1119,6 +1295,8 @@ is on the other end, and that's a deliberate design choice, not an accident.
 -->
 
 ---
+rule: ['The Future', 'Part 8']
+---
 
 # Close
 
@@ -1139,38 +1317,37 @@ used correctly. Thank the room. Open for questions.
 -->
 
 ---
-layout: center
+rule: ['Thank you', 'ggalassi.dev']
 ---
 
-<div class="flex flex-row items-center gap-12 w-full">
-
-  <div class="flex flex-col gap-5 flex-1">
-
-  <div class="thank-you-title">Thank you</div>
-
-**Giorgio Galassi** <br>
-Senior Frontend Engineer (Freelancer) · GDG Roma Città Organizer
-
-  <div class="tags">
-    <span class="tag">Angular</span>
-    <span class="tag">AI</span>
-    <span class="tag">Generative UI</span>
-    <span class="tag">A2UI</span>
-    <span class="tag">Signals</span>
-    <span class="tag">Zoneless</span>
+<div class="ta ta-split">
+  <div class="ta-split-main">
+  <div class="ta-hero" style="margin-block:0">
+    <FitText :weight="900" :wdth="100" class="ta-accent">Thank you</FitText>
   </div>
-
-  <div class="flex flex-col items-start gap-2">
-    <img src="/src/qrcode.png" alt="QR code" class="qr-code w-48 h-48" />
-    <span class="text-sm text-gray-400">Links, slides & more</span>
+  <div class="ta-aside" style="margin-top:0.8rem;grid-template-columns:1fr">
+    <strong>Stop letting LLMs generate HTML. Start designing systems that speak UI.</strong>
   </div>
-
+  <div class="ta-thanks" style="grid-template-columns:minmax(0,1fr) auto">
+    <div class="who">
+      <b>Giorgio Galassi</b>
+      <span>Senior Frontend Engineer (Freelancer) · GDG Roma Città Organizer</span>
+      <div class="tags" style="margin-top:0.7rem">
+        <span class="tag">Angular</span>
+        <span class="tag">AI</span>
+        <span class="tag">Generative UI</span>
+        <span class="tag">A2UI</span>
+        <span class="tag">Signals</span>
+        <span class="tag">Zoneless</span>
+      </div>
+    </div>
+    <div class="qr">
+      <img src="/src/qrcode.png" alt="QR code to links and slides" class="qr-code" style="width:7.5rem;height:7.5rem" />
+      Links, slides &amp; more
+    </div>
   </div>
-
-  <div class="flex-shrink-0">
-    <img src="/src/profile.png" alt="Giorgio Galassi" class="rounded-full w-60 h-60 object-cover" />
   </div>
-
+  <img src="/src/profile.jpg" alt="Giorgio Galassi speaking on stage" class="ta-portrait" />
 </div>
 
 <!--
