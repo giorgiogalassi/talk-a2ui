@@ -468,20 +468,23 @@ returns to the agent as a new turn.
 
 # Zod is not your addition — it's built into A2UI
 
-`@a2ui/web_core` uses Zod internally in two distinct, important ways.
+Every catalog component is a Zod schema (`ComponentApi`): its allowed properties
+and types. One definition, shared by both ends.
 
-**First** — every catalog component is defined with a Zod schema describing its
-allowed properties and types. This schema is the source of truth for the entire
-agent-client contract.
+**Agent** — writes the catalog into the prompt as JSON Schema (`catalog.toJson()`)
+and validates every reply against the same Zod, before anything is sent.
 
-**Second** — before the agent generates a single character of JSON, the renderer
-converts those Zod schemas into JSON Schema and sends them to the agent as a
-capabilities manifest.
+**Renderer** — registers its Angular components with the same objects and checks
+every message again on arrival.
+
+**The wire** — carries only catalog IDs (`supportedCatalogIds`). The protocol
+can also send a catalog inline; the demo doesn't need to.
 
 <div class="text-sm text-gray-400">
 
 Source: [catalog/types.ts#L172-L183](https://github.com/google/A2UI/blob/0af1b1e7/renderers/web_core/src/v0_9/catalog/types.ts#L172-L183) ·
-[client-capabilities.ts#L15-L30](https://github.com/google/A2UI/blob/0af1b1e7/renderers/web_core/src/v0_9/schema/client-capabilities.ts#L15-L30)
+[client-capabilities.ts#L15-L30](https://github.com/google/A2UI/blob/0af1b1e7/renderers/web_core/src/v0_9/schema/client-capabilities.ts#L15-L30) ·
+demo: `packages/catalog`
 
 </div>
 
@@ -490,10 +493,13 @@ Speaker notes:
 This is the point that connects directly back to the "Kneel Before Zod" material
 for anyone who's seen that talk — Zod shows up here in a completely different
 role than runtime validation of form input.
+In the demo, packages/catalog is imported by both the agent and the Angular app:
+the same ComponentApi objects. The browser (through our server) only says which
+catalog it speaks; the agent already holds the schema.
 The agent is constrained upfront: it cannot even attempt to use components or
 property values outside the schema, because it never sees them as options in
-the first place. It's not filtered after the fact — it's absent from the space
-of things the model was ever told it could generate.
+the first place. And if the model drifts anyway, the agent's own validation
+catches it before the user does.
 -->
 
 ---
