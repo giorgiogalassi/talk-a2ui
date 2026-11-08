@@ -530,6 +530,74 @@ returns to the agent as a new turn.
 -->
 
 ---
+rule: ['Anatomy of an A2UI System', 'Part 4 · variant B']
+---
+
+# The full pipeline
+
+<div class="dg">
+<div class="dg-lane">
+<div class="dg-label">// browser</div>
+
+```mermaid {scale: 0.72}
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "14px", "lineColor": "#9aa0a6", "edgeLabelBackground": "#262626"}, "flowchart": {"curve": "basis", "nodeSpacing": 18, "rankSpacing": 26, "padding": 10}}}%%
+flowchart TB
+  B1["A2UI messages"] --> B2["<b>web_core</b><br/>same Zod catalog"] --> B3["Angular<br/>components"]
+  classDef file fill:#2a2a2a,stroke:#454545,stroke-width:1px,color:#9cdcfe
+  classDef step fill:#333333,stroke:#569cd6,stroke-width:2px,color:#f0ebe4
+  class B1 file
+  class B2,B3 step
+```
+
+</div>
+<div class="dg-wire">
+  <span>POST /a2a →</span>
+  <span>← SSE</span>
+  <span class="dg-planned">VALIDATION_FAILED ⇢</span>
+</div>
+<div class="dg-lane">
+<div class="dg-label">// ssr server</div>
+
+```mermaid {scale: 0.72}
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "14px", "lineColor": "#9aa0a6", "edgeLabelBackground": "#262626"}, "flowchart": {"curve": "basis", "nodeSpacing": 18, "rankSpacing": 26, "padding": 10}}}%%
+flowchart TB
+  S1["<b>A2A client</b><br/>server.ts"] --> S2["supportedCatalogIds"]
+  classDef file fill:#2a2a2a,stroke:#454545,stroke-width:1px,color:#9cdcfe
+  classDef step fill:#333333,stroke:#569cd6,stroke-width:2px,color:#f0ebe4
+  class S1 step
+  class S2 file
+```
+
+</div>
+<div class="dg-wire">
+  <span>A2A →</span>
+  <span>← A2A stream</span>
+</div>
+<div class="dg-lane dg-wide">
+<div class="dg-label">// agent · @a2ui/agent</div>
+
+```mermaid {scale: 0.72}
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "14px", "lineColor": "#9aa0a6", "edgeLabelBackground": "#262626", "primaryTextColor": "#f0ebe4"}, "flowchart": {"curve": "basis", "nodeSpacing": 22, "rankSpacing": 18, "padding": 8}}}%%
+flowchart TB
+  A1["<b>negotiate</b><br/>pick-a2ui.ts"] --> A2["<b>prompt</b><br/>catalog.toJson()"] --> A3["Gemini"] --> A4{"valid?"}
+  A4 -- "no · retry ≤ 2" --> A2
+  A4 -- yes --> A5["<b>applyPolicy</b><br/>strip · disable"]
+  classDef step fill:#333333,stroke:#569cd6,stroke-width:2px,color:#f0ebe4
+  classDef hot fill:#3d3530,stroke:#ce9178,stroke-width:3px,color:#ce9178
+  classDef tool fill:#26302a,stroke:#6a9955,stroke-width:2px,color:#b5cea8
+  class A1,A2,A4 step
+  class A3 tool
+  class A5 hot
+```
+
+</div>
+</div>
+
+<!--
+Speaker notes: same as the previous slide (variant A). Keep one of the two.
+-->
+
+---
 rule: ['Anatomy of an A2UI System', 'Part 4']
 ---
 

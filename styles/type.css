@@ -161,3 +161,40 @@ html.dark:has(.ta-deck) .talk-footer { color: #8a8a8a; }
   margin: 0;
   border-radius: 6px;
 }
+
+/* ---- Instagram-style diagram panel (decisions 2026-11-06): dark panel, one bordered lane
+   per actor with a `// label`, wires between lanes as mono labels. Dark in both themes. ---- */
+.ta-deck .dg {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: #2a2a2a;
+  border-radius: 6px;
+  padding: 0.7rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+.ta-deck .dg-lane {
+  flex: 1 1 0;
+  min-width: 0;
+  background: #262626;
+  border: 1px solid #454545;
+  padding: 0.45rem 0.7rem 0.6rem;
+  display: flex;
+  flex-direction: column;
+}
+.ta-deck .dg-lane.dg-wide { flex: 1.4 1 0; }
+.ta-deck .dg-label { color: #e08a64; font-size: 0.8rem; margin-bottom: 0.4rem; }
+.ta-deck .dg-lane .mermaid,
+.ta-deck .dg-lane svg { margin: auto; }
+.ta-deck .dg-wire {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.9rem;
+  padding: 0 0.6rem;
+  font-size: 0.68rem;
+  color: #9aa0a6;
+  white-space: nowrap;
+}
+.ta-deck .dg-wire .dg-planned { opacity: 0.7; border-top: 1px dashed #6b6b72; padding-top: 0.4rem; }
