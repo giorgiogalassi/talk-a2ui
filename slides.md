@@ -506,9 +506,9 @@ flowchart TB
 
 </div>
 <div class="dg-wire">
-  <span>POST /a2a ----></span>
-  <span><---- SSE</span>
-  <span class="dg-planned">VALIDATION_FAILED ----></span>
+  <div class="arrow">POST /a2a</div>
+  <div class="arrow left">SSE</div>
+  <div class="arrow dashed">VALIDATION_FAILED</div>
 </div>
 <div class="dg-lane">
 <div class="dg-label">// ssr server</div>
@@ -525,8 +525,8 @@ flowchart TB
 
 </div>
 <div class="dg-wire">
-  <span>A2A ----></span>
-  <span><---- A2A stream</span>
+  <div class="arrow">A2A</div>
+  <div class="arrow left">A2A stream</div>
 </div>
 <div class="dg-lane dg-wide">
 <div class="dg-label">// agent · @a2ui/agent</div>

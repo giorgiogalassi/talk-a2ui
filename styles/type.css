@@ -187,14 +187,60 @@ html.dark:has(.ta-deck) .talk-footer { color: #8a8a8a; }
 .ta-deck .dg-lane .mermaid,
 .ta-deck .dg-lane svg { margin: auto; }
 .ta-deck .dg-wire {
-  flex: none;
+  flex: 0 1 8.5rem;
+  min-width: 5.5rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 0.9rem;
-  padding: 0 0.6rem;
+  gap: 1.1rem;
+  padding: 0;
   font-size: 0.55rem;
   color: #9aa0a6;
   white-space: nowrap;
 }
-.ta-deck .dg-wire .dg-planned { opacity: 0.7; border-top: 1px dashed #6b6b72; padding-top: 0.4rem; }
+
+/* ---- .arrow: a label on a line that stretches to its container's width, so it connects
+   whatever sits either side (diagram lanes, boxes) at any gap.
+   <div class="arrow">POST /a2a</div>          head on the right
+   <div class="arrow left">SSE</div>           head on the left
+   <div class="arrow both">sync</div>          heads on both ends
+   <div class="arrow dashed">planned</div>     dashed line (combine with left / both)
+   Colour comes from `color`; size from --arrow-head and --arrow-weight.
+   The line is a background, so ::before / ::after are free for the two heads. ---- */
+.ta-deck .arrow {
+  --arrow-head: 7px;
+  --arrow-weight: 1.5px;
+  --arrow-line: linear-gradient(currentColor, currentColor);
+  position: relative;
+  display: block;
+  align-self: stretch;
+  text-align: center;
+  white-space: nowrap;
+  line-height: 1.2;
+  padding-bottom: calc(var(--arrow-head) + 3px);
+  background-image: var(--arrow-line);
+  background-repeat: no-repeat;
+  background-size: calc(100% - var(--arrow-head)) var(--arrow-weight);
+  background-position: left 0 bottom calc((var(--arrow-head) - var(--arrow-weight)) / 2);
+}
+.ta-deck .arrow::before,
+.ta-deck .arrow::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  border-top: calc(var(--arrow-head) / 2) solid transparent;
+  border-bottom: calc(var(--arrow-head) / 2) solid transparent;
+}
+.ta-deck .arrow::after { right: 0; border-left: var(--arrow-head) solid currentColor; }
+.ta-deck .arrow.left { background-position: right 0 bottom calc((var(--arrow-head) - var(--arrow-weight)) / 2); }
+.ta-deck .arrow.left::after { display: none; }
+.ta-deck .arrow.left::before,
+.ta-deck .arrow.both::before { left: 0; border-right: var(--arrow-head) solid currentColor; }
+.ta-deck .arrow.both {
+  background-size: calc(100% - 2 * var(--arrow-head)) var(--arrow-weight);
+  background-position: center bottom calc((var(--arrow-head) - var(--arrow-weight)) / 2);
+}
+.ta-deck .arrow.dashed {
+  opacity: 0.75;
+  --arrow-line: repeating-linear-gradient(to right, currentColor 0 5px, transparent 5px 9px);
+}
