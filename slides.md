@@ -490,57 +490,12 @@ rule: ['Anatomy of an A2UI System', 'Part 4']
 
 # The full pipeline
 
-```mermaid {scale: 0.5}
-flowchart LR
-  subgraph BR["Browser"]
-    R["Angular renderer<br/>same Zod catalog"]
-  end
-  subgraph SV["SSR server"]
-    C["A2A client<br/>supportedCatalogIds"]
-  end
-  subgraph AG["Agent · @a2ui/agent"]
-    N["Negotiate<br/>catalog"] --> G["Prompt +<br/>catalog.toJson()"]
-    G --> LLM(["Gemini"]) --> V{"Valid?"}
-    V -- "no: retry, max 2" --> G
-    V -- yes --> P["applyPolicy"]
-  end
-  R -- "POST /a2a" --> C
-  C -- "A2A" --> N
-  P -- "A2A stream" --> C
-  C -- "SSE" --> R
-  R -. "VALIDATION_FAILED" .-> C
-```
-
-<!--
-Speaker notes:
-Walk this left to right, then back — this diagram is the spine of the rest of the talk.
-The browser never speaks A2A: it calls our own POST /a2a, and the SSR server is the
-A2A client. Agent URL and credentials never reach the browser.
-Three things to flag as you pass them:
-1. Capability negotiation happens *before* the agent generates anything: the server
-   names the catalogs it supports, the agent builds its prompt and its validation
-   from those catalogs only.
-2. The agent validates its own output against the same Zod catalog and retries once
-   with the error. Two failures and the user gets text, never broken UI.
-3. Policy runs in the agent, after validation and before anything is published,
-   on every streamed message. Valid is not the same as allowed.
-Then the renderer checks again, with the same Zod schemas. Defense in depth, not a
-single checkpoint. The dashed arrow is the way back: a message the renderer rejects
-returns to the agent as a new turn.
--->
-
----
-rule: ['Anatomy of an A2UI System', 'Part 4 · variant B']
----
-
-# The full pipeline
-
 <div class="dg">
 <div class="dg-lane">
 <div class="dg-label">// browser</div>
 
 ```mermaid {scale: 0.72}
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "14px", "lineColor": "#9aa0a6", "edgeLabelBackground": "#262626"}, "flowchart": {"curve": "basis", "nodeSpacing": 18, "rankSpacing": 26, "padding": 10}}}%%
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "12px", "lineColor": "#9aa0a6", "edgeLabelBackground": "#262626"}, "flowchart": {"curve": "basis", "nodeSpacing": 18, "rankSpacing": 26, "padding": 10}}}%%
 flowchart TB
   B1["A2UI messages"] --> B2["<b>web_core</b><br/>same Zod catalog"] --> B3["Angular<br/>components"]
   classDef file fill:#2a2a2a,stroke:#454545,stroke-width:1px,color:#9cdcfe
@@ -559,7 +514,7 @@ flowchart TB
 <div class="dg-label">// ssr server</div>
 
 ```mermaid {scale: 0.72}
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "14px", "lineColor": "#9aa0a6", "edgeLabelBackground": "#262626"}, "flowchart": {"curve": "basis", "nodeSpacing": 18, "rankSpacing": 26, "padding": 10}}}%%
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "12px", "lineColor": "#9aa0a6", "edgeLabelBackground": "#262626"}, "flowchart": {"curve": "basis", "nodeSpacing": 18, "rankSpacing": 26, "padding": 10}}}%%
 flowchart TB
   S1["<b>A2A client</b><br/>server.ts"] --> S2["supportedCatalogIds"]
   classDef file fill:#2a2a2a,stroke:#454545,stroke-width:1px,color:#9cdcfe
@@ -577,7 +532,7 @@ flowchart TB
 <div class="dg-label">// agent · @a2ui/agent</div>
 
 ```mermaid {scale: 0.72}
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "14px", "lineColor": "#9aa0a6", "edgeLabelBackground": "#262626", "primaryTextColor": "#f0ebe4"}, "flowchart": {"curve": "basis", "nodeSpacing": 22, "rankSpacing": 18, "padding": 8}}}%%
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "12px", "lineColor": "#9aa0a6", "edgeLabelBackground": "#262626", "primaryTextColor": "#f0ebe4"}, "flowchart": {"curve": "basis", "nodeSpacing": 22, "rankSpacing": 18, "padding": 8}}}%%
 flowchart TB
   A1["<b>negotiate</b><br/>pick-a2ui.ts"] --> A2["<b>prompt</b><br/>catalog.toJson()"] --> A3["Gemini"] --> A4{"valid?"}
   A4 -- "no · retry ≤ 2" --> A2
@@ -593,9 +548,7 @@ flowchart TB
 </div>
 </div>
 
-<!--
-Speaker notes: same as the previous slide (variant A). Keep one of the two.
--->
+
 
 ---
 rule: ['Anatomy of an A2UI System', 'Part 4']
