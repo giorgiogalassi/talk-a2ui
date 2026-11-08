@@ -1299,14 +1299,15 @@ used correctly. Thank the room. Open for questions.
 rule: ['Thank you', 'ggalassi.dev']
 ---
 
-<div class="ta">
+<div class="ta ta-split">
+  <div class="ta-split-main">
   <div class="ta-hero" style="margin-block:0">
     <FitText :weight="900" :wdth="100" class="ta-accent">Thank you</FitText>
   </div>
-  <div class="ta-aside" style="margin-top:0.6rem">
+  <div class="ta-aside" style="margin-top:0.8rem;grid-template-columns:1fr">
     <strong>Stop letting LLMs generate HTML. Start designing systems that speak UI.</strong>
   </div>
-  <div class="ta-thanks">
+  <div class="ta-thanks" style="grid-template-columns:minmax(0,1fr) auto">
     <div class="who">
       <b>Giorgio Galassi</b>
       <span>Senior Frontend Engineer (Freelancer) · GDG Roma Città Organizer</span>
@@ -1323,8 +1324,9 @@ rule: ['Thank you', 'ggalassi.dev']
       <img src="/src/qrcode.png" alt="QR code to links and slides" class="qr-code" style="width:7.5rem;height:7.5rem" />
       Links, slides &amp; more
     </div>
-    <img src="/src/profile.png" alt="Giorgio Galassi" class="rounded-full object-cover" style="width:7.5rem;height:7.5rem" />
   </div>
+  </div>
+  <img src="/src/profile.jpg" alt="Giorgio Galassi speaking on stage" class="ta-portrait" />
 </div>
 
 <!--

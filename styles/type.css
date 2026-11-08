@@ -42,9 +42,7 @@ html.dark .ta-deck, html.dark .ta {
 .ta-deck table th { color: var(--ta-accent); }
 .ta-deck .tag { color: var(--ta-accent); border-color: color-mix(in srgb, var(--ta-accent) 55%, transparent); }
 .ta-deck .caption, .ta-deck .text-gray-400 { color: var(--ta-muted); }
-/* Code as plain ink: this deck's snippets are markdown and plain text, where syntax colour adds little
-   and Slidev's default theme drops several tokens under 4.5:1. */
-.ta-deck .slidev-code span { color: var(--ta-ink) !important; }
+/* Code keeps its syntax colours: setup/shiki.ts picks github-light/dark, whose tokens hold AA contrast. */
 
 /* ---- Charts (components/LineChart.vue): stronger labels, accessible accent ---- */
 .ta-deck svg .accent-stroke { stroke: var(--ta-accent); }
@@ -149,3 +147,17 @@ html.dark:has(.ta-deck) .talk-footer { color: #8a8a8a; }
 .slidev-layout.ta-deck.dense h1 { font-size: 1.95rem; margin-bottom: 0.3em; }
 .slidev-layout.ta-deck.dense .ta-rule { margin-bottom: 0.5rem; padding-top: 0.4rem; }
 .slidev-layout.ta-deck.dense .callout { margin: 0.35em 0; }
+
+/* ---- Split frame (thank-you): content left, the full uncropped portrait right ---- */
+.ta-split { flex-direction: row; gap: 2.2rem; min-height: 0; }
+.ta-split-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.slidev-layout .ta-portrait {
+  flex: none;
+  height: 100%;
+  width: auto;
+  max-height: none;
+  max-width: 45%;
+  object-fit: contain;
+  margin: 0;
+  border-radius: 6px;
+}
