@@ -1,0 +1,151 @@
+/* ===============================================================
+   Typography-as-architecture style (from talk-context-engineering).
+   Every rule is scoped to .ta / .ta-deck (set by layouts/ruled.vue),
+   so non-ruled layouts are untouched.
+   Colours are tuned to WCAG AA (4.5:1) in light and dark.
+   =============================================================== */
+.ta-deck, .ta {
+  --ta-accent: #ad5230;
+  --ta-on-accent: #ffffff;
+  --ta-ink: #1f1f24;
+  --ta-muted: #6b6b72;
+  --ta-line: #e2e2e6;
+}
+html.dark .ta-deck, html.dark .ta {
+  --ta-accent: #d9764f;
+  --ta-on-accent: #121212;
+  --ta-ink: #ececf0;
+  --ta-muted: #a3a3ad;
+  --ta-line: #34343a;
+}
+
+/* ---- Deck-wide type ---- */
+.ta-deck { font-family: Roboto, system-ui, sans-serif; }
+.ta-deck h1 {
+  font-family: 'Roboto Flex', Roboto, system-ui, sans-serif;
+  font-weight: 800;
+  font-variation-settings: "wdth" 82, "opsz" 72;
+  letter-spacing: -0.025em;
+  font-size: 2.55rem;
+  line-height: 1.02;
+  margin-bottom: 0.5em;
+}
+.ta-deck h1 + p { opacity: 1; color: var(--ta-muted); }
+.ta-deck.lead-ink h1 + p { color: var(--ta-ink); }
+
+/* ---- Brand elements, re-pointed at the accessible palette ---- */
+.ta-deck .accent { color: var(--ta-accent); }
+.ta-deck .callout {
+  border-left-color: var(--ta-accent);
+  background: color-mix(in srgb, var(--ta-accent) 7%, transparent);
+}
+.ta-deck table th { color: var(--ta-accent); }
+.ta-deck .tag { color: var(--ta-accent); border-color: color-mix(in srgb, var(--ta-accent) 55%, transparent); }
+.ta-deck .caption, .ta-deck .text-gray-400 { color: var(--ta-muted); }
+/* Code as plain ink: this deck's snippets are markdown and plain text, where syntax colour adds little
+   and Slidev's default theme drops several tokens under 4.5:1. */
+.ta-deck .slidev-code span { color: var(--ta-ink) !important; }
+
+/* ---- Charts (components/LineChart.vue): stronger labels, accessible accent ---- */
+.ta-deck svg .accent-stroke { stroke: var(--ta-accent); }
+.ta-deck svg .accent-fill { fill: var(--ta-accent); }
+.ta-deck svg .tick, .ta-deck svg .note, .ta-deck svg .axis-title { fill-opacity: 0.85; }
+.ta-deck figure figcaption { opacity: 1; color: var(--ta-muted); }
+
+/* ---- Footer (global layer, outside the deck) ---- */
+html:has(.ta-deck) .talk-footer { color: #707070; }
+html.dark:has(.ta-deck) .talk-footer { color: #8a8a8a; }
+
+/* ---- Frame slides ---- */
+.ta {
+  font-family: 'Roboto Flex', Roboto, system-ui, sans-serif;
+  color: var(--ta-ink);
+  display: flex;
+  flex-direction: column;
+}
+.ta-deck .ruled-body > .ta { flex: 1; }
+.ta-rule {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 2px solid var(--ta-ink);
+  padding-top: 0.55rem;
+  margin-bottom: 0.9rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ta-muted);
+}
+.ta-rule > :first-child { color: var(--ta-ink); }
+.ta-accent { color: var(--ta-accent); }
+.ta-dim { color: var(--ta-muted); }
+.ta-hero { margin-block: auto; padding-bottom: 0.6rem; }
+.ta-hero .fit-text:last-child { padding-bottom: 0.16em; }
+.ta-foot {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+  margin-top: auto;
+  border-top: 1px solid var(--ta-line);
+  padding-top: 0.8rem;
+}
+.ta-foot b { display: block; font-size: 1.15rem; font-weight: 700; font-variation-settings: "wdth" 85, "opsz" 32; line-height: 1.2; }
+.ta-foot span { color: var(--ta-muted); font-size: 0.8rem; }
+.ta-aside {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: 2rem;
+  font-size: 1.05rem;
+  line-height: 1.45;
+}
+.ta-aside strong { font-weight: 650; }
+.ta-aside p { margin: 0; color: var(--ta-muted); }
+.ta-stack { list-style: none; margin: 0; padding: 0; }
+.ta-stack li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24rem;
+  align-items: end;
+  gap: 1.5rem;
+  padding: 0.4rem 0 0.45rem;
+  border-bottom: 1px solid var(--ta-line);
+  margin: 0;
+}
+.ta-stack li:first-child { border-top: 1px solid var(--ta-line); }
+.ta-stack b { font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 3.6rem; line-height: 0.9; letter-spacing: -0.03em; }
+.ta-stack .v-light { font-weight: 300; font-variation-settings: "wdth" 100, "opsz" 144; color: var(--ta-muted); }
+.ta-stack .v-heavy { font-weight: 900; font-variation-settings: "wdth" 85, "opsz" 144; color: var(--ta-accent); }
+.ta-stack small { display: block; font-size: 1.05rem; line-height: 1.3; color: var(--ta-muted); padding-bottom: 0.15rem; }
+.ta-stack small em { font-style: normal; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ta-ink); }
+.ta-number { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: end; gap: 2.2rem; flex: 1; }
+.ta-number strong {
+  font-family: 'Roboto Flex', Roboto, system-ui, sans-serif;
+  font-size: 26rem;
+  line-height: 0.74;
+  font-weight: 900;
+  font-variation-settings: "wdth" 30, "opsz" 144;
+  letter-spacing: -0.04em;
+  color: var(--ta-accent);
+}
+.ta-number p { margin: 0 0 0.6rem; font-size: 1.9rem; line-height: 1.15; font-weight: 650; font-variation-settings: "wdth" 85, "opsz" 48; }
+.ta-number p span { display: block; margin-top: 0.6rem; font-size: 1rem; font-weight: 400; color: var(--ta-muted); }
+.ta-thanks {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 1.6rem;
+  align-items: end;
+  margin-top: auto;
+  border-top: 1px solid var(--ta-line);
+  padding-top: 1rem;
+}
+.ta-thanks .who b { display: block; font-size: 1.3rem; font-weight: 700; }
+.ta-thanks .who span { color: var(--ta-muted); font-size: 0.9rem; }
+.ta-thanks .qr { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; font-size: 0.75rem; color: var(--ta-muted); }
+
+/* ---- Specificity: beat index.css's `.slidev-layout table th` ---- */
+.slidev-layout.ta-deck table th { color: var(--ta-accent); }
+
+/* ---- Dense content slides (frontmatter `class: dense`): smaller heading, tighter rule ---- */
+.slidev-layout.ta-deck.dense h1 { font-size: 1.95rem; margin-bottom: 0.3em; }
+.slidev-layout.ta-deck.dense .ta-rule { margin-bottom: 0.5rem; padding-top: 0.4rem; }
+.slidev-layout.ta-deck.dense .callout { margin: 0.35em 0; }
