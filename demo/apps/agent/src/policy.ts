@@ -101,7 +101,7 @@ function forbiddenBinding(value: unknown, patterns: string[][]): string | undefi
   // inside a function call's args. Every path-like token in each `${…}` is checked.
   if (typeof value === 'string') {
     for (const [, expr] of value.matchAll(/\$\{([^}]*)\}/g)) {
-      for (const [token] of expr.matchAll(/\/?[A-Za-z_*][\w*-]*(?:\/[\w*-]+)*/g)) {
+      for (const [token] of expr.matchAll(/\/?[\w*][\w*-]*(?:\/[\w*-]+)*/g)) {
         if (bindsForbidden(token, patterns)) return token;
       }
     }

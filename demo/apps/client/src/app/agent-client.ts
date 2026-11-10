@@ -5,7 +5,8 @@ import { A2uiClientAction, A2uiMessage } from '@a2ui/web_core/v0_9';
 /**
  * Talks to this app's own server (POST /a2a), never to the agent directly.
  * Reads the server-sent events, each carrying plain A2UI messages, and hands them to the
- * renderer. Knows nothing of the transport between the server and the agent (A2A today). Adapted from the official A2UI Angular sample (Apache-2.0).
+ * renderer. Knows nothing of the transport between the server and the agent: `/a2a` is only
+ * the route's name, kept as the contract with server.ts. Adapted from the official A2UI Angular sample (Apache-2.0).
  */
 @Injectable({ providedIn: 'root' })
 export class AgentClient {

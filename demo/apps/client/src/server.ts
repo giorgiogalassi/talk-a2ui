@@ -93,7 +93,9 @@ app.post('/a2a', express.json(), async (req, res) => {
             ? evt.artifact.parts
             : [];
       const messages = a2uiMessages(parts);
-      if (messages.length > 0) {
+      // The session id goes out even with no A2UI in the event (a text-only first reply), or
+      // the browser's next turn would open a new conversation.
+      if (messages.length > 0 || evt.contextId) {
         res.write(`data: ${JSON.stringify({ messages, sessionId: evt.contextId })}\n\n`);
       }
     }
