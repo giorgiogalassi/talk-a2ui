@@ -25,6 +25,7 @@ export const UI_DESCRIPTION_DIRECT_JSON = `
 -   IMPORTANT: Always specify the path when using updateDataModel. The part message is ignored when the path is missing.
 -   A ticket's priority is one of \`low\`, \`medium\`, \`high\`, \`urgent\`. An unassigned ticket has an empty assignee.
 -   If the query asks for one ticket's details (e.g., "USER_WANTS_TICKET_DETAILS..."), use the \`TICKET_DATA\` in the query if present (do not call \`get_tickets\` again), otherwise call \`get_tickets\` with its id; then you MUST use the \`TICKET_DETAIL_EXAMPLE\` template.
+-   The ticket detail view offers two actions, as in \`TICKET_DETAIL_EXAMPLE\`: \`resolve_ticket\` and \`delete_ticket\`.
 -   If the query is a resolved ticket (e.g., "User resolved ticket..."), you MUST use the \`TICKET_RESOLVED_EXAMPLE\` template.
 `;
 
@@ -33,6 +34,7 @@ export const UI_DESCRIPTION_EXPRESS = `
 -   If the query is for a list of tickets, call the \`get_tickets\` tool first, then use the tickets it returns to populate the data model. You MUST use the \`TICKET_LIST_EXAMPLE\` template.
 -   A ticket's priority is one of \`low\`, \`medium\`, \`high\`, \`urgent\`. An unassigned ticket has an empty assignee.
 -   If the query asks for one ticket's details (e.g., "USER_WANTS_TICKET_DETAILS..."), use the \`TICKET_DATA\` in the query if present (do not call \`get_tickets\` again), otherwise call \`get_tickets\` with its id; then you MUST use the \`TICKET_DETAIL_EXAMPLE\` template.
+-   The ticket detail view offers two actions, as in \`TICKET_DETAIL_EXAMPLE\`: \`resolve_ticket\` and \`delete_ticket\`.
 -   If the query is a resolved ticket (e.g., "User resolved ticket..."), you MUST use the \`TICKET_RESOLVED_EXAMPLE\` template.
 `;
 

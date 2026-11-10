@@ -66,7 +66,45 @@ basic `TextApi`/`RowApi`/`ColumnApi`/`CardApi`/`DividerApi`/`ButtonApi` as they 
   list. Express format checked with the stub too.
 - Two things the plan didn't expect: incidents 3 and 4 below.
 
-**Next:** server-side policy, `applyPolicy` (step 5).
+**Step 5, server-side policy — done (2026-11-06), checked in stub mode.** `apps/agent/src/policy.ts`:
+`applyPolicy(messages, policy)` is pure and per message; `enforcePolicy(parts)` wraps it for
+`@a2ui/agent`'s response parts and logs one line per strip. `answer()` in `src/agent.ts` calls it in
+the two places the plan names: the streaming path's `send()` (every `stream.feed(chunk)` and the
+`stream.close()` result, so each re-send of a growing message is filtered) and the
+`processor.parseResponse(fullText)` result. Policy (`DEMO_POLICY`): `forbiddenDataPaths:
+['/tickets/*/internal_notes', '/ticket/internal_notes']`, `disabledActions: ['delete_ticket']`.
+- *What it removes:* from an `updateDataModel` value, every forbidden path (a write whose own path is
+  forbidden is dropped whole); from an `updateComponents`, every component carrying a disabled
+  action or binding `{path}` to a forbidden path (a relative template path such as `internal_notes`
+  counts if it could resolve to one). The tree is mended so the surface stays valid against the
+  catalog: the component's subtree goes too (a button's label), parents drop it from `children`, a
+  parent holding it as its required single `child` (`Card`, `Button`) is removed as well, and a
+  template pointing at it becomes `children: []`. Messages left empty are dropped. Removing a
+  component rather than blanking one prop is the only option that keeps a required prop such as
+  `Text.text` valid.
+- *Something to disable:* the detail example now has a *Delete ticket* button (`delete_ticket`,
+  next to *Mark as resolved* in a `detail_actions` row) and the prompt names both actions, so the
+  model offers Delete and the policy always removes it, in stub mode too.
+- *`STUB_LEAKY=true`:* the canned replies keep each ticket's `internal_notes` (from
+  `assets/tickets.json`) in the data model and add a `Text` bound to `/ticket/internal_notes` to the
+  detail view: all valid against the catalog. They stream in 80-character chunks, so every message is
+  re-sent many times as it grows. Live mode needs no switch: `get_tickets` and the `open_ticket`
+  prefetch hand the model the notes on purpose.
+- *Checked:* `npm test -w agent` (29 tests). `policy.test.ts`: the leaky list loses
+  `/tickets/0..2/internal_notes`, the leaky detail loses `detail_notes`, `delete_button` and its label
+  `delete_text`, and both outputs still pass `validatePayload` against the ticket catalog; a `Card`
+  whose only child is removed goes too. `agent.test.ts` → "the server-side policy": the raw
+  `@a2ui/agent` stream, without the policy, emits `internal_notes` in an `updateDataModel` re-send
+  before the last one; through the executor, streamed and non-streamed, list and detail, no published
+  message carries `internal_notes` or `delete_ticket`. Headless browser, `STUB_LEAKY=true`: the SSE
+  bodies of `POST /a2a` (list: 14 events, 4 `updateDataModel` re-sends; detail: 16 events) hold 0
+  `internal_notes`, 0 `delete_ticket`, 0 note text; the detail renders without notes or Delete; the
+  agent logged 17 policy lines (e.g. `--- policy: stripped /tickets/0/internal_notes ---` three times,
+  once per re-send carrying it). Also checked: plain stub (only the Delete strip), and Express +
+  `STUB_LEAKY` + `STUB_INVALID_FIRST` (retry, then the same strips). `ng test`, `ng build` green.
+- One thing the plan didn't expect: incident 5 below. Not yet run against the live model.
+
+**Next:** client-side validation, `VALIDATION_FAILED` (step 6).
 
 ## Incidents
 
@@ -132,6 +170,20 @@ basic `TextApi`/`RowApi`/`ColumnApi`/`CardApi`/`DividerApi`/`ButtonApi` as they 
 - *Fix:* `agent-client.ts` deletes a surface when a new `createSurface` for its id arrives, so the
   retry replaces what the failed attempt drew. Checked in the browser with and without the fix.
 
+**5 · The plan's policy path missed the detail view; ids still stream before their component (2026-11-06, decided in code).**
+- *Plan:* `forbiddenDataPaths: ['/tickets/*/internal_notes']`.
+- *Found:* the detail view keeps its ticket at `/ticket` (singular, `examples/v0.9/ticket_detail.json`),
+  so a model echoing the notes there writes `/ticket/internal_notes`, which that pattern does not
+  match. The policy lists both paths. Takeaway for the talk: a path denylist only covers the shapes
+  you thought of; a model that writes the notes under another key (`/ticket/notes`) passes it. The
+  sturdier fix is upstream of the UI: don't hand the model fields the user may not see.
+- *Also found, mid-stream:* the policy is stateless, so it cannot remove a component before that
+  component arrives. A parent streamed first still lists its id: the leaky detail's SSE carries
+  `"children": [..., "delete_button"]` twice and `detail_notes` five times before the components
+  themselves arrive and are removed (with the parent re-sent without them). Only the id reaches the
+  browser, never the action or the data, and the renderer shows nothing for a missing child. Ids are
+  the model's names; if a name could be sensitive, this would need a stateful filter.
+
 ## Latency (2026-11-06)
 
 **What happened.** First live run on the ticket domain: every request waited 15-20 s before the
@@ -190,12 +242,13 @@ npm run build -w agent                                     # once, and after eve
 npm run start:stub -w agent                                # stub: canned ticket replies, no model, no key
 npm run start -w agent                                     # live: Gemini, reads GEMINI_API_KEY from apps/agent/.env
 STUB_INVALID_FIRST=true npm run start:stub -w agent        # stub whose first attempt fails validation (shows the retry)
+STUB_LEAKY=true npm run start:stub -w agent                # stub that leaks internal_notes (+ Delete), for the policy to strip
 GEMINI_THINKING_LEVEL=DEFAULT npm run start -w agent       # live with the model's own thinking (slower, see Latency)
 
 # terminal 2, the client
 npm run start:client                                       # http://localhost:4200
 
-npm test -w agent                                          # agent tests (catalog, validate-and-retry, latency changes)
+npm test -w agent                                          # agent tests (catalog, validate-and-retry, latency, policy)
 npm test -w client -- --watch=false                        # client tests
 ```
 
