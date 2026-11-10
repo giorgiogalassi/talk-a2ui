@@ -32,7 +32,8 @@ rule: ['A2UI · AngularDay 2026', 'Structured generative UI']
 Speaker notes:
 Welcome the room. No preamble needed.
 Let the title sit for a second before moving on.
-This is an Advanced-level talk, 40 minutes with a live demo (pre-recorded fallback ready).
+This is an Advanced-level talk, 40 minutes with a live demo: a live agent drives the dashboard
+(stub agent and recording ready as fallbacks).
 Do not open with a broken React component or a horror-story HTML injection screenshot.
 That framing is wrong and the audience will know it immediately — no serious team ships
 raw LLM-generated HTML to production. Starting there feels like finding a problem for
@@ -535,8 +536,8 @@ flowchart TB
 %%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "11px", "lineColor": "#9aa0a6", "edgeLabelBackground": "#262626", "primaryTextColor": "#f0ebe4"}, "flowchart": {"curve": "basis", "nodeSpacing": 28, "rankSpacing": 30, "padding": 8}}}%%
 flowchart TB
   A1["<b>negotiate</b><br/>pick-a2ui.ts"] --> A2["<b>prompt</b><br/>catalog.toJson()"] --> A3["Gemini"] --> A4{"valid?"}
-  A4 -- "no · retry ≤ 2" --> A2
-  A4 -- yes --> A5["<b>applyPolicy</b><br/>strip · disable"]
+  A4 -- "no · retry once" --> A2
+  A4 -- yes --> A5["<b>applyPolicy</b><br/>strip · remove"]
   classDef step fill:#333333,stroke:#569cd6,stroke-width:2px,color:#f0ebe4
   classDef hot fill:#3d3530,stroke:#ce9178,stroke-width:3px,color:#ce9178
   classDef tool fill:#26302a,stroke:#6a9955,stroke-width:2px,color:#b5cea8
@@ -904,7 +905,7 @@ rule: ['Angular as the Rendering Engine', 'Part 5']
 
 ```ts
 bootstrapApplication(AppComponent, {
-  providers: [provideExperimentalZonelessChangeDetection()]
+  providers: [provideZonelessChangeDetection()] // default since Angular 21
 });
 ```
 
@@ -915,17 +916,15 @@ a performant and a sluggish surface.
 
 <div class="text-sm text-gray-400">
 
-`provideExperimentalZonelessChangeDetection` is still experimental as of
-Angular 19/20. The architecture point stands even using OnPush + Signals
-without full Zoneless for the demo.
+Zoneless is stable since Angular 20.2 and the default since 21. The demo runs
+on Angular 22 with no Zone.js at all.
 
 </div>
 
 <!--
 Speaker notes:
-Say the experimental caveat out loud, don't bury it in a footnote and hope
-nobody asks. The argument doesn't depend on Zoneless being GA — OnPush plus
-signals already gets you most of the win. Zoneless removes the last bit of
+On 21+ the provider line is not needed; it's on the slide to name the
+mechanism. OnPush plus signals already gets you most of the win. Zoneless removes the last bit of
 coarse-grained triggering on top of that.
 -->
 
@@ -1008,8 +1007,9 @@ rule: ['Demo', 'Part 6']
 <!--
 Speaker notes:
 Set the scene, then walk each stage explicitly on the following slides.
-Do not run a live model on stage — use a pre-recorded or scripted demo, per
-the fallback plan. Mention this openly if using the recording.
+Run the live agent (Gemini), as the abstract promises. If the model is slow or
+down, switch to the stub agent (same catalog, policy and validation, canned
+replies) or the recording, and say so openly.
 -->
 
 ---
@@ -1018,10 +1018,11 @@ rule: ['Demo', 'Part 6']
 
 # Stage by stage
 
-1. Network tab: `a2uiClientCapabilities` request goes to the agent **before**
-   any UI is generated — the agent receives the Zod-derived schema manifest upfront
+1. Network tab: `a2uiClientCapabilities` goes to the agent **before** any UI is
+   generated. It carries only the catalog IDs; the agent already holds the schema
 2. Agent produces an A2UI JSON payload — show the actual JSON, it's readable
-3. Server-side policy strips `internal_notes` and disables the `delete` action
+3. Server-side policy strips `internal_notes` and removes the `delete` action:
+   the button never reaches the browser
 4. Payload reaches the client, `web_core` validates against the catalog schema
 
 <!--
@@ -1037,17 +1038,19 @@ rule: ['Demo', 'Part 6']
 
 # Stage by stage, continued
 
-5. A deliberately malformed node triggers a `VALIDATION_FAILED` message sent
-   back to the agent — **show this in the network tab**, not just a console log
-6. `SurfaceComponent` renders the valid components, with a fallback placeholder
-   for the invalid one
-7. A simulated `updateDataModel` message targets one field — show only that
-   component re-evaluating in Angular DevTools profiler
+5. A deliberately malformed payload fails the agent's Zod check — **show the
+   agent log**: the error goes back to the model and the retry is generated
+6. The retry replaces the surface. If it fails too, the user gets a plain text
+   answer, never a broken screen
+7. The streamed `updateDataModel` messages fill the list in — show only the
+   ticket rows re-evaluating in Angular DevTools profiler
 
 <!--
 Speaker notes:
 Stage 5 is the moment that proves the reliability story from section 7 —
 don't let it pass as a throwaway line, it's evidence, not decoration.
+Trigger it with the stub agent (STUB_INVALID_FIRST=true): a live model rarely
+fails on cue.
 Stage 7 is where the Zoneless/signals argument from 5c becomes visible —
 open the profiler and let the room see exactly one component highlighted.
 -->
@@ -1062,8 +1065,8 @@ rule: ['Demo', 'Part 6']
 
 The agent never touched the DOM.
 
-A malformed payload produced a graceful fallback and a protocol-level
-error signal — not a crash, not a silent failure.
+A malformed payload was caught, sent back to the model and retried — not a
+crash, not a silent failure.
 
 The system controlled the model. Not the other way around.
 
@@ -1081,8 +1084,9 @@ rule: ['Demo', 'Part 6']
 
 # On model choice
 
-Gemini, with `response_mime_type: "application/json"` and `response_schema` —
-exactly what the A2UI repo samples use.
+Gemini through `@google/genai`, with one tool (`get_tickets`) and thinking set
+to `MINIMAL` for latency. No `response_schema`: the catalog in the prompt and
+the Zod check after it do that job.
 
 <!--
 Speaker notes:
@@ -1141,7 +1145,8 @@ rule: ['Production Reality', 'Part 7']
 
 # Reliability
 
-Schema failures send a `VALIDATION_FAILED` protocol message back to the agent.
+The agent checks every payload against the Zod catalog before it ships. A
+failure goes back to the model with the error, for one retry.
 
 <div class="callout">
 
@@ -1153,8 +1158,9 @@ Define fallback surfaces for each failure level before you need them.
 
 <!--
 Speaker notes:
-Tie this directly back to demo stage 5 — the room just saw this happen live
-(or in the recording). The point: failure is communicated back to the agent,
+Tie this directly back to demo stage 5 — the room just saw this happen.
+On the client, the protocol defines the same signal: a `VALIDATION_FAILED`
+error message from renderer to agent. The point: failure is communicated back to the agent,
 which means the agent can potentially retry or degrade gracefully, rather than
 the user just seeing a broken page with no explanation anywhere in the system.
 -->
