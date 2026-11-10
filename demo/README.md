@@ -78,8 +78,14 @@ the two places the plan names: the streaming path's `send()` (every `stream.feed
   action or binding `{path}` to a forbidden path (a relative template path such as `internal_notes`
   counts if it could resolve to one). The tree is mended so the surface stays valid against the
   catalog: the component's subtree goes too (a button's label), parents drop it from `children`, a
-  parent holding it as its required single `child` (`Card`, `Button`) is removed as well, and a
-  template pointing at it becomes `children: []`. Messages left empty are dropped. Removing a
+  parent holding it in a required single reference (`Card.child`, `Button.child`, `Modal.trigger`
+  or `content`) is removed as well, a tab whose `child` goes is dropped from `Tabs.tabs` (and a
+  `Tabs` left with none goes too), and a template pointing at it becomes `children: []`. The
+  references come from web_core's `getComponentReferences`, so every reference prop the catalogs
+  declare counts. If `root` itself goes, a Text ("This view isn't available to you.") takes its
+  place, so the surface renders and says why instead of staying blank. Other messages left empty
+  are dropped. A string that interpolates a forbidden path (`"${/ticket/internal_notes}"`) counts
+  as binding it. Removing a
   component rather than blanking one prop is the only option that keeps a required prop such as
   `Text.text` valid.
 - *Something to disable:* the detail example now has a *Delete ticket* button (`delete_ticket`,

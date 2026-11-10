@@ -10,7 +10,7 @@ import {type AgentToRendererMessage, validatePayload} from '@a2ui/agent';
 import {loadBasicCatalogs, loadTicketCatalogs} from './catalogs.js';
 import {readMessages} from './examples.js';
 import {leakInternalNotes} from './model.js';
-import {applyPolicy, DEMO_POLICY, enforcePolicy} from './policy.js';
+import {applyPolicy, DEMO_POLICY, enforcePolicy, UNAVAILABLE_TEXT} from './policy.js';
 import {getPackageRootDir} from './tools.js';
 
 const root = getPackageRootDir();
@@ -114,8 +114,87 @@ describe('applyPolicy', () => {
       {id: 'root', component: 'Column', children: ['list']},
       {id: 'list', component: 'TicketList', title: 'x', children: []},
     ]);
-    assert.ok(stripped.includes('removed Card card (its only child del was removed)'));
+    assert.ok(stripped.includes('removed Card card (its child del was removed)'));
     assert.ok(stripped.includes('removed Text note (binds internal_notes)'));
+  });
+
+  it('follows every reference prop the catalog declares: Modal, Tabs', () => {
+    const del = {id: 'del', component: 'Button', child: 'lbl', action: {event: {name: 'delete_ticket'}}};
+    const {messages, stripped} = applyPolicy(
+      [
+        {
+          version: 'v0.9',
+          updateComponents: {
+            surfaceId: 's',
+            components: [
+              {id: 'root', component: 'Column', children: ['modal', 'tabs', 'solo']},
+              {id: 'modal', component: 'Modal', trigger: 'del', content: 'body'},
+              {id: 'body', component: 'Text', text: 'Sure?'},
+              del,
+              {id: 'lbl', component: 'Text', text: 'Delete'},
+              {id: 'tabs', component: 'Tabs', tabs: [{title: 'Info', child: 'info'}, {title: 'Danger', child: 'del'}]},
+              {id: 'info', component: 'Text', text: 'Info'},
+              {id: 'solo', component: 'Tabs', tabs: [{title: 'Danger', child: 'del'}]},
+            ],
+          },
+        },
+      ],
+      DEMO_POLICY,
+    );
+    assert.deepEqual((messages[0] as any).updateComponents.components, [
+      {id: 'root', component: 'Column', children: ['tabs']},
+      {id: 'tabs', component: 'Tabs', tabs: [{title: 'Info', child: 'info'}]},
+      {id: 'info', component: 'Text', text: 'Info'},
+    ]);
+    assert.ok(stripped.includes('removed Modal modal (its trigger del was removed)'));
+    assert.ok(stripped.includes('removed Tabs solo (every item it held was removed)'));
+    // Nothing kept points at a removed id.
+    assert.ok(!json(messages).includes('"del"') && !json(messages).includes('"body"'));
+  });
+
+  it('replaces a removed root with a notice instead of a blank surface', () => {
+    const {messages, stripped} = applyPolicy(
+      [
+        {
+          version: 'v0.9',
+          updateComponents: {
+            surfaceId: 's',
+            components: [
+              {id: 'root', component: 'Card', child: 'del'},
+              {id: 'del', component: 'Button', child: 'lbl', action: {event: {name: 'delete_ticket'}}},
+              {id: 'lbl', component: 'Text', text: 'Delete'},
+            ],
+          },
+        },
+      ],
+      DEMO_POLICY,
+    );
+    assert.deepEqual((messages[0] as any).updateComponents.components, [
+      {id: 'root', component: 'Text', text: UNAVAILABLE_TEXT},
+    ]);
+    assert.ok(stripped.includes('replaced root with a notice'));
+    validatePayload(catalogs, messages as AgentToRendererMessage[]);
+  });
+
+  it('removes a component that interpolates a forbidden path into a string', () => {
+    const {messages, stripped} = applyPolicy(
+      [
+        {
+          version: 'v0.9',
+          updateComponents: {
+            surfaceId: 's',
+            components: [
+              {id: 'root', component: 'Column', children: ['a', 'b']},
+              {id: 'a', component: 'Text', text: 'Notes: ${/ticket/internal_notes}'},
+              {id: 'b', component: 'Text', text: 'Title: ${/ticket/title}'},
+            ],
+          },
+        },
+      ],
+      DEMO_POLICY,
+    );
+    assert.deepEqual((messages[0] as any).updateComponents.components.map((c: any) => c.id), ['root', 'b']);
+    assert.ok(stripped.includes('removed Text a (binds /ticket/internal_notes)'));
   });
 
   it('leaves the plain examples alone, apart from the Delete button', () => {

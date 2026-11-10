@@ -4,13 +4,14 @@ import { A2uiClientAction, A2uiMessage } from '@a2ui/web_core/v0_9';
 
 /**
  * Talks to this app's own server (POST /a2a), never to the agent directly.
- * Reads the server-sent events, unwraps the A2UI messages from each part and
- * hands them to the renderer. Adapted from the official A2UI Angular sample (Apache-2.0).
+ * Reads the server-sent events, each carrying plain A2UI messages, and hands them to the
+ * renderer. Knows nothing of the transport between the server and the agent (A2A today). Adapted from the official A2UI Angular sample (Apache-2.0).
  */
 @Injectable({ providedIn: 'root' })
 export class AgentClient {
   private readonly renderer = inject(A2uiRendererService);
-  private contextId?: string;
+  /** The conversation's id, opaque here: the server maps it to the transport's own. */
+  private sessionId?: string;
 
   readonly isLoading = signal(false);
   /**
@@ -44,7 +45,7 @@ export class AgentClient {
       const response = await fetch('/a2a', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...body, contextId: this.contextId }),
+        body: JSON.stringify({ ...body, sessionId: this.sessionId }),
       });
       if (!response.ok || !response.body) {
         throw new Error(((await response.json()) as { error: string }).error);
@@ -70,14 +71,11 @@ export class AgentClient {
     }
   }
 
-  private handleEvent(event: { parts?: { kind: string; data?: unknown }[]; contextId?: string; error?: string }) {
+  private handleEvent(event: { messages?: A2uiMessage[]; sessionId?: string; error?: string }) {
     if (event.error) throw new Error(event.error);
-    if (event.contextId) this.contextId = event.contextId;
+    if (event.sessionId) this.sessionId = event.sessionId;
 
-    // Each data part holds one A2UI message (or, in A2A v1.0, a list of them).
-    const messages = (event.parts ?? [])
-      .filter((part) => part.kind === 'data' && part.data)
-      .flatMap((part) => (Array.isArray(part.data) ? part.data : [part.data])) as A2uiMessage[];
+    const messages = event.messages ?? [];
     // A retried reply starts over with its own createSurface, while the failed attempt may have
     // created that surface already when streaming. The newer createSurface replaces it.
     for (const message of messages) {

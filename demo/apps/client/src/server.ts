@@ -17,8 +17,12 @@ const angularApp = new AngularNodeAppEngine();
 
 /**
  * The bridge to the agent. The browser never speaks A2A: it POSTs its prompt or a UI action
- * here, this server sends it to the agent as an A2A message, and streams the A2UI messages
- * back as server-sent events. Adapted from the official A2UI Angular sample (Apache-2.0).
+ * here, this server sends it to the agent as an A2A message, unwraps the A2UI messages from
+ * the A2A parts, and streams plain A2UI messages back as server-sent events. Adapted from the
+ * official A2UI Angular sample (Apache-2.0).
+ *
+ * Demo: this is the only A2A-aware file. Swapping the transport (AG-UI, say) means rewriting
+ * this bridge; the browser, the renderer and the catalog stay as they are.
  */
 const AGENT_URL = process.env['AGENT_URL'] ?? 'http://localhost:10002';
 const A2UI_EXTENSION = 'https://a2ui.org/a2a-extension/a2ui/v0.9';
@@ -31,6 +35,13 @@ const A2UI_CLIENT_CAPABILITIES = {
     supportedCatalogIds: [TICKET_CATALOG_ID],
   },
 };
+
+/** The A2UI messages in A2A parts: each data part holds one (or, in A2A v1.0, a list of them). */
+function a2uiMessages(parts: Part[]): unknown[] {
+  return parts.flatMap((part) =>
+    part.kind === 'data' && part.data ? (Array.isArray(part.data) ? part.data : [part.data]) : [],
+  );
+}
 
 let agent: Promise<A2AClient> | undefined;
 function getAgent(): Promise<A2AClient> {
@@ -45,10 +56,11 @@ function getAgent(): Promise<A2AClient> {
 }
 
 app.post('/a2a', express.json(), async (req, res) => {
-  const { query, event, contextId } = req.body as {
+  // The browser's session id is A2A's contextId: the one place the two names meet.
+  const { query, event, sessionId: contextId } = req.body as {
     query?: string;
     event?: Record<string, unknown>;
-    contextId?: string;
+    sessionId?: string;
   };
   // A UI action travels as an A2UI client-to-server message: { version, action }.
   const part: Part = event
@@ -80,8 +92,9 @@ app.post('/a2a', express.json(), async (req, res) => {
           : evt.kind === 'artifact-update'
             ? evt.artifact.parts
             : [];
-      if (parts.length > 0) {
-        res.write(`data: ${JSON.stringify({ parts, contextId: evt.contextId })}\n\n`);
+      const messages = a2uiMessages(parts);
+      if (messages.length > 0) {
+        res.write(`data: ${JSON.stringify({ messages, sessionId: evt.contextId })}\n\n`);
       }
     }
     res.end();

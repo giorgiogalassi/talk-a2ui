@@ -339,7 +339,7 @@ flowchart LR
   GEN -->|"prompt + catalog.toJson()<br/>get_tickets tool"| LLM
   GEN ~~~ AX
   AX -.->|"stream events"| BR
-  BR -.->|"SSE data: { parts, contextId }"| AC
+  BR -.->|"SSE data: { messages, sessionId }<br/>plain A2UI, no A2A"| AC
   AC -.->|"A2UI messages"| R
   R --> S
   S -->|"button → actionHandler<br/>handleAction(action)"| AC
@@ -361,6 +361,6 @@ flowchart LR
 **Next frames** (planned; `POL` and `CAT` were added to every frame as `todo` on 2026-10-23, so the
 layout didn't move when they landed):
 
-- **Transport swap:** `server.ts` unwraps A2A, so `BR -.-> AC` is relabelled from
-  "SSE data: { parts, contextId }" to plain A2UI messages + session id, and `AC` loses its A2A
-  field names. No node changes; this is the frame that shows only the adapter moved.
+- **Transport swap (done 2026-11-10):** `server.ts` unwraps A2A, so `BR -.-> AC` in the last frame
+  now reads "SSE data: { messages, sessionId }": plain A2UI messages plus an opaque session id, and
+  `AC` has no A2A field names. No node changes; only the adapter moved.
