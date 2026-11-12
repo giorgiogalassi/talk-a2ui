@@ -52,12 +52,15 @@ function fakeAgent(replies: unknown[][]) {
 
 @Component({
   imports: [SurfaceComponent],
-  template: `@for (entry of renderer.surfaceGroup.surfacesMap; track entry[0]) {
+  template: `@for (entry of renderer.surfaceGroup.surfacesMap; track entry[1]) {
     <a2ui-v09-surface [surfaceId]="entry[0]" />
-  }`,
+  }
+  @if (agent.isLoading()) { <p>working</p> }`,
 })
 class Host {
   protected readonly renderer = inject(A2uiRendererService);
+  // Like app.ts, the page re-renders on AgentClient's signals: the surface map is not reactive.
+  protected readonly agent = inject(AgentClient);
 }
 
 describe('client-side validation (phase 6)', () => {
@@ -151,6 +154,19 @@ describe('client-side validation (phase 6)', () => {
     const html = fixture.nativeElement as HTMLElement;
     expect(html.textContent).toContain('Checkout fails');
     expect(html.querySelector('.priority-badge.invalid')?.textContent).toBe('?');
+  });
+
+  it('the corrected reply replaces the rendered surface on the page', async () => {
+    const fixture = TestBed.createComponent(Host);
+    fakeAgent([ticketList({ path: 'priority' }, 'critical'), ticketList({ path: 'priority' }, 'urgent')]);
+
+    await TestBed.inject(AgentClient).ask('Show me the open tickets');
+    await fixture.whenStable();
+
+    const html = fixture.nativeElement as HTMLElement;
+    expect(html.querySelector('.priority-badge.invalid')).toBeNull();
+    expect(html.querySelector('.priority-badge')?.textContent).toBe('urgent');
+    expect(TestBed.inject(ValidationIssues).list()).toEqual([]);
   });
 
   it('reports at most twice without a user action in between', async () => {

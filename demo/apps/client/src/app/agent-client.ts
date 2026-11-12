@@ -56,13 +56,10 @@ export class AgentClient {
     // Every reply carries its whole UI, createSurface included (@a2ui/agent 0.0.2 checks each
     // reply against a fresh state), so any interaction clears the old surfaces first, as the
     // official Angular sample does.
-    // Demo: not for an error report. The surface the renderer partly rejected stays on screen
-    // until the corrected one replaces it (its createSurface does, see handleEvent).
-    if (!body.error) {
-      for (const surfaceId of Array.from(this.renderer.surfaceGroup.surfacesMap.keys())) {
-        this.renderer.surfaceGroup.deleteSurface(surfaceId);
-      }
-    }
+    // Demo: an error report keeps the partly rejected surface on screen until the corrected
+    // reply's first messages arrive (below).
+    let staleSurfaces = Boolean(body.error);
+    if (!staleSurfaces) this.clearSurfaces();
     // Demo: only this reply's problems are reported.
     this.issues.clear();
     let complete = false;
@@ -88,7 +85,15 @@ export class AgentClient {
         const events = buffer.split('\n\n');
         buffer = events.pop() ?? '';
         for (const event of events) {
-          if (event.startsWith('data: ')) this.handleEvent(JSON.parse(event.slice(6)));
+          if (!event.startsWith('data: ')) continue;
+          const data = JSON.parse(event.slice(6)) as Parameters<AgentClient['handleEvent']>[0];
+          if (staleSurfaces && data.messages?.length) {
+            // Demo: the corrected reply replaces every old surface. app.ts tracks surfaces by
+            // object, not id, so a surface re-created under the same id is drawn afresh.
+            staleSurfaces = false;
+            this.clearSurfaces();
+          }
+          this.handleEvent(data);
         }
       }
       complete = true;
@@ -99,6 +104,12 @@ export class AgentClient {
       this.waitingForUi.set(false);
     }
     if (complete) await this.reportIssues();
+  }
+
+  private clearSurfaces(): void {
+    for (const surfaceId of Array.from(this.renderer.surfaceGroup.surfacesMap.keys())) {
+      this.renderer.surfaceGroup.deleteSurface(surfaceId);
+    }
   }
 
   /**

@@ -20,7 +20,9 @@ import { AgentClient } from './agent-client';
       <p class="error">{{ error }}</p>
     }
 
-    @for (entry of renderer.surfaceGroup.surfacesMap; track entry[0]) {
+    <!-- Demo: tracked by the SurfaceModel, not its id: a surface deleted and re-created under the
+         same id (a corrected reply) must get a new element, or the old components stay drawn. -->
+    @for (entry of renderer.surfaceGroup.surfacesMap; track entry[1]) {
       <a2ui-v09-surface [surfaceId]="entry[0]" />
     }
   `,
