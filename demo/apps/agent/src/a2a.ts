@@ -45,12 +45,27 @@ export interface UiAction {
   context: Record<string, unknown>;
 }
 
+/**
+ * Demo: an error the renderer reports back, the v0.9 client-to-server `error` message:
+ * `{version: 'v0.9', error: {code: 'VALIDATION_FAILED', surfaceId, path, message}}`.
+ * Other codes carry no `path`.
+ */
+export interface ClientError {
+  code: string;
+  surfaceId: string;
+  /** The JSON pointer to the field that failed; set for `VALIDATION_FAILED`. */
+  path?: string;
+  message: string;
+}
+
 /** What an inbound A2A message carries, before the agent interprets it. */
 export interface InboundMessage {
   /** The message's text parts, joined. Empty when there are none. */
   text: string;
   /** The UI action the message carries, if any. */
   action?: UiAction;
+  /** Demo: the error the renderer reports, if the message carries one. */
+  clientError?: ClientError;
   /** False when the client wants every part in the final status instead of streamed. */
   useStreaming: boolean;
 }
@@ -61,10 +76,15 @@ export interface InboundMessage {
  * A data part carries the action as `action` when its `version` is the one the agent
  * answers in, or as a legacy `userAction` otherwise. When several parts carry one, the
  * last wins.
+ *
+ * Demo: a data part in that version may carry an `error` instead of an `action`: what the
+ * renderer reports when it rejects part of a reply (`VALIDATION_FAILED`). It is read only
+ * when its `code`, `surfaceId` and `message` are strings, as the v0.9 schema requires.
  */
 export function readInboundMessage(message: Message, version: string): InboundMessage {
   let useStreaming = true;
   let rawAction: Record<string, unknown> | undefined;
+  let clientError: ClientError | undefined;
   const texts: string[] = [];
 
   for (const part of message.parts ?? []) {
@@ -81,6 +101,9 @@ export function readInboundMessage(message: Message, version: string): InboundMe
       } else if (data.userAction && typeof data.userAction === 'object') {
         rawAction = data.userAction as Record<string, unknown>;
       }
+      if (data.version === version && data.error && typeof data.error === 'object') {
+        clientError = readClientError(data.error as Record<string, unknown>) ?? clientError;
+      }
     }
   }
 
@@ -91,7 +114,19 @@ export function readInboundMessage(message: Message, version: string): InboundMe
         ? (rawAction.context as Record<string, unknown>)
         : {},
   };
-  return {text: texts.join(''), action, useStreaming};
+  return {text: texts.join(''), action, clientError, useStreaming};
+}
+
+/** Demo: the error's fields, or undefined when a required one is missing or not a string. */
+function readClientError(raw: Record<string, unknown>): ClientError | undefined {
+  const {code, surfaceId, path, message} = raw;
+  if (typeof code !== 'string' || typeof surfaceId !== 'string' || typeof message !== 'string') {
+    return undefined;
+  }
+  if (code === 'VALIDATION_FAILED' && typeof path !== 'string') {
+    return undefined;
+  }
+  return {code, surfaceId, message, ...(typeof path === 'string' ? {path} : {})};
 }
 
 /** Publishes the A2A events of one task: its creation and its status updates. */
