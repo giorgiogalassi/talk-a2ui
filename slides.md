@@ -211,8 +211,8 @@ rule: ['The Paradigm Shift', 'Part 2']
 
 # This is not hypothetical
 
-Google has published A2UI as an open-source standard — currently **v0.9**,
-**13k+ GitHub stars** — specifically designed to let agents "speak UI" through
+Google has published A2UI as an open-source standard — spec **v1.0** since
+6 Nov 2026, **17k+ GitHub stars** — specifically designed to let agents "speak UI" through
 a declarative JSON format rather than generating executable code.
 
 <!--
@@ -287,7 +287,8 @@ rule: ['The Paradigm Shift', 'Part 2']
 
 # Acknowledge maturity, up front
 
-A2UI is **v0.9**. The spec is still evolving toward v1.0.
+The A2UI spec reached **v1.0** on 6 Nov, declared stable.
+The SDKs are still **0.x** and lag behind it. This demo runs **v0.9**, on purpose.
 
 What you're learning today is the pattern and the architecture —
 not a production dependency.
@@ -302,6 +303,13 @@ The specific library will stabilize. The renderer contract pattern will not chan
 Speaker notes:
 Say this honestly and don't rush past it. An advanced audience will respect you
 more for naming the maturity level than for overselling it.
+The facts (checked 2026-11-12): v1.0 became the current spec version on 6 Nov
+(a2ui-project/a2ui PR #3999); the spec says breaking changes now go into a future
+major version. No v1.0.0 package exists: @a2ui/angular is 0.14.0 on npm and
+follows an earlier v1.0 draft (the @-prefixed component keys landed on main on
+11 Nov, unreleased). The demo pins @a2ui/angular 0.13.0 and speaks v0.9: a
+deliberate pin a week before the talk, not an oversight. Moving it is a
+version bump plus @path / @call in the payloads, the pattern doesn't move.
 The point to land: even if the `@a2ui/*` packages look different in a year,
 the shape of the problem — catalog, capability negotiation, validation at the
 boundary — is stable regardless of which library implements it. That's what
@@ -1362,7 +1370,8 @@ Leave contact or social handle here if desired.
 Open Q&A.
 
 Q&A prep — likely questions:
-- "Is A2UI production-ready?" → No, v0.9. The pattern is what to adopt now;
+- "Is A2UI production-ready?" → The spec is v1.0 and stable since 6 Nov; the
+  libraries are still 0.x and the demo pins v0.9. The pattern is what to adopt now;
   the specific library will stabilize. See section 2 maturity slide.
 - "What about React/Vue teams?" → A2UI is framework-agnostic (section 5 opener).
   The Angular-specific argument is about fit, not exclusivity.
