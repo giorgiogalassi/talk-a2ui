@@ -17,11 +17,10 @@ this Q&A-only file plus `IMPLEMENTATION-PLAN.md`).
 
 ### Why A2A protocol as transport, and not a hand-rolled SSE/WebSocket stream?
 
-A2UI's own transport table lists only two options as "✅ Stable": the A2A
-protocol and AG-UI (CopilotKit's protocol — not our stack). Plain SSE/WebSocket
-is listed as "💡 Proposed," not stable. A2UI is transport-agnostic by design,
-so a custom stream would have worked, but A2A gives us three things for less
-code than reinventing them:
+A2UI is transport-agnostic by design: its roadmap (checked 2026-11-12) now
+lists A2A, AG-UI, REST, WebSockets and MCP transports as complete, so a custom
+stream would have worked. A2A is the transport the official samples use, and it
+gives us three things for less code than reinventing them:
 
 - The embedding mechanism is precisely specified, not vague: A2UI messages are
   encoded as an A2A `DataPart`, whose `data` field is an array of A2UI JSON
@@ -51,22 +50,34 @@ Community references exist for Genkit + `@a2a-js/sdk` together (`a2a-agentkit`,
 `Genkit-UI` on GitHub) but they're third-party, not official Google samples —
 useful as a pattern, not a dependency.
 
-**If asked how solid the A2A protocol-version choice itself is:** short
-answer, "targeting v1.0, confirmed against current docs, with a fallback
-plan if the tooling isn't there yet." The full technical risk (SDK alpha
+**If asked how solid the A2A protocol-version choice itself is** (this is
+A2A's version, not A2UI's: say "A2A" out loud, since A2UI is also at v1.0 now):
+short answer, "the demo runs A2A v0.3 through `@a2a-js/sdk` 0.3.x, like the
+official samples; A2A v1.0 is the next step once the tooling is there." The full technical risk (SDK alpha
 status, an open backward-compat issue, the empirical spike that resolves it)
 is tracked in `IMPLEMENTATION-PLAN.md`'s "Known technical risk: A2A protocol
 version" section — that's build-risk detail, not something an audience
 member would ask for in this depth.
 
-### Why target v0.9.1, not v0.9 or v1.0?
+### Why does the demo run A2UI v0.9 when the spec is v1.0?
 
-Decision: track the current stable spec (v0.9.1) rather than freeze on what
-the deck currently cites (v0.9) or jump early to the release candidate (v1.0).
-Giorgio's call: "as latest as possible... we will periodically do version
-checks and updates." (The resulting deck-reconciliation work this implies —
-some of section 4/5's code slides being one version behind — is tracked as a
-build task in `IMPLEMENTATION-PLAN.md`'s open items, not repeated here.)
+A2UI v1.0 became the current spec version on 6 Nov 2026 (PR #3999 on
+a2ui-project/a2ui) and is declared stable. The demo stays on **v0.9**
+(`@a2ui/angular` 0.13.0, `@a2ui/web_core` 0.14.0), on purpose:
+
+- No v1.0.0 package exists. The published SDKs (`@a2ui/angular` 0.14.0,
+  `web_core` 0.15.0) follow an earlier v1.0 draft: the `@`-prefixed component
+  keys landed on main on 11 Nov and aren't released yet. Migrating now would
+  still not match the final spec.
+- The upgrade is all-or-nothing (angular, web_core and agent move together, with
+  breaking API changes), too much risk a week before the talk.
+- What changes on the wire is mechanical: `"version": "1.0"`, `@path` / `@call`
+  for bindings and calls, `@checks` on components, client/server renamed
+  renderer/agent. Catalog, negotiation and validation at the boundary stay.
+
+Earlier plan, superseded: track v0.9.1 as "current stable" ("as latest as
+possible... we will periodically do version checks and updates", Giorgio).
+That check is exactly what moved the answer.
 
 ### Why Cloud Run in production, and not a managed "agent platform"?
 
@@ -121,8 +132,8 @@ Observability slide already promises.
 ## Likely audience questions (from the deck's own speaker notes)
 
 ### "Is A2UI production-ready?"
-No — currently v0.9.1, still moving toward v1.0 (release candidate exists).
-The pattern (catalog, capability negotiation, validation at the boundary) is
+The spec is: v1.0, declared stable since 6 Nov 2026. The libraries aren't yet:
+the SDKs are 0.x, and the demo pins v0.9. The pattern (catalog, capability negotiation, validation at the boundary) is
 what to adopt now; the specific library surface will keep shifting. See the
 deck's section 2 maturity slide.
 
