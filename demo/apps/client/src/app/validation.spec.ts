@@ -37,13 +37,17 @@ function ticketList(priority: unknown, dataPriority = 'urgent'): unknown[] {
   ];
 }
 
-/** A fetch that answers each POST /a2a with the next SSE body, and records the request bodies. */
-function fakeAgent(replies: unknown[][]) {
+/**
+ * A fetch that answers each POST /a2a with the next SSE body, and records the request bodies.
+ * A reply is a list of A2UI messages, or `{ text }` for a text-only answer (as server.ts sends it).
+ */
+function fakeAgent(replies: (unknown[] | { text: string })[]) {
   const bodies: Record<string, unknown>[] = [];
   const fetch = vi.fn(async (_url: string, init: RequestInit) => {
     bodies.push(JSON.parse(init.body as string));
-    const messages = replies[bodies.length - 1] ?? [];
-    const sse = `data: ${JSON.stringify({ messages, sessionId: 's1' })}\n\n`;
+    const reply = replies[bodies.length - 1] ?? [];
+    const event = Array.isArray(reply) ? { messages: reply } : { messages: [], text: reply.text };
+    const sse = `data: ${JSON.stringify({ ...event, sessionId: 's1' })}\n\n`;
     return new Response(sse, { headers: { 'Content-Type': 'text/event-stream' } });
   });
   vi.stubGlobal('fetch', fetch);
@@ -80,6 +84,8 @@ describe('client-side validation (phase 6)', () => {
       expect(problem?.path).toBe('/tickets/0/priority');
       expect(problem?.message).toContain('priority resolved to "critical" from /tickets/0/priority');
       expect(problem?.message).toContain('low | medium | high | urgent');
+      // Only the value branch of the union: the binding branch's "Expected object" is noise.
+      expect(problem?.message).not.toContain('Expected object');
     });
 
     it('passes a valid value, a value not streamed in yet, and a literal', () => {
@@ -167,6 +173,19 @@ describe('client-side validation (phase 6)', () => {
     expect(html.querySelector('.priority-badge.invalid')).toBeNull();
     expect(html.querySelector('.priority-badge')?.textContent).toBe('urgent');
     expect(TestBed.inject(ValidationIssues).list()).toEqual([]);
+  });
+
+  it("shows the agent's text fallback and keeps the rejected surface on screen", async () => {
+    const fixture = TestBed.createComponent(Host);
+    fakeAgent([ticketList({ path: 'priority' }, 'critical'), { text: 'Sorry, I could not show that view.' }]);
+    const client = TestBed.inject(AgentClient);
+
+    await client.ask('Show me the open tickets');
+    await fixture.whenStable();
+
+    expect(client.agentText()).toBe('Sorry, I could not show that view.');
+    expect(client.waitingForUi()).toBe(false);
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Checkout fails');
   });
 
   it('reports at most twice without a user action in between', async () => {

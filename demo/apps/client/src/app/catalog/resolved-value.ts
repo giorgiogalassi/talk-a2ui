@@ -1,4 +1,4 @@
-import { formatZodIssue } from '@a2ui/web_core/v0_9';
+import { DataBindingSchema, formatZodIssue } from '@a2ui/web_core/v0_9';
 
 /** The part of a Zod schema this check uses (Zod 3, as in @demo/catalog). */
 interface FieldSchema {
@@ -25,8 +25,12 @@ export function resolvedValueProblem(
 ): { path: string; message: string } | null {
   if (!raw || typeof raw !== 'object' || typeof (raw as { path?: unknown }).path !== 'string') return null;
   if (value === undefined) return null;
-  const field = (api.schema as { shape: Record<string, FieldSchema> }).shape[key];
-  const result = field.safeParse(value);
+  const field = (api.schema as { shape: Record<string, FieldSchema | undefined> }).shape?.[key];
+  if (!field) return null;
+  if (field.safeParse(value).success) return null;
+  // Demo: the value is already resolved, so the binding branch of a `value | binding` union
+  // only adds noise ("root: Expected object, received string"). Report the value branch alone.
+  const result = valueBranch(field).safeParse(value);
   if (result.success) return null;
   const path = absolutePath((raw as { path: string }).path, dataContextPath);
   const why = result.error.issues.map(formatZodIssue).join('; ');
@@ -40,4 +44,11 @@ export function resolvedValueProblem(
 export function absolutePath(path: string, dataContextPath: string): string {
   if (path.startsWith('/')) return path;
   return `${dataContextPath.replace(/\/$/, '')}/${path}`;
+}
+
+/** A `z.union([valueSchema, DataBindingSchema])` without its binding option; any other schema as it is. */
+function valueBranch(field: FieldSchema): FieldSchema {
+  const options = (field as { _def?: { options?: FieldSchema[] } })._def?.options;
+  const values = options?.filter((option) => option !== (DataBindingSchema as unknown));
+  return values?.length === 1 ? values[0] : field;
 }

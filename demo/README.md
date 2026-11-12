@@ -126,7 +126,8 @@ in stub mode.** The renderer tells the agent what it could not show, and the age
   placeholder `Text` ("⚠ This part of the answer could not be shown.") under the same id, so the rest
   of the surface renders. `PriorityBadge` checks the value its binding resolves to against the
   catalog's own Zod for that prop (`catalog/resolved-value.ts`) and shows a dashed `?` badge when it
-  fails. Both file the problem in `ValidationIssues`; once the reply has rendered
+  fails; for a `value | binding` union the message quotes only the value branch, without the binding
+  branch's "Expected object" noise. Both file the problem in `ValidationIssues`; once the reply has rendered
   (`ApplicationRef.whenStable()`), `AgentClient` POSTs `{ error: { code: 'VALIDATION_FAILED',
   surfaceId, path, message } }` to `/a2a` (the first issue; the message counts the others). `path` is a
   pointer into the message for a rejected component (`/components/3/priority`), into the data model for
@@ -135,7 +136,9 @@ in stub mode.** The renderer tells the agent what it could not show, and the age
   agent's own rule stops first). `agent-client.ts` still has no A2A names.
 - *Server (`server.ts`):* `{ error }` goes to the agent as an A2A data part `{ version: 'v0.9', error }`
   (`application/a2ui+json`), like an action. An error without string `code`/`surfaceId`/`message`
-  (and `path` for `VALIDATION_FAILED`) gets a 400.
+  (and `path` for `VALIDATION_FAILED`) gets a 400. The agent's text parts go to the browser as
+  `{ messages: [], text }` and show above the surface (`agentText`), so the text fallback after a second
+  report is visible instead of a page that stays on the `?` badge (added after review, 2026-11-12).
 - *Agent:* `readInboundMessage` reads the error (`clientError`). The executor remembers each
   conversation's last turn (`src/client-retry.ts`); on `VALIDATION_FAILED` it logs
   `--- A2UI client reported VALIDATION_FAILED on surface 'tickets' at /tickets/0/priority: … ---` and
@@ -161,7 +164,9 @@ in stub mode.** The renderer tells the agent what it could not show, and the age
   report and retries → badges `urgent, high, medium`; *Open* → detail `?` → report
   `/ticket/priority` → `urgent`. A second report sent by hand for the same turn: agent logs `This turn
   was already retried once after a client report. Sending text-only error.`; a malformed error gets
-  400. Switch off: plain stub (list → detail → resolved, no error POSTs), `STUB_INVALID_FIRST=true`
+  400. After review (2026-11-12): client 12 tests (the text fallback shows, the surface stays); stub +
+  SSR server by `curl`, the second report's SSE carries the fallback as `text`, a normal turn carries
+  none. Switch off: plain stub (list → detail → resolved, no error POSTs), `STUB_INVALID_FIRST=true`
   (server-side retry, list renders), one live turn (5 tickets, no error POST).
 - One thing the plan didn't expect: incident 6 below. Not checked: the client's report after a live
   model's own bad value (a live model rarely produces one on cue), and Express format with the switch.

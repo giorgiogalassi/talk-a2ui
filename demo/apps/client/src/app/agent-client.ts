@@ -39,6 +39,8 @@ export class AgentClient {
    */
   readonly waitingForUi = signal(false);
   readonly error = signal<string | null>(null);
+  /** Demo: what the agent said in text, when it had no UI to send (e.g. the fallback). */
+  readonly agentText = signal<string | null>(null);
 
   /** A new prompt replaces whatever the agent rendered before. */
   ask(query: string): Promise<void> {
@@ -66,6 +68,7 @@ export class AgentClient {
     this.isLoading.set(true);
     this.waitingForUi.set(true);
     this.error.set(null);
+    this.agentText.set(null);
     try {
       const response = await fetch('/a2a', {
         method: 'POST',
@@ -138,9 +141,13 @@ export class AgentClient {
     await this.send({ error });
   }
 
-  private handleEvent(event: { messages?: A2uiMessage[]; sessionId?: string; error?: string }) {
+  private handleEvent(event: { messages?: A2uiMessage[]; text?: string; sessionId?: string; error?: string }) {
     if (event.error) throw new Error(event.error);
     if (event.sessionId) this.sessionId = event.sessionId;
+    if (event.text) {
+      this.agentText.set(event.text);
+      this.waitingForUi.set(false);
+    }
 
     const messages = event.messages ?? [];
     // A retried reply starts over with its own createSurface, while the failed attempt may have
