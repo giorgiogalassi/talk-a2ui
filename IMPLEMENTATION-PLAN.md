@@ -739,7 +739,7 @@ the renderer, `VALIDATION_FAILED` back to the agent, client step 8).
       message, `STUB_LEAKY=true` checked in a headless browser (0
       `internal_notes` / `delete_ticket` in the SSE). Deviation: the policy also
       forbids `/ticket/internal_notes` (incident 5). Live model not yet run.
-- [ ] **Transport swap: make `server.ts` the only file that knows A2A
+- [x] **Transport swap: make `server.ts` the only file that knows A2A
       (added 2026-10-23).** Talk + article beat: A2UI is transport-agnostic
       (the spec lists A2A, AG-UI, SSE, WebSockets; CopilotKit runs A2UI over
       AG-UI), so switching transport should touch one adapter, never the
@@ -751,6 +751,12 @@ the renderer, `VALIDATION_FAILED` back to the agent, client step 8).
       opaque session id, and actions go up as plain `{ version, action }`.
       *Done when:* `agent-client.ts` has no A2A types or field names, and the
       stub flow still runs end to end.
+      **Done 2026-11-10:** `server.ts` flattens the A2A data parts into
+      `{ messages, sessionId }`; the browser's `contextId` became `sessionId`
+      (the server maps it to A2A's `contextId`). Checked: `ng build`, client
+      tests, and a stub run (`STUB_LEAKY=true`) over `POST /a2a`: 14 SSE events
+      per turn, all `messages`, none with `parts`. The stretch (second adapter)
+      is not done; the slide shows the one-file diff.
       **Stretch, only if the critical path is done by ~6 Nov:** a second
       adapter behind the same `POST /a2a` contract (an AG-UI one, or a plain
       SSE agent) switched by env var, to show live that only the adapter

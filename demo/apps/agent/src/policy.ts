@@ -11,6 +11,19 @@
 // intermediate re-send is stripped from that re-send too.
 
 import type {ResponsePart} from '@a2ui/agent';
+import {basicCatalog} from '@a2ui/web_core/v0_9/basic_catalog';
+import {getComponentReferences, type ComponentRefMap} from '@a2ui/web_core/validating';
+import {ticketCatalog} from '@demo/catalog';
+
+/**
+ * Which props of each component hold other components' ids, read from the catalogs' own Zod
+ * schemas by web_core (the same map its integrity checker uses): `child`, `children`, but
+ * also `Modal.trigger`/`content` and `Tabs.tabs[].child`. Both catalogs the agent serves.
+ */
+const REF_MAP: ComponentRefMap = {...basicCatalog.componentRefMap, ...ticketCatalog.componentRefMap};
+
+/** What a removed root is replaced with, so the surface still renders and says why. */
+export const UNAVAILABLE_TEXT = "This view isn't available to you.";
 
 /** What this deployment forbids, whatever the catalog allows. */
 export interface Policy {
@@ -84,6 +97,16 @@ function bindsForbidden(path: string, patterns: string[][]): boolean {
 
 /** The first `{path}` in a component's props that binds a forbidden path, if any. */
 function forbiddenBinding(value: unknown, patterns: string[][]): string | undefined {
+  // A string can bind data too, by interpolation: "Notes: ${/ticket/internal_notes}", also
+  // inside a function call's args. Every path-like token in each `${…}` is checked.
+  if (typeof value === 'string') {
+    for (const [, expr] of value.matchAll(/\$\{([^}]*)\}/g)) {
+      for (const [token] of expr.matchAll(/\/?[\w*][\w*-]*(?:\/[\w*-]+)*/g)) {
+        if (bindsForbidden(token, patterns)) return token;
+      }
+    }
+    return undefined;
+  }
   if (Array.isArray(value)) {
     for (const item of value) {
       const hit = forbiddenBinding(item, patterns);
@@ -146,17 +169,36 @@ function policeDataModel(message: Json, patterns: string[][], stripped: string[]
   return message;
 }
 
-/** The ids a component holds as children: `child`, a `children` list, or a template's id. */
+/** Every component reference a component holds, as `[id, propertyPath]` (web_core's paths). */
+function refs(component: Json): [string, string][] {
+  return [...getComponentReferences(component, REF_MAP)];
+}
+
+/** The ids a component holds as children, whatever prop they sit in. */
 function childIds(component: Json): string[] {
-  const ids: string[] = [];
-  if (typeof component.child === 'string') ids.push(component.child);
-  const children = component.children;
-  if (Array.isArray(children)) {
-    ids.push(...children.filter((c): c is string => typeof c === 'string'));
-  } else if (isObject(children) && typeof children.componentId === 'string') {
-    ids.push(children.componentId);
-  }
-  return ids;
+  return refs(component).map(([id]) => id);
+}
+
+/**
+ * How a kept component loses a reference to a removed one, from web_core's property path:
+ * `children[2]` → drop that list entry; `children.componentId` (a template) → empty list;
+ * `tabs[1].child` → drop that tab; anything else (`child`, `trigger`, `content`) is a
+ * required single reference, so the component cannot stay valid and goes too.
+ */
+type Mend =
+  | {kind: 'listItem'; key: string}
+  | {kind: 'template'; key: string}
+  | {kind: 'nestedItem'; key: string; index: number}
+  | {kind: 'required'};
+
+function mendFor(path: string): Mend {
+  let m = /^(\w+)\[\d+\]$/.exec(path);
+  if (m) return {kind: 'listItem', key: m[1]};
+  m = /^(\w+)\.componentId$/.exec(path);
+  if (m) return {kind: 'template', key: m[1]};
+  m = /^(\w+)\[(\d+)\]\.\w+$/.exec(path);
+  if (m) return {kind: 'nestedItem', key: m[1], index: Number(m[2])};
+  return {kind: 'required'};
 }
 
 function describe(component: Json): string {
@@ -169,10 +211,14 @@ function describe(component: Json): string {
  *
  * - the removed component's own subtree goes too (a button's label), unless something kept
  *   still points at it;
+ * - references are found with web_core's `getComponentReferences`, so every reference prop
+ *   the catalogs declare counts, not just `child`/`children` (`Modal.trigger`, `Tabs.tabs[]`);
  * - a parent that lists it in `children` keeps its other children;
- * - a parent that holds it as its only `child` (`Card`, `Button`: required) is removed as well,
- *   since it cannot stay valid without it;
- * - a template whose `componentId` is removed becomes an empty `children` list.
+ * - a parent that holds it in a required single reference (`Card.child`, `Button.child`,
+ *   `Modal.trigger`/`content`) is removed as well, since it cannot stay valid without it;
+ * - a tab whose `child` is removed is dropped from `tabs`; a `Tabs` left with none goes too;
+ * - a template whose `componentId` is removed becomes an empty `children` list;
+ * - if `root` itself goes, a Text notice takes its place, so the surface renders and says why.
  *
  * Ids are followed even when the component they name has not arrived yet, so a label streamed
  * after its button is removed on every re-send. Returns undefined if no component is left.
@@ -223,27 +269,68 @@ function policeComponents(
     }
     for (const c of components) {
       const id = String(c.id);
-      if (!removed.has(id) && typeof c.child === 'string' && removed.has(c.child)) {
+      if (removed.has(id)) continue;
+      const lost = refs(c).filter(([ref]) => removed.has(ref));
+      const required = lost.find(([, path]) => mendFor(path).kind === 'required');
+      // A tab list left with no tab is as invalid as a missing required child.
+      const emptied = lost.length > 0 && nestedListEmptied(c, lost);
+      if (required || emptied) {
         removed.add(id);
         changed = true;
-        stripped.push(`removed ${describe(c)} (its only child ${c.child} was removed)`);
+        const why = required ? `its ${required[1]} ${required[0]} was removed` : 'every item it held was removed';
+        stripped.push(`removed ${describe(c)} (${why})`);
       }
     }
   }
 
-  const kept = components
-    .filter(c => !removed.has(String(c.id)))
-    .map(c => {
-      if (Array.isArray(c.children)) {
-        return {...c, children: c.children.filter(id => !removed.has(id as string))};
-      }
-      if (isObject(c.children) && removed.has(c.children.componentId as string)) {
-        return {...c, children: []};
-      }
-      return c;
-    });
+  let kept = components.filter(c => !removed.has(String(c.id))).map(c => mendRefs(c, removed));
+  // The root went (its only content was forbidden): put a Text in its place, so the surface
+  // still renders and says why, instead of dropping the message and leaving it blank. Same
+  // replacement on every re-send, so the policy stays stateless.
+  if (removed.has('root') && byId.has('root')) {
+    kept = [{id: 'root', component: 'Text', text: UNAVAILABLE_TEXT}, ...kept];
+    stripped.push('replaced root with a notice');
+  }
   if (kept.length === 0) return undefined;
   return {...message, updateComponents: {...body, components: kept}};
+}
+
+/** Whether removing the lost references empties a nested list (`tabs`) of the component. */
+function nestedListEmptied(component: Json, lost: [string, string][]): boolean {
+  const byKey = new Map<string, Set<number>>();
+  for (const [, path] of lost) {
+    const mend = mendFor(path);
+    if (mend.kind === 'nestedItem') {
+      byKey.set(mend.key, (byKey.get(mend.key) ?? new Set()).add(mend.index));
+    }
+  }
+  for (const [key, indexes] of byKey) {
+    const list = component[key];
+    if (Array.isArray(list) && list.every((_, i) => indexes.has(i))) return true;
+  }
+  return false;
+}
+
+/** A kept component with its references to removed components taken out. */
+function mendRefs(component: Json, removed: Set<string>): Json {
+  const lost = refs(component).filter(([ref]) => removed.has(ref));
+  if (lost.length === 0) return component;
+  const out: Json = {...component};
+  const dropNested = new Map<string, Set<number>>();
+  for (const [, path] of lost) {
+    const mend = mendFor(path);
+    if (mend.kind === 'listItem' && Array.isArray(out[mend.key])) {
+      out[mend.key] = (out[mend.key] as unknown[]).filter(id => !removed.has(id as string));
+    } else if (mend.kind === 'template') {
+      out[mend.key] = [];
+    } else if (mend.kind === 'nestedItem') {
+      dropNested.set(mend.key, (dropNested.get(mend.key) ?? new Set()).add(mend.index));
+    }
+  }
+  for (const [key, indexes] of dropNested) {
+    if (Array.isArray(out[key])) out[key] = (out[key] as unknown[]).filter((_, i) => !indexes.has(i));
+  }
+  return out;
 }
 
 /**
