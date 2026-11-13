@@ -9,19 +9,25 @@ import { PriorityBadgeApi } from '@demo/catalog';
   template: `<span class="priority-badge" [attr.data-priority]="priority()">{{ priority() }}</span>`,
   styles: `
     .priority-badge {
-      display: inline-block;
-      padding: 2px 10px;
+      display: inline-flex;
+      align-items: center;
+      box-sizing: border-box;
+      height: 26px; /* same height as AssigneeChip, so a row's pills line up */
+      padding: 0 12px;
+      line-height: 1;
       border-radius: 999px;
       font-size: 12px;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
-      background: #e8eaed;
-      color: #3c4043;
+      letter-spacing: 0.06em;
+      /* low: outline only; the scale gets louder up to urgent. */
+      border: 1px solid var(--ink);
+      background: transparent;
+      color: var(--ink);
     }
-    [data-priority='medium'] { background: #fef7e0; color: #8a5a00; }
-    [data-priority='high'] { background: #fde7d9; color: #b3261e; }
-    [data-priority='urgent'] { background: #b3261e; color: #ffffff; }
+    [data-priority='medium'] { background: var(--sand); border-color: var(--sand); }
+    [data-priority='high'] { background: var(--accent-tint); border-color: var(--accent-tint); color: var(--accent-text); }
+    [data-priority='urgent'] { background: var(--accent-fill); border-color: var(--accent-fill); color: #ffffff; }
   `,
 })
 export class PriorityBadgeComponent extends CatalogComponent<typeof PriorityBadgeApi> {

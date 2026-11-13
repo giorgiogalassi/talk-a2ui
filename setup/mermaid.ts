@@ -1,18 +1,18 @@
 import { defineMermaidSetup } from '@slidev/types'
 
-// Mermaid in the typography-as-architecture palette (styles/type.css, light values).
+// Mermaid in the typography-as-architecture palette (styles/type.css, light values: Cream & Ink).
 export default defineMermaidSetup(() => ({
   theme: 'base',
   themeVariables: {
-    fontFamily: 'Roboto, system-ui, sans-serif',
-    primaryColor: '#ffffff',
-    primaryTextColor: '#1f1f24',
-    primaryBorderColor: '#ad5230',
-    lineColor: '#6b6b72',
-    secondaryColor: '#ffffff',
-    tertiaryColor: '#f6f6f7',
-    clusterBkg: '#f6f6f7',
-    clusterBorder: '#e2e2e6',
-    edgeLabelBackground: '#ffffff',
+    fontFamily: 'Google Sans, Roboto, system-ui, sans-serif',
+    primaryColor: '#fbf8f1',
+    primaryTextColor: '#111111',
+    primaryBorderColor: '#a83e16',
+    lineColor: '#5c5648',
+    secondaryColor: '#fbf8f1',
+    tertiaryColor: '#ede6d8',
+    clusterBkg: '#ede6d8',
+    clusterBorder: '#dcd4c4',
+    edgeLabelBackground: '#fbf8f1',
   },
 }))
