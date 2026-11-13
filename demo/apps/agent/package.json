@@ -8,7 +8,7 @@
     "build": "npm run build -w @demo/catalog && tsc -p tsconfig.json",
     "test": "npm run build && node --test \"dist/src/**/*.test.js\"",
     "start": "node --env-file-if-exists=.env dist/src/index.js",
-    "start:stub": "STUB_LLM=true node dist/src/index.js"
+    "start:stub": "STUB_LLM=true node --env-file-if-exists=.env dist/src/index.js"
   },
   "dependencies": {
     "@a2a-js/sdk": "^0.3.13",
