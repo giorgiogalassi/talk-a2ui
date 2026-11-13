@@ -1,1 +1,159 @@
-/* You can add global styles to this file, and also import other style files */
+/* Cream & Ink, the ggalassi.dev palette (blog decisions 2026-11-09). Contrast checked:
+   ink on cream 16.3:1, muted on cream 6.3:1, white on accent fill 4.9:1, accent text on tint 5.0:1. */
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..1000&family=Google+Sans:wght@400;500;700&family=Instrument+Serif:ital@0;1&display=swap');
+
+:root {
+  --cream: #f3eee3;
+  --paper: #fbf8f1;
+  --sand: #e6ddcb;
+  --ink: #111111;
+  --muted: #5c5648;
+  --line: rgb(17 17 17 / 0.12);
+  --line-soft: rgb(17 17 17 / 0.06);
+  --accent-fill: #c2491b;
+  --accent-text: #a83e16;
+  --accent-tint: #f7e1d5;
+  --font-display: 'Roboto Flex', system-ui, sans-serif;
+  --font-body: 'Google Sans', system-ui, sans-serif;
+  --font-accent: 'Instrument Serif', Georgia, serif;
+
+  /* A2UI basic catalog (Button, TextField, Card, Text…) reads these. */
+  --a2ui-color-primary: var(--accent-fill);
+  --a2ui-color-on-primary: #ffffff;
+  --a2ui-color-surface: var(--paper);
+  --a2ui-color-background: var(--cream);
+  --a2ui-color-on-background: var(--ink);
+  --a2ui-color-border: var(--line);
+  --a2ui-color-input: var(--paper);
+  --a2ui-color-on-input: var(--ink);
+  --a2ui-color-error: var(--accent-text);
+  --a2ui-text-color-text: var(--ink);
+  --a2ui-text-caption-color: var(--muted);
+  --a2ui-textfield-color-border-focus: var(--accent-fill);
+  --a2ui-border-radius: 14px;
+  --a2ui-font-family-title: var(--font-display);
+  --a2ui-line-height-body: 1.6;
+  --a2ui-line-height-headings: 1.05;
+
+  /* Type scale. A2UI derives it from a 1.2 ratio, which puts captions at 11px;
+     fixed steps instead, matching the blog's body (16px) and small labels (13–14px). */
+  --a2ui-font-size-xs: 0.8125rem;
+  --a2ui-font-size-s: 0.875rem;
+  --a2ui-font-size-m: 1rem;
+  --a2ui-font-size-l: 1.25rem;
+  --a2ui-font-size-xl: 1.625rem;
+  --a2ui-font-size-2xl: 2.25rem;
+
+  /* Spacing: one 8px grid, the same steps the ticket list uses. */
+  --a2ui-spacing-xs: 4px;
+  --a2ui-spacing-s: 8px;
+  --a2ui-spacing-m: 12px;
+  --a2ui-spacing-l: 20px;
+  --a2ui-column-gap: 12px;
+  --a2ui-row-gap: 12px;
+  --a2ui-divider-spacing: 4px;
+
+  /* Card: flush with the ticket list (no outer margin, no shadow, same padding and border). */
+  --a2ui-card-margin: 0;
+  --a2ui-card-padding: 20px 24px 24px;
+  --a2ui-card-box-shadow: none;
+  --a2ui-card-border: 1px solid var(--line);
+
+  /* Buttons: the blog's pill (book-a-call CTA), no outer margin. */
+  --a2ui-button-margin: 0;
+  --a2ui-button-padding: 10px 22px;
+  --a2ui-button-border-radius: 999px;
+  --a2ui-button-font-weight: 500;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+app-root {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+/* The prompt: full-width input, pill button like the blog's book-a-call CTA. */
+app-root > form {
+  display: flex;
+  gap: 10px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+}
+app-root > form:focus-within { border-color: var(--ink); }
+app-root > form input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 16px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 500 18px var(--font-display);
+  letter-spacing: -0.02em;
+  outline: none;
+}
+app-root > form button {
+  padding: 10px 24px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent-fill);
+  color: #ffffff;
+  font: 500 16px var(--font-body);
+  cursor: pointer;
+}
+app-root > form button:hover:not(:disabled) { background: var(--accent-text); }
+app-root > form button:disabled { opacity: 0.5; cursor: progress; }
+:focus-visible { outline: 2px solid var(--accent-fill); outline-offset: 2px; }
+
+.error { color: var(--accent-text); }
+
+/* Primary button: same hover as the prompt's Ask. */
+a2ui-v09-surface .a2ui-button.primary { transition: background-color 0.15s; }
+a2ui-v09-surface .a2ui-button.primary:hover { background-color: var(--accent-text); }
+
+/* Borderless button (row "Open", "Delete ticket"): a text link in the accent,
+   underlined like the blog's links, with a hit area that doesn't shift the row. */
+a2ui-v09-surface .a2ui-button.borderless {
+  --_a2ui-text-color: var(--accent-text);
+  padding: 6px 4px;
+  margin: -6px -4px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+a2ui-v09-surface .a2ui-button.borderless .a2ui-text {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
+}
+a2ui-v09-surface .a2ui-button.borderless:hover { --_a2ui-text-color: var(--ink); }
+
+/* Captions (ticket id, status): small and muted, not italic; the blog keeps italics for the serif accent. */
+a2ui-v09-surface .a2ui-text.caption,
+a2ui-v09-surface .a2ui-text.caption em { font-style: normal; font-variant-numeric: tabular-nums; }
+
+/* Headings the agent sends as A2UI Text (h1–h4): the blog's display type. */
+a2ui-v09-surface :is(h1, h2, h3, h4) {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-variation-settings: 'opsz' 144, 'wdth' 100;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+/* Italic in an agent heading (markdown *emphasis*) becomes the blog's serif accent; display sizes only, like the blog. */
+a2ui-v09-surface :is(h1, h2, h3, h4) em { font-family: var(--font-accent); font-weight: 400; letter-spacing: -0.01em; }

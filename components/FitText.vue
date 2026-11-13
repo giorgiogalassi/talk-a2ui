@@ -1,5 +1,5 @@
 <template>
-  <span ref="el" class="fit-text" :style="style"><slot /></span>
+  <span ref="el" class="fit-text" :class="{ 'fit-serif': serif }" :style="style"><slot /></span>
 </template>
 
 <script setup>
@@ -8,20 +8,25 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 const props = defineProps({
-  weight: { type: Number, default: 900 },
+  // Defaults follow the blog's display type (ggalassi.dev, Cream & Ink): Roboto Flex 600.
+  weight: { type: Number, default: 600 },
   wdth: { type: Number, default: 100 },
   opsz: { type: Number, default: 144 },
+  // The blog's accent: Instrument Serif italic with a hand-drawn underline.
+  serif: { type: Boolean, default: false },
 })
 
 const el = ref()
 const size = ref(100)
 let observer
 
-const style = computed(() => ({
-  fontSize: `${size.value}px`,
-  fontWeight: props.weight,
-  fontVariationSettings: `"wdth" ${props.wdth}, "opsz" ${props.opsz}`,
-}))
+const style = computed(() => props.serif
+  ? { fontSize: `${size.value}px` }
+  : {
+      fontSize: `${size.value}px`,
+      fontWeight: props.weight,
+      fontVariationSettings: `"wdth" ${props.wdth}, "opsz" ${props.opsz}`,
+    })
 
 function fit() {
   const node = el.value
@@ -51,7 +56,27 @@ onBeforeUnmount(() => observer?.disconnect())
   width: max-content;
   white-space: nowrap;
   font-family: 'Roboto Flex', Roboto, system-ui, sans-serif;
-  line-height: 0.82;
-  letter-spacing: -0.035em;
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+}
+.fit-serif {
+  position: relative;
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  padding-right: 0.06em;
+  line-height: 1;
+}
+.fit-serif::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.02em;
+  height: 0.07em;
+  background-color: var(--ta-accent);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 12' preserveAspectRatio='none'%3E%3Cpath d='M3 9 C 80 2, 200 1, 297 6' stroke='black' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 12' preserveAspectRatio='none'%3E%3Cpath d='M3 9 C 80 2, 200 1, 297 6' stroke='black' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
 }
 </style>

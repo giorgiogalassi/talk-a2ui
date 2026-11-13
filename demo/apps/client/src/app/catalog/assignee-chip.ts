@@ -16,10 +16,13 @@ import { AssigneeChipApi } from '@demo/catalog';
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 2px 10px 2px 2px;
+      box-sizing: border-box;
+      height: 26px; /* same height as PriorityBadge */
+      padding: 2px 12px 2px 2px;
+      line-height: 1;
       border-radius: 999px;
-      background: #e8f0fe;
-      color: #0b3d91;
+      background: var(--sand);
+      color: var(--ink);
       font-size: 13px;
       white-space: nowrap;
     }
@@ -29,13 +32,13 @@ import { AssigneeChipApi } from '@demo/catalog';
       width: 22px;
       height: 22px;
       border-radius: 50%;
-      background: #1a73e8;
-      color: #ffffff;
+      background: var(--ink);
+      color: var(--cream);
       font-size: 11px;
       font-weight: 600;
     }
-    .unassigned { background: #f1f3f4; color: #5f6368; }
-    .unassigned .initials { background: #9aa0a6; }
+    .unassigned { background: transparent; color: var(--muted); outline: 1px dashed var(--muted); outline-offset: -1px; }
+    .unassigned .initials { background: transparent; color: var(--muted); }
   `,
 })
 export class AssigneeChipComponent extends CatalogComponent<typeof AssigneeChipApi> {

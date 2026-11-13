@@ -26,7 +26,7 @@ import { AgentClient } from './agent-client';
   `,
   // Demo: a quiet pulse while the agent works, so a long live turn doesn't read as broken.
   styles: `
-    .working { color: #5f6368; animation: pulse 1.2s ease-in-out infinite; }
+    .working { color: var(--muted); animation: pulse 1.2s ease-in-out infinite; }
     @keyframes pulse { 50% { opacity: 0.35; } }
     @media (prefers-reduced-motion: reduce) { .working { animation: none; } }
   `,

@@ -18,8 +18,8 @@ rule: ['A2UI · AngularDay 2026', 'Structured generative UI']
 
 <div class="ta">
   <div class="ta-hero">
-    <FitText :weight="300" :wdth="100" class="ta-dim">Your AI should not</FitText>
-    <FitText :weight="900" :wdth="100" class="ta-accent">generate HTML.</FitText>
+    <FitText>Your AI should not</FitText>
+    <FitText serif>generate HTML.</FitText>
   </div>
   <div class="ta-foot">
     <div><b>Angular + A2UI</b><span>structured generative UI</span></div>
@@ -46,7 +46,7 @@ rule: ['Part 1', 'The Problem']
 
 <div class="ta">
   <div class="ta-hero">
-    <FitText :weight="900" :wdth="90">The Problem.</FitText>
+    <FitText>The Problem.</FitText>
   </div>
 </div>
 
@@ -185,7 +185,7 @@ rule: ['Part 2', 'The Paradigm Shift']
 
 <div class="ta">
   <div class="ta-hero">
-    <FitText :weight="900" :wdth="90">The Paradigm Shift.</FitText>
+    <FitText>The Paradigm Shift.</FitText>
   </div>
 </div>
 
@@ -322,8 +322,8 @@ rule: ['Part 3', 'Where This Actually Makes Sense']
 
 <div class="ta">
   <div class="ta-hero">
-    <FitText :weight="900" :wdth="90">Where This Actually</FitText>
-    <FitText :weight="900" :wdth="90">Makes Sense.</FitText>
+    <FitText>Where This Actually</FitText>
+    <FitText>Makes Sense.</FitText>
   </div>
 </div>
 
@@ -484,8 +484,8 @@ rule: ['Part 4', 'Anatomy of an A2UI System']
 
 <div class="ta">
   <div class="ta-hero">
-    <FitText :weight="900" :wdth="90">Anatomy of an</FitText>
-    <FitText :weight="900" :wdth="90">A2UI System.</FitText>
+    <FitText>Anatomy of an</FitText>
+    <FitText>A2UI System.</FitText>
   </div>
 </div>
 
@@ -694,8 +694,8 @@ rule: ['Part 5', 'Angular as the Rendering Engine']
 
 <div class="ta">
   <div class="ta-hero">
-    <FitText :weight="900" :wdth="90">Angular as the</FitText>
-    <FitText :weight="900" :wdth="90">Rendering Engine.</FitText>
+    <FitText>Angular as the</FitText>
+    <FitText>Rendering Engine.</FitText>
   </div>
 </div>
 
@@ -996,7 +996,7 @@ rule: ['Part 6', 'Demo']
 
 <div class="ta">
   <div class="ta-hero">
-    <FitText :weight="900" :wdth="90">Demo.</FitText>
+    <FitText>Demo.</FitText>
   </div>
 </div>
 
@@ -1109,7 +1109,7 @@ rule: ['Part 7', 'Production Reality']
 
 <div class="ta">
   <div class="ta-hero">
-    <FitText :weight="900" :wdth="90">Production Reality.</FitText>
+    <FitText>Production Reality.</FitText>
   </div>
 </div>
 
@@ -1247,7 +1247,7 @@ rule: ['Part 8', 'The Future']
 
 <div class="ta">
   <div class="ta-hero">
-    <FitText :weight="900" :wdth="90">The Future.</FitText>
+    <FitText>The Future.</FitText>
   </div>
 </div>
 
@@ -1337,7 +1337,7 @@ rule: ['Thank you', 'ggalassi.dev']
 <div class="ta ta-split">
   <div class="ta-split-main">
   <div class="ta-hero" style="margin-block:0">
-    <FitText :weight="900" :wdth="100" class="ta-accent">Thank you</FitText>
+    <FitText serif>Thank you</FitText>
   </div>
   <div class="ta-aside" style="margin-top:0.8rem;grid-template-columns:1fr">
     <strong>Stop letting LLMs generate HTML. Start designing systems that speak UI.</strong>
@@ -1361,7 +1361,12 @@ rule: ['Thank you', 'ggalassi.dev']
     </div>
   </div>
   </div>
-  <img src="/src/profile.jpg" alt="Giorgio Galassi speaking on stage" class="ta-portrait" />
+  <div class="ta-blob">
+    <div class="ta-blob-back" aria-hidden="true"></div>
+    <div class="ta-blob-photo">
+      <img src="/src/profile.jpg" alt="Giorgio Galassi speaking on stage" />
+    </div>
+  </div>
 </div>
 
 <!--

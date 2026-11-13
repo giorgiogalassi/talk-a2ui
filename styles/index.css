@@ -10,7 +10,7 @@
 }
 
 .accent {
-  color: #c2603a;
+  color: #a83e16;
 }
 
 .slidev-layout img.qr-code {
@@ -18,22 +18,22 @@
 }
 
 .callout {
-  border-left: 3px solid #c2603a;
-  background: rgba(194, 96, 58, 0.06);
+  border-left: 3px solid #a83e16;
+  background: rgba(168, 62, 22, 0.06);
   padding: 0.2em 0.8em;
   border-radius: 0 4px 4px 0;
   margin: 0.75em 0;
 }
 
 .slidev-layout table th {
-  color: #c2603a;
+  color: #a83e16;
   font-weight: 600;
 }
 
 .thank-you-title {
   font-size: 4rem;
   font-weight: 700;
-  color: #c2603a;
+  color: #a83e16;
   line-height: 1;
   letter-spacing: -0.02em;
 }
@@ -46,8 +46,8 @@
 }
 
 .tag {
-  border: 1.5px solid rgba(194, 96, 58, 0.55);
-  color: #c2603a;
+  border: 1.5px solid rgba(168, 62, 22, 0.55);
+  color: #a83e16;
   padding: 0.2em 0.75em;
   border-radius: 999px;
   font-size: 0.8rem;

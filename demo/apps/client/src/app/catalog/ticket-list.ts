@@ -21,15 +21,25 @@ import { TicketListApi } from '@demo/catalog';
   `,
   styles: `
     .ticket-list {
-      border: 1px solid #dadce0;
-      border-radius: 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
       overflow: hidden;
-      background: #ffffff;
+      background: var(--paper);
     }
-    h2 { margin: 0; padding: 12px 16px; font-size: 18px; border-bottom: 1px solid #dadce0; }
-    .ticket-row { padding: 4px 16px; border-bottom: 1px solid #f1f3f4; }
+    h2 {
+      margin: 0;
+      padding: 20px 24px 16px;
+      font-family: var(--font-display);
+      font-size: var(--a2ui-font-size-xl);
+      line-height: 1.05;
+      font-weight: 600;
+      font-variation-settings: 'opsz' 144, 'wdth' 100;
+      letter-spacing: -0.04em;
+      border-bottom: 1px solid var(--line);
+    }
+    .ticket-row { padding: 12px 24px; border-bottom: 1px solid var(--line-soft); }
     .ticket-row:last-child { border-bottom: none; }
-    .empty { padding: 12px 16px; color: #5f6368; }
+    .empty { padding: 16px 24px; color: var(--muted); }
   `,
 })
 export class TicketListComponent extends CatalogComponent<typeof TicketListApi> {
