@@ -517,7 +517,7 @@ flowchart TB
 <div class="dg-wire">
   <div class="arrow">POST /a2a</div>
   <div class="arrow left">SSE</div>
-  <div class="arrow dashed">VALIDATION_FAILED</div>
+  <div class="arrow">VALIDATION_FAILED</div>
 </div>
 <div class="dg-lane">
 <div class="dg-label">// ssr server</div>
@@ -1059,6 +1059,14 @@ Stage 5 is the moment that proves the reliability story from section 7 —
 don't let it pass as a throwaway line, it's evidence, not decoration.
 Trigger it with the stub agent (STUB_INVALID_FIRST=true): a live model rarely
 fails on cue.
+What's real, client side (built 2026-11-12): with STUB_CLIENT_INVALID=true the
+agent's check passes a ticket whose data says priority "critical" (the badge
+binds to it, which the schema allows). The renderer resolves the binding, shows
+a "?" badge, keeps the rest of the list, and POSTs VALIDATION_FAILED with path
+/tickets/0/priority. The agent logs "A2UI client reported VALIDATION_FAILED",
+retries once with that error, and the corrected list replaces the surface; a
+second report for the same turn gets the text answer. web_core does not send
+this by itself: the demo's AgentClient catches and reports it.
 Stage 7 is where the Zoneless/signals argument from 5c becomes visible —
 open the profiler and let the room see exactly one component highlighted.
 -->
@@ -1168,7 +1176,8 @@ Define fallback surfaces for each failure level before you need them.
 Speaker notes:
 Tie this directly back to demo stage 5 — the room just saw this happen.
 On the client, the protocol defines the same signal: a `VALIDATION_FAILED`
-error message from renderer to agent. The point: failure is communicated back to the agent,
+error message from renderer to agent. The demo sends it (app code, not web_core)
+and the agent retries once on it. The point: failure is communicated back to the agent,
 which means the agent can potentially retry or degrade gracefully, rather than
 the user just seeing a broken page with no explanation anywhere in the system.
 -->

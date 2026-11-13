@@ -28,6 +28,7 @@ import {
 
 import {readInboundMessage, TaskEvents, toA2aParts} from './a2a.js';
 import type {BasicCatalogs, TicketCatalogs} from './catalogs.js';
+import {ClientRetries, describeClientError} from './client-retry.js';
 import type {A2uiFormat} from './config.js';
 import {loadExamples} from './examples.js';
 import type {ModelBackend, TurnInput} from './model.js';
@@ -62,6 +63,8 @@ function shortError(message: string): string {
 export class RestaurantExecutor implements AgentExecutor {
   /** One generator per served version, holding its basic catalog and examples. */
   private readonly generators = new Map<string, A2uiGenerator>();
+  /** Demo: each conversation's last turn, for a retry the renderer asks for. */
+  private readonly clientRetries = new ClientRetries();
 
   constructor(
     private readonly format: A2uiFormat,
@@ -106,8 +109,29 @@ export class RestaurantExecutor implements AgentExecutor {
     const {profile, catalogIds} = pickA2ui(userMessage);
     // 2. Turn the message, or the UI action it carries, into a query.
     const inbound = readInboundMessage(userMessage, profile.version);
-    const {query, actionName, useStreaming} = buildUserQuery(inbound);
     const systemPrompt = this.buildSystemPrompt(profile, catalogIds);
+    let query: string;
+    let actionName: string | undefined;
+    // Demo: the first query of this turn's attempts, when it is not `query` itself.
+    let firstQuery: string | undefined;
+    if (inbound.clientError) {
+      // Demo: the renderer rejected part of the last reply (VALIDATION_FAILED). Redo that
+      // turn once with the error in the query; a second report gets the text fallback.
+      console.warn(`--- A2UI client reported ${describeClientError(inbound.clientError)} ---`);
+      const plan = this.clientRetries.plan(contextId, inbound.clientError, this.format);
+      if (!plan.retry) {
+        console.error(`--- ${plan.reason} Sending text-only error. ---`);
+        events.status('input-required', true, [{kind: 'text', text: FALLBACK_TEXT}]);
+        return;
+      }
+      console.warn('--- Retrying the last turn with the client\'s error ---');
+      ({query, actionName} = plan);
+      firstQuery = plan.retryQuery;
+    } else {
+      ({query, actionName} = buildUserQuery(inbound));
+      this.clientRetries.remember(contextId, {query, actionName});
+    }
+    const {useStreaming} = inbound;
     events.status('working', false);
 
     // 3-5. Generate the UI, publishing parts as they arrive when the client streams.
@@ -115,7 +139,7 @@ export class RestaurantExecutor implements AgentExecutor {
       ? (parts: Part[]) => events.status('working', false, parts)
       : undefined;
     const turn = {contextId, query, actionName, profile, systemPrompt};
-    const {parts, published} = await this.generateUi(turn, catalogIds, publish);
+    const {parts, published} = await this.generateUi(turn, catalogIds, publish, firstQuery);
 
     // 6. End the turn. Published parts are not repeated in the final status.
     // Demo: resolving a ticket ends the flow, as submitting a booking did.
@@ -136,13 +160,17 @@ export class RestaurantExecutor implements AgentExecutor {
   /**
    * Asks the backend for A2UI and validates it, retrying once with the validation error,
    * as the Python sample does. Answers with a text apology when every attempt fails.
+   *
+   * Demo: `firstQuery` replaces the first attempt's query (a retry the renderer asked for);
+   * a server-side retry still repeats `turn.query`, the user's own request.
    */
   private async generateUi(
     turn: TurnInput,
     catalogIds: string[],
     publish?: (parts: Part[]) => void,
+    firstQuery?: string,
   ): Promise<{parts: Part[]; published: boolean}> {
-    let query = turn.query;
+    let query = firstQuery ?? turn.query;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       console.log(`--- RestaurantExecutor: Attempt ${attempt + 1}/${MAX_ATTEMPTS} ---`);
       // Tracked per attempt: the final status must carry the parts of the attempt that

@@ -40,9 +40,9 @@ flowchart LR
   classDef done fill:#ffffff,stroke:#5f6368,color:#202124
   classDef next fill:#e8f0fe,stroke:#1a73e8,stroke-width:2px,color:#0b3d91
   classDef todo fill:none,stroke:#9aa0a6,stroke-dasharray:4 3,color:#5f6368
-  class P1,P2,P3,P4,P5 done
-  class P6 next
-  class P7,D,R,T todo
+  class P1,P2,P3,P4,P5,P6,P7 done
+  class D next
+  class R,T todo
 ```
 
 ### Decisions and what they replaced
@@ -240,6 +240,10 @@ or more of those stages.
 8. **Deliberately-broken-node beat** — script this, don't rely on the model
    misbehaving on cue. On a specific trigger, skip pre-send validation once
    on purpose so the client's rejection is guaranteed to fire live.
+   *Built 2026-11-12 differently:* `STUB_CLIENT_INVALID=true` skips no validation. It writes
+   `priority: "critical"` into the data model, which the agent's checks pass (they validate
+   components, and the badge binds `{path}`) and only the renderer, resolving the binding, rejects
+   (`demo/README.md`, step 6).
 9. **Receiving `VALIDATION_FAILED`** — confirmed real and precisely specified:
    `{"version": "v0.9", "error": {"code": "VALIDATION_FAILED", "surfaceId",
    "path", "message"}}`. **Same decision as item 5**: build the minimal
@@ -467,7 +471,9 @@ to re-prove it works.
    [`provideZonelessChangeDetection` API reference](https://angular.dev/api/core/provideZonelessChangeDetection) ·
    [Angular DevTools (for the profiler demo beat)](https://angular.dev/tools/devtools)
 8. **`VALIDATION_FAILED` reporting — confirm the automatic-vs-manual
-   question.** Unclear from docs read so far whether `@a2ui/web_core`
+   question.** *Answered 2026-11-12 from the installed code: manual.* `@a2ui/web_core` 0.14.0
+   throws `A2uiValidationError` from `processMessages` and sends nothing; app code catches it and
+   POSTs the error (`demo/README.md`, step 6). Unclear from docs read so far whether `@a2ui/web_core`
    automatically emits the client-to-server `error` message over the wired
    transport on a schema validation failure, or whether app code must catch a
    validation event and send it manually. Resolve this empirically alongside
@@ -595,9 +601,9 @@ flowchart LR
 - Keep it in its own file (`src/policy.ts`) with a unit test, so the deck can
   show it whole and the diff against the upstream sample stays small.
 
-One turn, with the policy hooks and the planned client-side validation (Direct JSON mode, `@a2ui/agent`
-0.0.2). `applyPolicy` is built (2026-11-06); the `VALIDATION_FAILED` path is not yet; the retry loop is
-(`generateUi` → `answer()` in `agent.ts`).
+One turn, with the policy hooks and the client-side validation (Direct JSON mode, `@a2ui/agent`
+0.0.2). `applyPolicy` is built (2026-11-06), the retry loop is (`generateUi` → `answer()` in
+`agent.ts`), and so is the `VALIDATION_FAILED` path (2026-11-12, `src/client-retry.ts`).
 
 ```mermaid
 sequenceDiagram
@@ -629,9 +635,10 @@ sequenceDiagram
   opt both attempts fail
     E-->>S: text-only fallback
   end
-  opt renderer rejects a message (client step 8, planned)
-    B->>S: VALIDATION_FAILED
-    S->>E: forwarded as a new turn
+  opt renderer rejects part of the reply (client step 8, built 2026-11-12)
+    B->>S: POST /a2a { error: VALIDATION_FAILED }
+    S->>E: data part { version: 'v0.9', error }, a new turn
+    E->>E: retryQuery(error) once per turn, else text fallback
   end
 ```
 
@@ -703,9 +710,15 @@ the renderer, `VALIDATION_FAILED` back to the agent, client step 8).
       `A2UI_RENDERER_CONFIG`/`BasicCatalog`, or are these describing different
       package versions? Needs the empirical check before designing the real
       custom catalog components.
-- [ ] **Resolve whether `@a2ui/web_core` auto-reports `VALIDATION_FAILED`**
+- [x] ~~**Resolve whether `@a2ui/web_core` auto-reports `VALIDATION_FAILED`**
       or whether app code must catch and send it manually (client build order
-      step 8).
+      step 8).~~ **2026-11-12: manual.** In 0.14.0, `processMessages` validates an
+      `updateComponents` before applying it and throws `A2uiValidationError`
+      (nothing applied); `@a2ui/angular` 0.13.0 passes it through. `VALIDATION_FAILED`
+      exists only in the generated schema (`v0_9/schema/client-to-server.js`); the
+      processor's one outbound channel, `outboundListener`, carries function calls.
+      Values a binding resolves to are not checked at all. The demo catches, reports
+      and checks bound values itself (`demo/README.md`, step 6).
 - [ ] **By 13 Nov 2026: re-check the Angular sample's A2A client.** The
       demo's `server.ts` uses `A2AClient.fromCardUrl`, deprecated in
       `@a2a-js/sdk` 0.3.x in favour of `ClientFactory`, because the official
@@ -929,3 +942,12 @@ the Angular client.
   `STUB_LEAKY=true` leaks the notes in small chunks. Found: the plan's path pattern missed the
   detail view's `/ticket` (added), and a stateless filter cannot hide a child id streamed before
   its component (incident 5). Phase 5 frame in `demo/FLOW.md`; roadmap `next` moved to P6.
+- **2026-11-12** — Phase 6 done (stub mode): the renderer reports `VALIDATION_FAILED` and the
+  agent redoes the turn once. web_core does not auto-report (open item resolved: manual).
+  `AgentClient` applies messages one at a time, replaces a component web_core rejects with a
+  placeholder `Text`, and POSTs `{ error }`; `PriorityBadge` checks its bound value against the
+  catalog's Zod; `server.ts` forwards a data part `{ version, error }`; the executor retries with
+  `retryQuery(error)`, one client-triggered retry per turn, then text. Trigger: `STUB_CLIENT_INVALID`
+  (a data-model value only the renderer can check), instead of the planned skip of the agent's
+  validation. Found: re-created surfaces kept their old drawing (incident 6, fixed in `app.ts`).
+  Roadmap: P6 and P7 (transport swap, 2026-11-10) done, `next` moved to the deck.

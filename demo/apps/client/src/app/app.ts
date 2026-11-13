@@ -16,16 +16,24 @@ import { AgentClient } from './agent-client';
       <p class="working" role="status" aria-live="polite">Agent is working…</p>
     }
 
+    <!-- Demo: the agent's text-only answer (the fallback after a second VALIDATION_FAILED). -->
+    @if (agent.agentText(); as text) {
+      <p class="agent-text" role="status">{{ text }}</p>
+    }
+
     @if (agent.error(); as error) {
       <p class="error">{{ error }}</p>
     }
 
-    @for (entry of renderer.surfaceGroup.surfacesMap; track entry[0]) {
+    <!-- Demo: tracked by the SurfaceModel, not its id: a surface deleted and re-created under the
+         same id (a corrected reply) must get a new element, or the old components stay drawn. -->
+    @for (entry of renderer.surfaceGroup.surfacesMap; track entry[1]) {
       <a2ui-v09-surface [surfaceId]="entry[0]" />
     }
   `,
   // Demo: a quiet pulse while the agent works, so a long live turn doesn't read as broken.
   styles: `
+    .agent-text { border-left: 3px solid #1a73e8; padding: 4px 10px; }
     .working { color: #5f6368; animation: pulse 1.2s ease-in-out infinite; }
     @keyframes pulse { 50% { opacity: 0.35; } }
     @media (prefers-reduced-motion: reduce) { .working { animation: none; } }
