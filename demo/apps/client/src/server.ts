@@ -51,6 +51,11 @@ function getAgent(): Promise<A2AClient> {
       headers.set('X-A2A-Extensions', A2UI_EXTENSION);
       return fetch(url, { ...init, headers });
     },
+  }).catch((error: unknown) => {
+    // Don't keep a failed lookup: if the agent wasn't up yet, the next request tries again
+    // instead of failing until this server restarts.
+    agent = undefined;
+    throw error;
   });
   return agent;
 }
