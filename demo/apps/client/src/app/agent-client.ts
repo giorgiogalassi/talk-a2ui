@@ -17,10 +17,12 @@ export class AgentClient {
   readonly isLoading = signal(false);
   /**
    * Demo: true from the request until the first A2UI message arrives. A live turn can take
-   * 10+ s before anything streams (README, "Latency"), and the old UI is already cleared.
+   * 10+ s before anything streams (README, "Latency"); the old UI stays, dimmed, meanwhile.
    */
   readonly waitingForUi = signal(false);
   readonly error = signal<string | null>(null);
+  /** The old surfaces are still on screen and go when the reply's first A2UI message arrives. */
+  private clearOnFirstMessage = false;
 
   /** A new prompt replaces whatever the agent rendered before. */
   ask(query: string): Promise<void> {
@@ -34,11 +36,11 @@ export class AgentClient {
 
   private async send(body: { query?: string; event?: unknown }): Promise<void> {
     // Every reply carries its whole UI, createSurface included (@a2ui/agent 0.0.2 checks each
-    // reply against a fresh state), so any interaction clears the old surfaces first, as the
-    // official Angular sample does.
-    for (const surfaceId of Array.from(this.renderer.surfaceGroup.surfacesMap.keys())) {
-      this.renderer.surfaceGroup.deleteSurface(surfaceId);
-    }
+    // reply against a fresh state), so the old surfaces must go. The official Angular sample
+    // clears them here, before the request; demo: they stay until the reply's first message
+    // and are swapped in one go, so a fast (stub) reply doesn't flash an empty screen and a
+    // slow (live) one keeps the old view, dimmed, instead of a blank page.
+    this.clearOnFirstMessage = true;
     this.isLoading.set(true);
     this.waitingForUi.set(true);
     this.error.set(null);
@@ -67,6 +69,8 @@ export class AgentClient {
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : String(error));
     } finally {
+      // A reply without any A2UI (an error, a text-only answer) leaves the old view in place.
+      this.clearOnFirstMessage = false;
       this.isLoading.set(false);
       this.waitingForUi.set(false);
     }
@@ -77,6 +81,12 @@ export class AgentClient {
     if (event.sessionId) this.sessionId = event.sessionId;
 
     const messages = event.messages ?? [];
+    if (messages.length > 0 && this.clearOnFirstMessage) {
+      this.clearOnFirstMessage = false;
+      for (const surfaceId of Array.from(this.renderer.surfaceGroup.surfacesMap.keys())) {
+        this.renderer.surfaceGroup.deleteSurface(surfaceId);
+      }
+    }
     // A retried reply starts over with its own createSurface, while the failed attempt may have
     // created that surface already when streaming. The newer createSurface replaces it.
     for (const message of messages) {

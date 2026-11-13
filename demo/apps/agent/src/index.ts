@@ -24,6 +24,7 @@ import {agentCardHandler, jsonRpcHandler, UserBuilder} from '@a2a-js/sdk/server/
 import express from 'express';
 
 import {RestaurantExecutor} from './agent.js';
+import {DemoFlagStore, flagsFromEnv, SwitchableBackend} from './demo-flags.js';
 import {loadBasicCatalogs, loadTicketCatalogs} from './catalogs.js';
 import {resolveLlmMode, resolveModelName, resolveSampleConfig} from './config.js';
 import {GeminiBackend, type ModelBackend, StubBackend} from './model.js';
@@ -77,23 +78,24 @@ export async function createApp(options: {env?: NodeJS.ProcessEnv; port?: number
   // Demo: the ticket catalog from packages/catalog.
   const ticketCatalogs = loadTicketCatalogs();
 
-  const backend: ModelBackend =
-    mode === 'stub'
-      ? // Demo: STUB_INVALID_FIRST=true makes each turn's first attempt fail validation;
-        // STUB_LEAKY=true serves internal notes for the policy to strip.
-        new StubBackend(
-          format,
-          ticketCatalogs,
-          undefined,
-          env.STUB_INVALID_FIRST === 'true',
-          env.STUB_LEAKY === 'true',
-        )
-      : new GeminiBackend({
+  // Demo: the stage switches (src/demo-flags.ts) start from the env and can change at runtime
+  // through /demo/flags. STUB_INVALID_FIRST=true makes each turn's first attempt fail
+  // validation; STUB_LEAKY=true serves internal notes for the policy to strip.
+  const liveAvailable = Boolean(env.GEMINI_API_KEY?.trim());
+  const flags = new DemoFlagStore(flagsFromEnv(env, mode === 'stub'), liveAvailable, resolveModelName(env));
+  const backend: ModelBackend = new SwitchableBackend(
+    flags,
+    (invalidFirst, leaky) => new StubBackend(format, ticketCatalogs, undefined, invalidFirst, leaky),
+    liveAvailable
+      ? new GeminiBackend({
           apiKey: env.GEMINI_API_KEY!,
           modelName: resolveModelName(env),
           baseUrl: `http://localhost:${port}`,
           pythonSampleDir: pythonDir,
-        });
+          thinkingLevel: () => flags.get().thinkingLevel,
+        })
+      : undefined,
+  );
   const agentCard = buildAgentCard(port, mode === 'stub');
   const requestHandler = new DefaultRequestHandler(
     agentCard,
@@ -125,6 +127,27 @@ export async function createApp(options: {env?: NodeJS.ProcessEnv; port?: number
   app.use('/static', express.static(path.join(pythonDir, 'images')));
 
   app.use(express.json());
+
+  // Demo: the stage switches. Reading is open; changing them only from this machine, so no one
+  // on the venue's network can flip the demo mid-talk (the agent listens on 0.0.0.0).
+  app.get('/demo/flags', (_req, res) => {
+    res.json(flags.get());
+  });
+  app.put('/demo/flags', (req, res) => {
+    const remote = req.socket.remoteAddress ?? '';
+    if (!['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(remote)) {
+      res.status(403).json({error: 'Demo flags can only be changed from this machine.'});
+      return;
+    }
+    try {
+      const state = flags.update(req.body);
+      console.log(`--- demo flags: ${JSON.stringify(state)} ---`);
+      res.json(state);
+    } catch (e) {
+      res.status(400).json({error: e instanceof Error ? e.message : String(e)});
+    }
+  });
+
   app.use(
     '/.well-known/agent-card.json',
     agentCardHandler({agentCardProvider: async () => agentCard}),

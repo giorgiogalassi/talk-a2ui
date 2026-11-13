@@ -48,8 +48,14 @@ function isInvalidA2ui(e: unknown): boolean {
 
 /** Demo: a Gemini error message is a JSON blob; keep its code and message for the log. */
 function shortError(message: string): string {
-  const code = message.match(/"code":\s*(\d+)/)?.[1];
-  const text = message.match(/"message":\s*"([^"]+)"/)?.[1];
+  // Gemini's error can arrive nested and escaped (the SDK wraps the HTTP body, whose own
+  // "message" is JSON again), so take the innermost "message" that isn't itself JSON, and
+  // only its first sentence: e.g. `429 You exceeded your current quota`.
+  const code = message.match(/\\*"code\\*":\s*(\d+)/)?.[1];
+  const texts = [...message.matchAll(/\\*"message\\*":\s*\\*"((?:[^"\\]|\\[^"])*)/g)]
+    .map(m => m[1].replace(/\\+n/g, ' ').trim())
+    .filter(t => t && !t.startsWith('{'));
+  const text = texts.at(-1)?.split(/(?<=\.)\s/)[0].replace(/\.$/, '');
   return code || text ? `${code ?? ''} ${text ?? ''}`.trim() : message;
 }
 

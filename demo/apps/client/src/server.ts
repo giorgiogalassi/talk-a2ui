@@ -118,6 +118,35 @@ app.post('/a2a', express.json(), async (req, res) => {
 });
 
 /**
+ * Demo: the agent's stage switches (agent: src/demo-flags.ts), for the demo panel (Alt+Shift+D).
+ * Passed through as they are; changes only from this machine, like on the agent.
+ */
+app.get('/demo/flags', async (_req, res) => {
+  await forwardFlags(res, 'GET');
+});
+app.put('/demo/flags', express.json(), async (req, res) => {
+  const remote = req.socket.remoteAddress ?? '';
+  if (!['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(remote)) {
+    res.status(403).json({ error: 'Demo flags can only be changed from this machine.' });
+    return;
+  }
+  await forwardFlags(res, 'PUT', req.body);
+});
+
+async function forwardFlags(res: express.Response, method: 'GET' | 'PUT', body?: unknown) {
+  try {
+    const response = await fetch(`${AGENT_URL}/demo/flags`, {
+      method,
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    res.status(response.status).json(await response.json());
+  } catch (error) {
+    res.status(502).json({ error: `Agent unreachable: ${error instanceof Error ? error.message : String(error)}` });
+  }
+}
+
+/**
  * Serve static files from /browser
  */
 app.use(

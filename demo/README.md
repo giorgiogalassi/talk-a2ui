@@ -261,3 +261,12 @@ npm test -w client -- --watch=false                        # client tests
 Live mode needs `apps/agent/.env` (gitignored) with `GEMINI_API_KEY=...`; copy `apps/agent/.env.example`.
 Optional there: `GEMINI_THINKING_LEVEL` (`MINIMAL` default, `LOW`, `MEDIUM`, `HIGH`, `DEFAULT`), `MODEL_NAME`.
 On stage, keep stub mode ready: a live turn depends on Gemini's load (503s seen on 2026-11-06).
+
+**Demo controls (no restart).** In the browser, **Alt+Shift+D** (⌥⇧D) opens a presenter panel:
+Live / Stub, *First attempt invalid* (`STUB_INVALID_FIRST`), *Leaky replies* (`STUB_LEAKY`) and the
+thinking level (`GEMINI_THINKING_LEVEL`). The env variables above only set where the agent starts;
+a change applies from the next prompt or click. Live needs `GEMINI_API_KEY` in `apps/agent/.env`
+(`start:stub` reads it too, so you can start in stub and switch to live). Behind it: `GET/PUT
+/demo/flags` on the agent (`src/demo-flags.ts`), forwarded by the client's `server.ts`; a change
+is accepted only from this machine (the agent listens on `0.0.0.0`). `A2UI_FORMAT` and
+`MODEL_NAME` still need a restart.
