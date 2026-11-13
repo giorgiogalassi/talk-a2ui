@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A2UI Demo Data Flow</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a map table. Graph canvas fills the left, a reading rail on the right holds walks and the selected node; stacks on phones. */
+:root {
+  --bg: #f3f4f1; --surface: #ffffff; --ink: #1d2321; --muted: #5d6763; --line: #d9ddd8;
+  --accent: #1f6f78; --accent-soft: #d7ebec; --dim: 0.12;
+  --g1: #1f6f78; --g2: #b4532a; --g3: #6a4fa3; --g4: #3f7d3a; --g5: #a8761a; --g6: #b23a62; --g7: #4b6584; --g8: #7a7f2a;
+  --font-body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121615; --surface: #1a1f1e; --ink: #e6ebe8; --muted: #9aa5a0; --line: #2c3432;
+  --accent: #5fb7bf; --accent-soft: #1d3a3d; --dim: 0.14;
+  --g1: #5fb7bf; --g2: #e08a60; --g3: #a993dd; --g4: #7fbf73; --g5: #d9ad55; --g6: #e47b9f; --g7: #8fa7c7; --g8: #b8bd5c;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121615; --surface: #1a1f1e; --ink: #e6ebe8; --muted: #9aa5a0; --line: #2c3432;
+  --accent: #5fb7bf; --accent-soft: #1d3a3d; --dim: 0.14;
+  --g1: #5fb7bf; --g2: #e08a60; --g3: #a993dd; --g4: #7fbf73; --g5: #d9ad55; --g6: #e47b9f; --g7: #8fa7c7; --g8: #b8bd5c;
+  color-scheme: dark }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { display: flex; flex-direction: column; height: 100%; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px; gap: 12px; box-sizing: border-box; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; }
+h1 { font-size: 20px; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h1 small { font-family: var(--font-mono); font-size: 11px; font-weight: 400; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-left: 8px; }
+.tabs { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 3px; }
+.tabs button { font: 500 13px var(--font-body); color: var(--muted); background: none; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--accent-soft); color: var(--ink); }
+.tabs button:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 12px; }
+.stage { position: relative; min-width: 0; min-height: 420px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+#cy { position: absolute; inset: 0; }
+.toolbar { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; flex-wrap: wrap; gap: 6px; z-index: 2; pointer-events: none; }
+.toolbar > * { pointer-events: auto; }
+.toolbar input { font: 13px var(--font-body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 9px; width: 180px; }
+.chip { font: 500 11px var(--font-mono); letter-spacing: 0.02em; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 4px 9px 4px 7px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.chip i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.chip[aria-pressed="false"] { opacity: 0.45; }
+.chip[aria-pressed="false"] i { background: transparent !important; outline: 1px solid var(--muted); }
+.fit { position: absolute; right: 10px; bottom: 10px; z-index: 2; }
+aside { min-width: 0; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+section.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.eyebrow { font: 500 11px var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0; }
+.summary { margin: 0; color: var(--ink); font-size: 14px; }
+.walks { display: flex; flex-direction: column; gap: 6px; }
+.walk { text-align: left; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; cursor: pointer; }
+.walk b { display: block; font-size: 14px; font-weight: 600; }
+.walk span { display: block; font-size: 12.5px; color: var(--muted); }
+.walk[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+ol.steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 3px; font-size: 13.5px; }
+ol.steps li { cursor: pointer; }
+ol.steps li.on { color: var(--accent); font-weight: 600; }
+.stepnav { display: flex; gap: 6px; }
+.btn { font: 500 12.5px var(--font-body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+.node-title { font-size: 17px; font-weight: 600; margin: 0; text-wrap: balance; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill { font: 500 11px var(--font-mono); border-radius: 999px; padding: 2px 8px; border: 1px solid var(--line); color: var(--muted); }
+.pill.status-proposed, .pill.status-pending, .pill.status-planned, .pill.status-open { border-style: dashed; color: var(--ink); }
+.detail { margin: 0; font-size: 14px; }
+.payload { margin: 0; padding: 8px 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; font: 11.5px/1.45 var(--font-mono); white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto; }
+.payload[hidden] { display: none; }
+.src { font: 12px var(--font-mono); color: var(--muted); word-break: break-all; margin: 0; }
+.src a { color: var(--accent); }
+ul.links { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+ul.links li { cursor: pointer; }
+ul.links li em { font-style: normal; font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); }
+.hint { color: var(--muted); font-size: 13px; margin: 0; }
+.legend-note { font-size: 12px; color: var(--muted); margin: 0; }
+@media (max-width: 860px) {
+  main { grid-template-columns: 1fr; grid-template-rows: 62vh auto; }
+  html, body { height: auto; }
+  .wrap { height: auto; }
+  aside { overflow: visible; }
+  .toolbar input { width: 140px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>A2UI demo: data flow <small>talk-a2ui · A2UI v0.9</small></h1>
+    <div class="tabs" role="tablist" id="tabs"></div>
+  </header>
+  <main>
+    <div class="stage">
+      <div class="toolbar">
+        <input id="search" type="search" placeholder="Find a node…" aria-label="Find a node">
+        <div id="legend" style="display:contents"></div>
+      </div>
+      <div id="cy" role="img" aria-label="Interactive knowledge graph"></div>
+      <button class="btn fit" id="fit" type="button">Fit</button>
+    </div>
+    <aside>
+      <section class="card">
+        <p class="eyebrow" id="g-eyebrow">Map</p>
+        <p class="summary" id="summary"></p>
+        <p class="legend-note">Columns are where the code runs; top to bottom is the order things happen. Tap a node for its file and the exact payload, or open a walk for one complete path.</p>
+      </section>
+      <section class="card">
+        <p class="eyebrow">Guided walks</p>
+        <div class="walks" id="walks"></div>
+        <div id="walkview" hidden>
+          <ol class="steps" id="steps"></ol>
+          <div class="stepnav"><button class="btn" id="prev" type="button">Previous</button><button class="btn" id="next" type="button">Next</button><button class="btn" id="clearwalk" type="button">Clear</button></div>
+        </div>
+      </section>
+      <section class="card" id="nodecard">
+        <p class="eyebrow">Selected</p>
+        <p class="hint" id="nodehint">Tap a node to read it and see its connections.</p>
+        <div id="nodeview" hidden style="display:flex;flex-direction:column;gap:8px">
+          <h2 class="node-title" id="n-title"></h2>
+          <div class="meta" id="n-meta"></div>
+          <p class="detail" id="n-detail"></p>
+          <pre class="payload" id="n-payload" hidden></pre>
+          <p class="src" id="n-src"></p>
+          <p class="eyebrow">Connections</p>
+          <ul class="links" id="n-links"></ul>
+        </div>
+      </section>
+    </aside>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+<script>
+// Built by build.py from graph.json: edit graph.json, then run `python3 build.py`.
+const GRAPHS = [{"key": "e2e", "tab": "End to end", "layout": "stages", "title": "One turn, end to end", "summary": "Three processes: the Angular app in the browser, its SSR server (Express, :4200 in dev, :4000 built) and the agent (:10002). The browser speaks plain JSON and SSE to its own server; only the server speaks A2A to the agent; only the agent talks to the model. Read the columns left to right, the numbered steps top to bottom. Open a walk on the right for one complete path.", "groups": [{"id": "browser", "label": "Browser (Angular app)"}, {"id": "server", "label": "SSR server :4200 / :4000"}, {"id": "agent", "label": "Agent :10002"}, {"id": "llm", "label": "Gemini or stub"}], "nodes": [{"id": "e-user", "label": "1 Prompt or click", "group": "browser", "order": 1, "detail": "The user asks, or clicks a button on a surface. A click is turned into an A2uiClientAction locally; nothing executes.", "source": "demo/apps/client/src/app/app.ts · demo/apps/client/src/app/agent-client.ts", "status": "done"}, {"id": "e-post", "label": "2 POST /a2a", "group": "browser", "order": 2, "detail": "Same-origin JSON: { query | event | error, sessionId }. The browser never talks to the agent and holds no A2A types or keys.", "source": "demo/apps/client/src/app/agent-client.ts", "status": "done", "payload": "{ \"query\": \"Show me the open tickets\", \"sessionId\": \"<from the last reply>\" }"}, {"id": "e-a2a-out", "label": "3 A2A message/stream", "group": "server", "order": 3, "detail": "The server wraps the request in one A2A message (text part, or data part { version, action | error }), sets contextId = sessionId and metadata.a2uiClientCapabilities with the ticket catalog id, and calls the agent over JSON-RPC.", "source": "demo/apps/client/src/server.ts", "status": "done"}, {"id": "e-negotiate", "label": "4 Negotiate + read", "group": "agent", "order": 4, "detail": "pickA2ui picks v0.9 and the ticket catalog from the metadata; readInboundMessage gets text, action or client error; the system prompt is built from that catalog's toJson() and examples.", "source": "demo/apps/agent/src/agent.ts", "status": "done"}, {"id": "e-query", "label": "5 Build the query", "group": "agent", "order": 5, "detail": "Text as is; open_ticket prefetches the ticket; a VALIDATION_FAILED redoes the last turn with the error first (once).", "source": "demo/apps/agent/src/user-query.ts · demo/apps/agent/src/client-retry.ts", "status": "done"}, {"id": "e-model", "label": "6 Model writes A2UI", "group": "llm", "order": 6, "detail": "Live: Gemini call 1 asks for get_tickets, the agent runs it (assets/tickets.json, internal_notes included), call 2 streams A2UI v0.9 JSON in <a2ui-json> blocks. Stub: a canned reply in chunks.", "source": "demo/apps/agent/src/model.ts · demo/apps/agent/src/tools.ts", "status": "done"}, {"id": "e-validate", "label": "7 Validate as it streams", "group": "agent", "order": 7, "detail": "Each growing message is checked against the catalog's Zod in a fresh renderer state before it may leave; partial messages wait. A rejected message → retry once with the error, then a text apology.", "source": "@a2ui/agent · demo/apps/agent/src/agent.ts", "status": "done"}, {"id": "e-police", "label": "8 Policy on every message", "group": "agent", "order": 8, "detail": "enforcePolicy strips internal_notes and removes Delete (and anything bound to the notes) from every batch, each re-send included, before publishing.", "source": "demo/apps/agent/src/policy.ts", "status": "done"}, {"id": "e-events", "label": "9 A2A status updates", "group": "agent", "order": 9, "detail": "working → working + data parts (one A2UI message each, application/a2ui+json) → final input-required (or completed). Text parts carry the fallback.", "source": "demo/apps/agent/src/a2a.ts", "status": "done"}, {"id": "e-unwrap", "label": "10 Unwrap to SSE", "group": "server", "order": 10, "detail": "Takes the A2UI messages out of the A2A parts and writes data: { messages, text?, sessionId } per event. No A2A reaches the browser.", "source": "demo/apps/client/src/server.ts", "status": "done", "payload": "data: {\"messages\":[…],\"sessionId\":\"<contextId>\"}"}, {"id": "e-render", "label": "11 Render", "group": "browser", "order": 11, "detail": "handleEvent stores the sessionId, applies each message: createSurface → updateComponents (validated again, same Zod objects) → updateDataModel; bindings resolve; the Angular catalog components draw the tickets.", "source": "demo/apps/client/src/app/agent-client.ts · demo/apps/client/src/app/catalog/", "status": "done"}, {"id": "e-check", "label": "12 Renderer checks values", "group": "browser", "order": 12, "detail": "Phase 6: what web_core can't see, a bound value outside the schema (priority \"critical\" in the data model), PriorityBadge catches after resolving it; rejected components become placeholders.", "source": "demo/apps/client/src/app/catalog/priority-badge.ts", "status": "done"}, {"id": "e-report", "label": "13 VALIDATION_FAILED back", "group": "browser", "order": 13, "detail": "After the reply has rendered, at most 2 reports per user turn go back through the same POST /a2a as { error }. The agent redoes the turn once; a second report gets the text fallback.", "source": "demo/apps/client/src/app/agent-client.ts", "status": "done"}, {"id": "e-session", "label": "sessionId = contextId", "group": "server", "order": 4, "detail": "The one place the two names meet: the browser keeps an opaque sessionId, the server passes it as A2A contextId, the agent keys its Gemini chat and its client-retry memory by it.", "source": "demo/apps/client/src/server.ts", "status": "done"}], "edges": [{"from": "e-user", "to": "e-post", "label": "ask / handleAction"}, {"from": "e-post", "to": "e-a2a-out", "label": "HTTP POST"}, {"from": "e-a2a-out", "to": "e-negotiate", "label": "A2A JSON-RPC"}, {"from": "e-negotiate", "to": "e-query", "label": "inbound"}, {"from": "e-query", "to": "e-model", "label": "query + system prompt"}, {"from": "e-model", "to": "e-validate", "label": "text chunks"}, {"from": "e-validate", "to": "e-model", "label": "retry with the error"}, {"from": "e-validate", "to": "e-police", "label": "accepted messages"}, {"from": "e-police", "to": "e-events", "label": "A2A parts"}, {"from": "e-events", "to": "e-unwrap", "label": "A2A SSE"}, {"from": "e-unwrap", "to": "e-render", "label": "SSE"}, {"from": "e-render", "to": "e-check", "label": "resolved bindings"}, {"from": "e-check", "to": "e-report", "label": "issues"}, {"from": "e-report", "to": "e-post", "label": "{ error }"}, {"from": "e-render", "to": "e-user", "label": "Button click"}, {"from": "e-a2a-out", "to": "e-session", "label": "contextId"}, {"from": "e-session", "to": "e-query", "label": "chat + retry memory"}], "paths": [{"id": "ee-turn", "label": "\"Show me the open tickets\"", "note": "One turn across the three processes.", "nodes": ["e-user", "e-post", "e-a2a-out", "e-negotiate", "e-query", "e-model", "e-validate", "e-police", "e-events", "e-unwrap", "e-render"]}, {"id": "ee-open", "label": "Click Open on a row", "note": "The action round trip; the ticket is prefetched.", "nodes": ["e-render", "e-user", "e-post", "e-a2a-out", "e-negotiate", "e-query", "e-model", "e-validate", "e-police", "e-events", "e-unwrap", "e-render"]}, {"id": "ee-agentretry", "label": "The agent rejects its own reply", "note": "Fixed before anything leaves the agent.", "nodes": ["e-model", "e-validate", "e-model", "e-validate", "e-police", "e-events"]}, {"id": "ee-client", "label": "The renderer rejects a value (stages 5–6)", "note": "VALIDATION_FAILED goes back, the agent redoes the turn.", "nodes": ["e-render", "e-check", "e-report", "e-post", "e-a2a-out", "e-negotiate", "e-query", "e-model", "e-validate", "e-police", "e-events", "e-unwrap", "e-render"]}]}, {"key": "frontend", "tab": "Frontend", "layout": "stages", "title": "In the browser", "summary": "What happens inside the Angular app: AgentClient sends and reads, the @a2ui/angular renderer (web_core underneath) applies A2UI messages to surfaces and validates components, the catalog components draw them and, in phase 6, check the values their bindings resolve to. Nothing the agent sends is executed.", "groups": [{"id": "ui", "label": "App shell (app.ts)"}, {"id": "client", "label": "AgentClient"}, {"id": "renderer", "label": "Renderer (@a2ui/angular + web_core)"}, {"id": "catalog", "label": "Catalog components"}, {"id": "issues", "label": "ValidationIssues"}], "nodes": [{"id": "f-prompt", "label": "Prompt form", "group": "ui", "order": 1, "detail": "The user types a request (default \"Show me the open tickets\") and submits. app.ts calls AgentClient.ask(prompt). The input and button are disabled while isLoading() is true.", "source": "demo/apps/client/src/app/app.ts", "status": "done"}, {"id": "f-status", "label": "Status lines", "group": "ui", "order": 2, "detail": "Three signals from AgentClient drive what the user sees besides the UI: waitingForUi() shows \"Agent is working…\", agentText() shows the agent's text-only answer (the fallback), error() shows a failed request.", "source": "demo/apps/client/src/app/app.ts", "status": "done"}, {"id": "f-surfaces", "label": "Surface list", "group": "ui", "order": 3, "detail": "app.ts loops over renderer.surfaceGroup.surfacesMap and draws one <a2ui-v09-surface [surfaceId]> per surface. Tracked by the SurfaceModel object, not its id, so a surface deleted and re-created under the same id is drawn afresh (incident 6).", "source": "demo/apps/client/src/app/app.ts", "status": "done", "payload": "@for (entry of renderer.surfaceGroup.surfacesMap; track entry[1]) {\n  <a2ui-v09-surface [surfaceId]=\"entry[0]\" />\n}"}, {"id": "f-ask", "label": "ask(query) / handleAction(event)", "group": "client", "order": 1, "detail": "The two ways a turn starts: a prompt, or a button action (the renderer calls handleAction through the actionHandler in app.config.ts). Both reset the report counter and call send().", "source": "demo/apps/client/src/app/agent-client.ts", "status": "done"}, {"id": "f-send-prep", "label": "send(): clear, reset", "group": "client", "order": 2, "detail": "Before the request: deletes every surface (each reply carries its whole UI, createSurface included), clears ValidationIssues, sets isLoading and waitingForUi, clears error and agentText. Exception: an error report keeps the old surfaces on screen until the corrected reply's first messages arrive.", "source": "demo/apps/client/src/app/agent-client.ts", "status": "done"}, {"id": "f-post", "label": "POST /a2a", "group": "client", "order": 3, "detail": "One fetch to the app's own server, same origin. The body carries exactly one of query, event or error, plus the session id from the previous reply (absent on the first turn).", "source": "demo/apps/client/src/app/agent-client.ts", "status": "done", "payload": "POST /a2a  Content-Type: application/json\n{ \"query\": \"Show me the open tickets\", \"sessionId\": \"…\" }\n{ \"event\": { \"name\": \"open_ticket\", \"surfaceId\": \"tickets\",\n             \"sourceComponentId\": \"open_button\", \"timestamp\": \"…\",\n             \"context\": { \"ticketId\": \"TCK-1042\" } }, \"sessionId\": \"…\" }\n{ \"error\": { \"code\": \"VALIDATION_FAILED\", \"surfaceId\": \"tickets\",\n             \"path\": \"/tickets/0/priority\", \"message\": \"…\" }, \"sessionId\": \"…\" }"}, {"id": "f-sse", "label": "Read the SSE stream", "group": "client", "order": 4, "detail": "The response body is read as text, split on blank lines; each \"data: \" line is parsed as JSON and passed to handleEvent. A non-200 response throws its { error } into the error signal.", "source": "demo/apps/client/src/app/agent-client.ts", "status": "done", "payload": "data: {\"messages\":[…A2UI v0.9 messages…],\"text\":\"…\",\"sessionId\":\"<contextId>\"}\n\ndata: {\"error\":\"…\"}   (only if the stream fails after it started)"}, {"id": "f-handle", "label": "handleEvent()", "group": "client", "order": 5, "detail": "Per event: an error field throws; sessionId is stored for the next request; text goes to agentText; for each createSurface whose id already exists, that surface is deleted first (a retried reply starts over); then each message goes to process() one at a time, and waitingForUi turns off.", "source": "demo/apps/client/src/app/agent-client.ts", "status": "done"}, {"id": "f-process", "label": "process(message)", "group": "client", "order": 6, "detail": "Everything except updateComponents goes straight to the renderer. An updateComponents is tried whole; if web_core throws A2uiValidationError, each component is applied on its own and every rejected one is replaced by a placeholder Text with the same id (\"⚠ This part of the answer could not be shown.\"), and filed in ValidationIssues with path /components/<index>/<prop>.", "source": "demo/apps/client/src/app/agent-client.ts", "status": "done"}, {"id": "f-report", "label": "reportIssues()", "group": "client", "order": 7, "detail": "After the stream ends: waits for appRef.whenStable() (components have resolved their bindings), takes the first open issue, and if fewer than 2 reports were sent since the user's last prompt or action, calls send({ error }) with a v0.9 VALIDATION_FAILED. The message counts any other issues (\"and N more like it\").", "source": "demo/apps/client/src/app/agent-client.ts", "status": "done", "payload": "{ \"code\": \"VALIDATION_FAILED\", \"surfaceId\": \"tickets\",\n  \"path\": \"/tickets/0/priority\",\n  \"message\": \"PriorityBadge (ticket_priority): priority resolved to \\\"critical\\\" from /tickets/0/priority, which the PriorityBadge schema does not allow (…)\" }"}, {"id": "f-service", "label": "A2uiRendererService.processMessages", "group": "renderer", "order": 1, "detail": "The library's entry point. Applies A2UI v0.9 messages to its SurfaceGroup. Registered in app.config.ts with provideA2Ui({ catalogs: [ticket catalog, BasicCatalog], actionHandler }).", "source": "demo/apps/client/src/app/app.config.ts", "status": "done"}, {"id": "f-create", "label": "createSurface", "group": "renderer", "order": 2, "detail": "Creates a SurfaceModel for surfaceId, bound to the catalog named by catalogId (the ticket catalog). Throws if the id already exists, which is why AgentClient deletes it first.", "source": "@a2ui/web_core v0.9", "status": "done", "payload": "{ \"version\": \"v0.9\", \"createSurface\": { \"surfaceId\": \"tickets\",\n  \"catalogId\": \"https://github.com/giorgiogalassi/talk-a2ui/demo/catalogs/tickets/v0_9/catalog.json\" } }"}, {"id": "f-components", "label": "updateComponents → validate", "group": "renderer", "order": 3, "detail": "Validates every component against the surface catalog's Zod schema (the same ComponentApi objects the agent uses, from packages/catalog). One invalid component rejects the whole message with A2uiValidationError; it never looks at the values bindings resolve to.", "source": "@a2ui/web_core v0.9", "status": "done", "payload": "{ \"version\": \"v0.9\", \"updateComponents\": { \"surfaceId\": \"tickets\", \"components\": [\n  { \"id\": \"root\", \"component\": \"TicketList\", \"title\": { \"path\": \"/title\" },\n    \"children\": { \"componentId\": \"ticket_row\", \"path\": \"/tickets\" } },\n  { \"id\": \"ticket_priority\", \"component\": \"PriorityBadge\", \"priority\": { \"path\": \"priority\" } }, … ] } }"}, {"id": "f-datamodel", "label": "updateDataModel → data model", "group": "renderer", "order": 4, "detail": "Writes value at path in the surface's local data model. Components re-read the paths they bind. Typing into an input also writes here, and sends nothing to the agent.", "source": "@a2ui/web_core v0.9", "status": "done", "payload": "{ \"version\": \"v0.9\", \"updateDataModel\": { \"surfaceId\": \"tickets\", \"path\": \"/\",\n  \"value\": { \"title\": \"Open tickets\", \"tickets\": [ { \"id\": \"TCK-1042\", \"priority\": \"urgent\", … } ] } } }"}, {"id": "f-bind", "label": "Bindings resolve", "group": "renderer", "order": 5, "detail": "A prop like { \"path\": \"priority\" } is read from the data model. Inside a template row the path is relative to the row (/tickets/0), so it resolves /tickets/0/priority. Each catalog component reads it through props().<name>.value().", "source": "@a2ui/angular v0.9", "status": "done"}, {"id": "f-action", "label": "Button click → action", "group": "renderer", "order": 6, "detail": "A Button's action.event.context paths are resolved against the data model at click time, and the renderer calls the actionHandler with an A2uiClientAction. Nothing runs locally: the action only goes back to the agent.", "source": "demo/apps/client/src/app/app.config.ts", "status": "done", "payload": "{ \"name\": \"open_ticket\", \"surfaceId\": \"tickets\", \"sourceComponentId\": \"open_button\",\n  \"timestamp\": \"2026-…Z\", \"context\": { \"ticketId\": \"TCK-1042\" } }"}, {"id": "f-ticketlist", "label": "TicketList", "group": "catalog", "order": 1, "detail": "Draws the title and one row per child; the children come from the template over /tickets, each row a component host with its own data context.", "source": "demo/apps/client/src/app/catalog/ticket-list.ts", "status": "done"}, {"id": "f-badge", "label": "PriorityBadge", "group": "catalog", "order": 2, "detail": "Typed from PriorityBadgeApi (priority: low | medium | high | urgent). After resolving a bound priority it checks the value with resolvedValueProblem(); a value outside the enum shows a dashed \"?\" and files an issue under surface#component@dataContextPath; a valid value withdraws it.", "source": "demo/apps/client/src/app/catalog/priority-badge.ts", "status": "done"}, {"id": "f-resolved", "label": "resolvedValueProblem()", "group": "catalog", "order": 3, "detail": "Phase 6: checks a resolved bound value against the catalog's own Zod for that prop (the value branch of the union only). Returns the absolute data-model path and a message, or null.", "source": "demo/apps/client/src/app/catalog/resolved-value.ts", "status": "done"}, {"id": "f-chip", "label": "AssigneeChip, basic components", "group": "catalog", "order": 4, "detail": "AssigneeChip draws initials + name (\"Unassigned\" when empty). Text, Row, Column, Card, Divider and Button are the library's own Angular components, limited to the ones the ticket catalog lists.", "source": "demo/apps/client/src/app/catalog/ticket-catalog.ts", "status": "done"}, {"id": "f-issues", "label": "ValidationIssues", "group": "issues", "order": 1, "detail": "A map of open problems for the current reply, keyed by whoever found them (AgentClient for a rejected component, PriorityBadge for a bad bound value). Cleared at every send(); read by reportIssues().", "source": "demo/apps/client/src/app/validation-issues.ts", "status": "done", "payload": "{ surfaceId: string, path: string /* JSON pointer */, message: string }"}], "edges": [{"from": "f-prompt", "to": "f-ask", "label": "ask(prompt)"}, {"from": "f-ask", "to": "f-send-prep", "label": "send({query} | {event})"}, {"from": "f-send-prep", "to": "f-issues", "label": "clear()"}, {"from": "f-send-prep", "to": "f-post", "label": "fetch"}, {"from": "f-post", "to": "f-sse", "label": "SSE response"}, {"from": "f-sse", "to": "f-handle", "label": "each data: line"}, {"from": "f-handle", "to": "f-status", "label": "agentText / waitingForUi / error"}, {"from": "f-handle", "to": "f-process", "label": "one message at a time"}, {"from": "f-process", "to": "f-service", "label": "processMessages([msg])"}, {"from": "f-service", "to": "f-create", "label": "createSurface"}, {"from": "f-service", "to": "f-components", "label": "updateComponents"}, {"from": "f-service", "to": "f-datamodel", "label": "updateDataModel"}, {"from": "f-components", "to": "f-process", "label": "A2uiValidationError"}, {"from": "f-process", "to": "f-issues", "label": "rejected component"}, {"from": "f-create", "to": "f-surfaces", "label": "new SurfaceModel"}, {"from": "f-create", "to": "f-components", "label": "next message"}, {"from": "f-components", "to": "f-datamodel", "label": "next message"}, {"from": "f-surfaces", "to": "f-ticketlist", "label": "renders root"}, {"from": "f-ticketlist", "to": "f-bind", "label": "row data context"}, {"from": "f-datamodel", "to": "f-bind", "label": "values"}, {"from": "f-bind", "to": "f-badge", "label": "priority"}, {"from": "f-bind", "to": "f-chip", "label": "name, text"}, {"from": "f-badge", "to": "f-resolved", "label": "check value"}, {"from": "f-badge", "to": "f-issues", "label": "bad bound value"}, {"from": "f-chip", "to": "f-action", "label": "Button click"}, {"from": "f-action", "to": "f-ask", "label": "actionHandler → handleAction"}, {"from": "f-sse", "to": "f-report", "label": "stream done"}, {"from": "f-issues", "to": "f-report", "label": "list()"}, {"from": "f-report", "to": "f-send-prep", "label": "send({error})"}], "paths": [{"id": "fe-prompt", "label": "A prompt, start to screen", "note": "From the form to a drawn ticket list.", "nodes": ["f-prompt", "f-ask", "f-send-prep", "f-post", "f-sse", "f-handle", "f-process", "f-service", "f-create", "f-components", "f-datamodel", "f-bind", "f-badge"]}, {"id": "fe-action", "label": "A button action", "note": "Open on a row: the context is resolved locally, then the turn starts over.", "nodes": ["f-chip", "f-action", "f-ask", "f-send-prep", "f-post"]}, {"id": "fe-rejected", "label": "A component web_core rejects", "note": "Placeholder for the bad one, the rest renders, the problem is filed.", "nodes": ["f-process", "f-service", "f-components", "f-process", "f-issues", "f-report"]}, {"id": "fe-bound", "label": "A bad bound value (stage 5–6)", "note": "Valid component, invalid value: only the renderer can see it.", "nodes": ["f-datamodel", "f-bind", "f-badge", "f-resolved", "f-badge", "f-issues", "f-report", "f-send-prep", "f-post"]}]}, {"key": "backend", "tab": "Backend", "layout": "stages", "title": "SSR server and agent", "summary": "The SSR server is a bridge, not a page renderer here (every route is RenderMode.Client): it turns the browser's POST into an A2A message and the agent's A2A events into SSE. The agent negotiates the catalog, builds the query, asks the model, validates every streamed message against the Zod catalog, applies the server-side policy and publishes A2A status updates.", "groups": [{"id": "ssr", "label": "SSR server (server.ts)"}, {"id": "a2a", "label": "Agent: A2A endpoint"}, {"id": "exec", "label": "Agent: executor (agent.ts)"}, {"id": "model", "label": "Agent: model + tool"}, {"id": "guard", "label": "Agent: validation + policy"}], "nodes": [{"id": "b-route", "label": "POST /a2a", "group": "ssr", "order": 1, "detail": "The Express route the browser calls. Reads { query, event, error, sessionId }. A malformed error (missing string code, surfaceId, message, or path for VALIDATION_FAILED) gets 400 and goes no further.", "source": "demo/apps/client/src/server.ts", "status": "done"}, {"id": "b-part", "label": "Build the A2A message", "group": "ssr", "order": 2, "detail": "Exactly one part: event → data part { version, action }; error → data part { version, error }; otherwise a text part with the query. The browser's sessionId becomes A2A contextId. The catalogs the app can draw go in metadata: capability negotiation, ids only.", "source": "demo/apps/client/src/server.ts", "status": "done", "payload": "{ \"message\": { \"kind\": \"message\", \"messageId\": \"<uuid>\", \"role\": \"user\",\n  \"contextId\": \"<sessionId>\",\n  \"parts\": [ { \"kind\": \"text\", \"text\": \"Show me the open tickets\" } ],\n  \"metadata\": { \"a2uiClientCapabilities\": { \"v0.9\": {\n    \"supportedCatalogIds\": [ \"https://github.com/giorgiogalassi/talk-a2ui/demo/catalogs/tickets/v0_9/catalog.json\" ] } } } } }\n\naction: { \"kind\": \"data\", \"data\": { \"version\": \"v0.9\", \"action\": {…} },\n          \"metadata\": { \"mimeType\": \"application/a2ui+json\" } }\nerror:  { \"kind\": \"data\", \"data\": { \"version\": \"v0.9\", \"error\": {…} }, … }"}, {"id": "b-card", "label": "getAgent(): agent card", "group": "ssr", "order": 3, "detail": "On first use: GET <AGENT_URL>/.well-known/agent-card.json (AGENT_URL defaults to http://localhost:10002). The A2AClient is cached; a failed lookup is not (PR #9), so the next request tries again. Every request to the agent carries the header X-A2A-Extensions: https://a2ui.org/a2a-extension/a2ui/v0.9.", "source": "demo/apps/client/src/server.ts", "status": "done"}, {"id": "b-stream", "label": "sendMessageStream", "group": "ssr", "order": 4, "detail": "A2A JSON-RPC message/stream to the URL in the agent card (http://localhost:10002/a2a/json-rpc). The answer is a stream of A2A events.", "source": "demo/apps/client/src/server.ts", "status": "done"}, {"id": "b-unwrap", "label": "Unwrap A2A events", "group": "ssr", "order": 5, "detail": "For each event: task and status-update → status.message.parts; artifact-update → artifact.parts. Data parts are the A2UI messages; text parts are joined into text. The only file that knows A2A: swapping the transport means rewriting this one.", "source": "demo/apps/client/src/server.ts", "status": "done"}, {"id": "b-sse", "label": "Write SSE to the browser", "group": "ssr", "order": 6, "detail": "Headers text/event-stream, no-cache, keep-alive, X-Accel-Buffering: no. One line per A2A event that has messages, text or a contextId (in practice every event). Errors: before the first byte → 502 { error }; after → data: { error } and end.", "source": "demo/apps/client/src/server.ts", "status": "done", "payload": "data: {\"messages\":[{ \"version\":\"v0.9\",\"createSurface\":{…} }, …],\"sessionId\":\"<contextId>\"}\n\ndata: {\"messages\":[],\"text\":\"I'm sorry, I'm having trouble…\",\"sessionId\":\"…\"}"}, {"id": "b-express", "label": "Agent HTTP server :10002", "group": "a2a", "order": 1, "detail": "Express app: CORS for http://localhost:* (left from the sample's browser client), GET /.well-known/agent-card.json, POST /a2a/json-rpc. No authentication (UserBuilder.noAuthentication).", "source": "demo/apps/agent/src/index.ts", "status": "done"}, {"id": "b-cardjson", "label": "Agent card", "group": "a2a", "order": 2, "detail": "name \"Support Ticket Agent\" (\"(stub)\" in stub mode), protocolVersion 0.3.0, url http://localhost:<port>/a2a/json-rpc, capabilities.streaming true, one skill show_tickets.", "source": "demo/apps/agent/src/index.ts", "status": "done"}, {"id": "b-handler", "label": "DefaultRequestHandler", "group": "a2a", "order": 3, "detail": "@a2a-js/sdk 0.3.13 with an InMemoryTaskStore. Calls RestaurantExecutor.execute(requestContext, eventBus) once per incoming message and streams what the executor publishes on the event bus.", "source": "demo/apps/agent/src/index.ts", "status": "done"}, {"id": "b-run", "label": "execute → run()", "group": "exec", "order": 1, "detail": "One turn. Publishes the Task (state submitted) if this is a new task; any exception becomes a final failed status with a text part (\"The agent could not answer this request: …\").", "source": "demo/apps/agent/src/agent.ts", "status": "done"}, {"id": "b-pick", "label": "pickA2ui()", "group": "exec", "order": 2, "detail": "Reads metadata.a2uiClientCapabilities[\"v0.9\"].supportedCatalogIds (or a2uiRendererCapabilities for v1.0; the newest named wins). Unknown versions throw. Result: version profile v0.9 + the ticket catalog id.", "source": "demo/apps/agent/src/pick-a2ui.ts", "status": "done"}, {"id": "b-inbound", "label": "readInboundMessage()", "group": "exec", "order": 3, "detail": "Splits the message into text, action ({ name, context } from data.action with the matching version, or a legacy userAction) and clientError (data.error with string code, surfaceId, message, and path for VALIDATION_FAILED).", "source": "demo/apps/agent/src/a2a.ts", "status": "done"}, {"id": "b-prompt", "label": "System prompt", "group": "exec", "order": 4, "detail": "createProcessor(profile, catalogIds) builds the processor for the negotiated catalogs (and rejects unknown ones); its promptSnippet holds the catalog document from toJson() and the ticket examples. buildSystemPrompt adds the role and the A2UI format rules.", "source": "demo/apps/agent/src/agent.ts · demo/apps/agent/src/prompt.ts", "status": "done"}, {"id": "b-query", "label": "buildUserQuery()", "group": "exec", "order": 5, "detail": "Text → the query as is (\"Hello!\" if empty). open_ticket → fetches the ticket itself with get_tickets and puts it in the query (USER_WANTS_TICKET_DETAILS + TICKET_DATA), saving a model call. resolve_ticket → \"User resolved ticket …\". Any other action → \"User submitted an event: …\". The turn is remembered for a possible client retry.", "source": "demo/apps/agent/src/user-query.ts", "status": "done"}, {"id": "b-clientretry", "label": "ClientRetries.plan()", "group": "exec", "order": 6, "detail": "Phase 6, when the message carries a client error. VALIDATION_FAILED with a remembered turn not yet retried → redo that turn once, the first attempt's query starting with the error (\"Your previous response was invalid. Validation failed: the renderer reported …\"). Otherwise → final input-required status with FALLBACK_TEXT, no model call.", "source": "demo/apps/agent/src/client-retry.ts", "status": "done"}, {"id": "b-generate", "label": "generateUi(): 2 attempts", "group": "exec", "order": 7, "detail": "MAX_ATTEMPTS = 2. An A2UI problem (A2uiError, or a reply with no A2UI) retries with retryQuery(error); a model or network error (e.g. Gemini 503) retries the original query. Both failing → one text part, FALLBACK_TEXT.", "source": "demo/apps/agent/src/agent.ts", "status": "done"}, {"id": "b-publish", "label": "Publish status updates", "group": "exec", "order": 8, "detail": "status working (no message) when the turn starts; then status working with the A2A parts of each validated, policed batch as it arrives; then the final status: input-required (completed after resolve_ticket), carrying no parts if they were already published.", "source": "demo/apps/agent/src/a2a.ts · demo/apps/agent/src/agent.ts", "status": "done", "payload": "{ \"kind\": \"status-update\", \"taskId\": \"…\", \"contextId\": \"…\", \"final\": false,\n  \"status\": { \"state\": \"working\", \"timestamp\": \"…\",\n    \"message\": { \"kind\": \"message\", \"role\": \"agent\", \"parts\": [\n      { \"kind\": \"data\", \"data\": { \"version\": \"v0.9\", \"updateComponents\": {…} },\n        \"metadata\": { \"mimeType\": \"application/a2ui+json\" } } ] } } }"}, {"id": "b-backend", "label": "ModelBackend.streamTurn()", "group": "model", "order": 1, "detail": "Gemini in live mode, the stub with STUB_LLM=true. Yields the reply as text chunks.", "source": "demo/apps/agent/src/model.ts", "status": "done"}, {"id": "b-gemini", "label": "Gemini chat", "group": "model", "order": 2, "detail": "One chat per contextId + version (LRU of 1,000), model gemini-3.6-flash by default, system instruction = the system prompt, one tool (get_tickets), thinking MINIMAL by default. Call 1 usually returns a function call; the tool runs; call 2 streams the A2UI text.", "source": "demo/apps/agent/src/model.ts", "status": "done"}, {"id": "b-tool", "label": "get_tickets", "group": "model", "order": 3, "detail": "Filters assets/tickets.json by ticketId, status, priority; count defaults to 8. Returns whole tickets, internal_notes included: keeping them from the browser is the policy's job.", "source": "demo/apps/agent/src/tools.ts", "status": "done", "payload": "[ { \"id\": \"TCK-1042\", \"title\": \"Checkout fails with a 502 on card payments\", \"status\": \"open\",\n    \"priority\": \"urgent\", \"assignee\": \"Giulia Rossi\", \"internal_notes\": \"…\", … } ]"}, {"id": "b-stub", "label": "StubBackend", "group": "model", "order": 4, "detail": "Canned replies: a stub-notice surface plus the example that matches the action (ticket_list, ticket_detail, ticket_resolved), cut into 4 chunks (80-character chunks when leaky). Switches: STUB_INVALID_FIRST, STUB_LEAKY, STUB_CLIENT_INVALID; a query starting \"Your previous response was invalid.\" always gets the valid reply.", "source": "demo/apps/agent/src/model.ts", "status": "done"}, {"id": "b-feed", "label": "stream.feed(chunk) / close()", "group": "guard", "order": 1, "detail": "@a2ui/agent 0.0.2 Direct JSON stream. Reads <a2ui-json> blocks as they grow and emits a message (again each time it grows) only when a fresh renderer state, built from the negotiated catalogs' Zod, accepts it; a partial one is held back and checked again. A rejected complete message throws A2uiError and ends the attempt.", "source": "@a2ui/agent · demo/apps/agent/src/agent.ts", "status": "done"}, {"id": "b-policy", "label": "enforcePolicy()", "group": "guard", "order": 2, "detail": "Runs on every emitted batch, each re-send included. DEMO_POLICY: forbiddenDataPaths /tickets/*/internal_notes and /ticket/internal_notes, disabledActions delete_ticket. Deletes forbidden data from updateDataModel values; removes components that bind forbidden data or carry a disabled action, mending the tree. Logs one line per strip.", "source": "demo/apps/agent/src/policy.ts", "status": "done"}, {"id": "b-toparts", "label": "toA2aParts()", "group": "guard", "order": 3, "detail": "One A2A data part per A2UI message, metadata.mimeType application/a2ui+json; text stays a text part.", "source": "demo/apps/agent/src/a2a.ts", "status": "done"}], "edges": [{"from": "b-route", "to": "b-part", "label": "body"}, {"from": "b-part", "to": "b-card", "label": "getAgent()"}, {"from": "b-card", "to": "b-cardjson", "label": "GET agent card"}, {"from": "b-card", "to": "b-stream", "label": "A2AClient"}, {"from": "b-stream", "to": "b-express", "label": "POST /a2a/json-rpc message/stream"}, {"from": "b-express", "to": "b-handler", "label": "JSON-RPC"}, {"from": "b-handler", "to": "b-run", "label": "execute()"}, {"from": "b-run", "to": "b-pick", "label": "1. negotiate"}, {"from": "b-pick", "to": "b-inbound", "label": "2. read"}, {"from": "b-pick", "to": "b-prompt", "label": "catalogIds"}, {"from": "b-inbound", "to": "b-query", "label": "text / action"}, {"from": "b-inbound", "to": "b-clientretry", "label": "clientError"}, {"from": "b-clientretry", "to": "b-generate", "label": "retry: first query = error"}, {"from": "b-clientretry", "to": "b-publish", "label": "no retry: FALLBACK_TEXT"}, {"from": "b-query", "to": "b-tool", "label": "open_ticket prefetch"}, {"from": "b-query", "to": "b-generate", "label": "query"}, {"from": "b-prompt", "to": "b-generate", "label": "systemPrompt"}, {"from": "b-generate", "to": "b-backend", "label": "streamTurn(turn)"}, {"from": "b-backend", "to": "b-gemini", "label": "live"}, {"from": "b-backend", "to": "b-stub", "label": "STUB_LLM=true"}, {"from": "b-gemini", "to": "b-tool", "label": "function call"}, {"from": "b-tool", "to": "b-gemini", "label": "functionResponse"}, {"from": "b-gemini", "to": "b-feed", "label": "text chunks"}, {"from": "b-stub", "to": "b-feed", "label": "text chunks"}, {"from": "b-feed", "to": "b-policy", "label": "accepted messages"}, {"from": "b-feed", "to": "b-generate", "label": "A2uiError → retry"}, {"from": "b-policy", "to": "b-toparts", "label": "policed messages"}, {"from": "b-toparts", "to": "b-publish", "label": "A2A parts"}, {"from": "b-publish", "to": "b-handler", "label": "event bus"}, {"from": "b-handler", "to": "b-unwrap", "label": "A2A events (SSE)"}, {"from": "b-unwrap", "to": "b-sse", "label": "messages, text, contextId"}], "paths": [{"id": "be-prompt", "label": "A prompt turn, live", "note": "Through the SSR server into the agent and back out as SSE.", "nodes": ["b-route", "b-part", "b-card", "b-stream", "b-express", "b-handler", "b-run", "b-pick", "b-inbound", "b-query", "b-generate", "b-backend", "b-gemini", "b-tool", "b-gemini", "b-feed", "b-policy", "b-toparts", "b-publish", "b-handler", "b-unwrap", "b-sse"]}, {"id": "be-retry", "label": "Server-side retry (stage: invalid priority)", "note": "STUB_INVALID_FIRST: the agent rejects \"critical\" before it leaves.", "nodes": ["b-generate", "b-backend", "b-stub", "b-feed", "b-generate", "b-backend", "b-stub", "b-feed", "b-policy", "b-toparts", "b-publish"]}, {"id": "be-policy", "label": "Policy on every re-send", "note": "STUB_LEAKY: notes and Delete never reach the browser.", "nodes": ["b-stub", "b-feed", "b-policy", "b-toparts", "b-publish"]}, {"id": "be-open", "label": "Open a ticket: no tool-decision call", "note": "open_ticket fetches the ticket before the model is called.", "nodes": ["b-route", "b-part", "b-card", "b-stream", "b-express", "b-handler", "b-run", "b-pick", "b-inbound", "b-query", "b-tool", "b-query", "b-generate", "b-backend"]}, {"id": "be-client", "label": "VALIDATION_FAILED from the renderer", "note": "Phase 6: one retry of the last turn, then text.", "nodes": ["b-route", "b-part", "b-card", "b-stream", "b-express", "b-handler", "b-run", "b-pick", "b-inbound", "b-clientretry", "b-generate", "b-backend", "b-stub", "b-feed", "b-policy", "b-toparts", "b-publish", "b-handler", "b-unwrap", "b-sse"]}]}];
+const GCOL = ['--g1','--g2','--g3','--g4','--g5','--g6','--g7','--g8'];
+const DASHED = new Set(['proposed','pending','planned','open','goal']);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+let cy, G, groupColor = {}, hidden = new Set(), walk = null, step = 0;
+
+const tabs = document.getElementById('tabs');
+GRAPHS.forEach((g, i) => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.role = 'tab'; b.id = 'tab-' + g.key; b.textContent = g.tab;
+  b.onclick = () => { location.hash = g.key; };
+  tabs.appendChild(b);
+});
+
+function load(key) {
+  G = GRAPHS.find(g => g.key === key) || GRAPHS[0];
+  [...tabs.children].forEach(b => b.setAttribute('aria-selected', b.id === 'tab-' + G.key));
+  document.getElementById('g-eyebrow').textContent = G.title;
+  document.getElementById('summary').textContent = G.summary;
+  groupColor = {}; G.groups.forEach((gr, i) => groupColor[gr.id] = GCOL[i % GCOL.length]);
+  hidden = new Set(); walk = null;
+  renderLegend(); renderWalks(); showNode(null);
+  draw();
+}
+
+function elements() {
+  const ids = new Set(G.nodes.map(n => n.id));
+  return [
+    ...G.nodes.map(n => ({ data: { ...n, gid: n.group } })),
+    ...G.edges.filter(e => ids.has(e.from) && ids.has(e.to)).map((e, i) => ({ data: { id: 'e' + i, source: e.from, target: e.to, label: e.label } })),
+  ];
+}
+
+function positions() {
+  // Stage maps lay groups out as columns in order, nodes sorted by date down each column.
+  if (G.layout !== 'stages') return null;
+  const pos = {}; const colW = 260;
+  G.groups.forEach((gr, ci) => {
+    const ns = G.nodes.filter(n => n.group === gr.id).sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
+    ns.forEach((n, ri) => { pos[n.id] = { x: ci * colW, y: (n.order ?? ri + 1) * 80 }; });
+  });
+  return pos;
+}
+
+function style() {
+  const ink = css('--ink'), muted = css('--muted'), surf = css('--surface'), line = css('--line'), acc = css('--accent');
+  return [
+    { selector: 'node', style: {
+      'background-color': n => css(groupColor[n.data('gid')] || '--g7'),
+      'border-width': 2, 'border-color': surf,
+      'label': 'data(label)', 'color': ink, 'font-family': 'Instrument Sans, system-ui, sans-serif', 'font-size': 11,
+      'text-wrap': 'wrap', 'text-max-width': 110, 'text-valign': 'bottom', 'text-margin-y': 5,
+      'text-background-color': surf, 'text-background-opacity': 0.85, 'text-background-padding': 2, 'text-background-shape': 'roundrectangle',
+      'width': 16, 'height': 16 } },
+    { selector: 'node[status = "proposed"], node[status = "pending"], node[status = "planned"], node[status = "open"], node[status = "goal"]', style: {
+      'background-opacity': 0.15, 'border-width': 2, 'border-style': 'dashed', 'border-color': n => css(groupColor[n.data('gid')] || '--g7') } },
+    { selector: 'edge', style: {
+      'width': 1.2, 'line-color': line, 'target-arrow-color': line, 'target-arrow-shape': 'triangle', 'arrow-scale': 0.7,
+      'curve-style': 'bezier', 'label': '', 'font-size': 9, 'color': muted, 'font-family': 'JetBrains Mono, monospace',
+      'text-background-color': surf, 'text-background-opacity': 0.9, 'text-background-padding': 1, 'text-rotation': 'autorotate' } },
+    { selector: '.faded', style: { 'opacity': parseFloat(css('--dim')) || 0.12 } },
+    { selector: 'edge.hl', style: { 'line-color': acc, 'target-arrow-color': acc, 'width': 2.2, 'label': 'data(label)', 'z-index': 9 } },
+    { selector: 'node.hl', style: { 'width': 22, 'height': 22, 'font-weight': 600, 'z-index': 9 } },
+    { selector: 'node.focus', style: { 'border-color': acc, 'border-width': 4, 'width': 28, 'height': 28 } },
+    { selector: '.hiddenGroup', style: { 'display': 'none' } },
+  ];
+}
+
+function draw() {
+  if (cy) cy.destroy();
+  const pos = positions();
+  cy = cytoscape({
+    container: document.getElementById('cy'), elements: elements(), style: style(),
+    layout: pos ? { name: 'preset', positions: n => pos[n.id()], fit: true, padding: 50 }
+                : { name: 'cose', animate: false, nodeRepulsion: 9000, idealEdgeLength: 90, padding: 50, randomize: false, componentSpacing: 80 },
+    minZoom: 0.2, maxZoom: 3, wheelSensitivity: 0.25,
+  });
+  cy.on('tap', 'node', e => { walk = null; markWalks(); focus(e.target.id()); });
+  cy.on('tap', e => { if (e.target === cy) { walk = null; markWalks(); clearHL(); showNode(null); } });
+}
+
+function clearHL() { cy.elements().removeClass('faded hl focus'); }
+
+function focus(id, center = true) {
+  const n = cy.getElementById(id); if (!n.length) return;
+  clearHL();
+  const hood = n.closedNeighborhood();
+  cy.elements().not(hood).addClass('faded');
+  hood.edges().addClass('hl'); n.addClass('focus');
+  if (center) cy.animate({ center: { eles: n }, duration: 250 });
+  showNode(id);
+}
+
+function showNode(id) {
+  const view = document.getElementById('nodeview'), hint = document.getElementById('nodehint');
+  if (!id) { view.hidden = true; view.style.display = 'none'; hint.hidden = false; return; }
+  const n = G.nodes.find(x => x.id === id);
+  hint.hidden = true; view.hidden = false; view.style.display = 'flex';
+  document.getElementById('n-title').textContent = n.label;
+  const gl = (G.groups.find(g => g.id === n.group) || {}).label || n.group;
+  const meta = document.getElementById('n-meta'); meta.replaceChildren();
+  [[gl, ''], [n.order != null ? 'step ' + n.order : '', '']].filter(([t]) => t).forEach(([t, c]) => {
+    const s = document.createElement('span'); s.className = 'pill ' + c; s.textContent = t; meta.appendChild(s);
+  });
+  document.getElementById('n-detail').textContent = n.detail || '';
+  const pl = document.getElementById('n-payload'); pl.hidden = !n.payload; pl.textContent = n.payload || '';
+  const src = document.getElementById('n-src'); src.replaceChildren();
+  if (n.source) {
+    if (/^https?:\/\//.test(n.source)) { const a = document.createElement('a'); a.href = n.source; a.target = '_blank'; a.rel = 'noopener'; a.textContent = n.source; src.appendChild(a); }
+    else src.textContent = n.source;
+  }
+  const ul = document.getElementById('n-links'); ul.replaceChildren();
+  const lbl = x => (G.nodes.find(m => m.id === x) || {}).label || x;
+  G.edges.filter(e => e.from === id || e.to === id).forEach(e => {
+    const li = document.createElement('li'); const other = e.from === id ? e.to : e.from;
+    const em = document.createElement('em'); em.textContent = (e.from === id ? '→ ' : '← ') + e.label + ' ';
+    li.append(em, document.createTextNode(lbl(other)));
+    li.onclick = () => focus(other); ul.appendChild(li);
+  });
+}
+
+function renderLegend() {
+  const box = document.getElementById('legend'); box.replaceChildren();
+  G.groups.forEach(gr => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.setAttribute('aria-pressed', 'true');
+    const i = document.createElement('i'); i.style.background = `var(${groupColor[gr.id]})`;
+    b.append(i, document.createTextNode(gr.label));
+    b.onclick = () => {
+      const on = hidden.has(gr.id); on ? hidden.delete(gr.id) : hidden.add(gr.id);
+      b.setAttribute('aria-pressed', String(on));
+      cy.nodes().forEach(n => n.toggleClass('hiddenGroup', hidden.has(n.data('gid'))));
+    };
+    box.appendChild(b);
+  });
+}
+
+function renderWalks() {
+  const box = document.getElementById('walks'); box.replaceChildren();
+  (G.paths || []).forEach(p => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'walk'; b.dataset.id = p.id; b.setAttribute('aria-pressed', 'false');
+    const t = document.createElement('b'); t.textContent = p.label; const s = document.createElement('span'); s.textContent = p.note;
+    b.append(t, s); b.onclick = () => startWalk(p.id); box.appendChild(b);
+  });
+  markWalks();
+}
+
+function markWalks() {
+  document.querySelectorAll('.walk').forEach(b => b.setAttribute('aria-pressed', String(!!walk && b.dataset.id === walk.id)));
+  document.getElementById('walkview').hidden = !walk;
+}
+
+function startWalk(id) {
+  walk = G.paths.find(p => p.id === id); step = 0; markWalks();
+  const ol = document.getElementById('steps'); ol.replaceChildren();
+  walk.nodes.forEach((nid, i) => {
+    const li = document.createElement('li'); li.textContent = (G.nodes.find(n => n.id === nid) || {}).label || nid;
+    li.onclick = () => { step = i; showStep(); }; ol.appendChild(li);
+  });
+  showStep();
+}
+
+function showStep() {
+  clearHL();
+  const ids = walk.nodes; const set = cy.collection();
+  ids.forEach((nid, i) => {
+    set.merge(cy.getElementById(nid));
+    if (i > 0) set.merge(cy.edges().filter(e => (e.source().id() === ids[i - 1] && e.target().id() === nid) || (e.target().id() === ids[i - 1] && e.source().id() === nid)));
+  });
+  cy.elements().not(set).addClass('faded'); set.addClass('hl');
+  const cur = cy.getElementById(ids[step]); cur.addClass('focus');
+  cy.animate({ fit: { eles: set, padding: 60 }, duration: 250 });
+  [...document.getElementById('steps').children].forEach((li, i) => li.classList.toggle('on', i === step));
+  showNode(ids[step]);
+  document.getElementById('prev').disabled = step === 0;
+  document.getElementById('next').disabled = step === ids.length - 1;
+}
+
+document.getElementById('prev').onclick = () => { if (walk && step > 0) { step--; showStep(); } };
+document.getElementById('next').onclick = () => { if (walk && step < walk.nodes.length - 1) { step++; showStep(); } };
+document.getElementById('clearwalk').onclick = () => { walk = null; markWalks(); clearHL(); showNode(null); cy.fit(undefined, 50); };
+document.getElementById('fit').onclick = () => cy.fit(undefined, 50);
+document.getElementById('search').addEventListener('input', e => {
+  const q = e.target.value.trim().toLowerCase(); if (!q) { clearHL(); return; }
+  const hit = G.nodes.find(n => n.label.toLowerCase().includes(q)) || G.nodes.find(n => (n.detail || '').toLowerCase().includes(q));
+  if (hit) focus(hit.id);
+});
+
+const restyle = () => cy && cy.style(style());
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', restyle);
+new MutationObserver(restyle).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+addEventListener('hashchange', () => load(location.hash.slice(1)));
+load(location.hash.slice(1));
+</script>

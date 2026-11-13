@@ -8,8 +8,11 @@ apps/agent       A2A agent (official Node sample pattern: @google/genai + @a2ui/
 packages/catalog the ticket catalog: Zod 3 ComponentApis, shared by agent and client (@demo/catalog)
 ```
 
-The browser never speaks A2A: the client will call the app's own server, which is the A2A client
+The browser never speaks A2A: it calls the app's own server, which is the A2A client
 (decided 2026-10-22, same shape as the official Angular sample).
+
+**How data moves through the demo, step by step:** [`docs/data-flow/`](docs/data-flow/README.md)
+(diagrams and exact payloads; `index.html` there is the interactive map).
 
 ## Status
 
