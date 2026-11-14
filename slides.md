@@ -85,7 +85,7 @@ rule: ['The Problem', 'Part 1']
 
 <div class="text-sm text-gray-400">
 
-Source: [github.com/google/A2UI — Summary](https://github.com/google/A2UI#summary)
+Source: [github.com/a2ui-project/a2ui — Summary](https://github.com/a2ui-project/a2ui#summary)
 
 </div>
 
@@ -579,8 +579,8 @@ can also send a catalog inline; the demo doesn't need to.
 
 <div class="text-sm text-gray-400">
 
-Source: [catalog/types.ts#L172-L183](https://github.com/google/A2UI/blob/0af1b1e7/renderers/web_core/src/v0_9/catalog/types.ts#L172-L183) ·
-[client-capabilities.ts#L15-L30](https://github.com/google/A2UI/blob/0af1b1e7/renderers/web_core/src/v0_9/schema/client-capabilities.ts#L15-L30) ·
+Source: [catalog/types.ts#L172-L183](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/web_core/src/v0_9/catalog/types.ts#L172-L183) ·
+[client-capabilities.ts#L15-L30](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/web_core/src/v0_9/schema/client-capabilities.ts#L15-L30) ·
 demo: `packages/catalog`
 
 </div>
@@ -635,7 +635,7 @@ before the payload reaches the client.
 
 <div class="text-sm text-gray-400">
 
-Source: [samples/client/angular/README.md#L54-L61](https://github.com/google/A2UI/blob/0af1b1e7/samples/client/angular/README.md#L54-L61)
+Source: [samples/client/angular/README.md#L54-L61](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/samples/client/angular/README.md#L54-L61)
 
 </div>
 
@@ -729,18 +729,18 @@ rule: ['Angular as the Rendering Engine', 'Part 5']
 
 # 5a. You write a catalog, not a renderer
 
-`@a2ui/angular` ships a `SurfaceComponent` you drop into your app.
+`@a2ui/angular/v0_9` ships a `SurfaceComponent` (`<a2ui-v09-surface>`) you drop into your app.
 
 It handles, internally:
-- receiving A2UI messages via the `MessageProcessor`
+- receiving A2UI messages: `A2uiRendererService.processMessages()` feeds the `MessageProcessor` from `web_core`
 - resolving component types from your catalog
 - dynamically instantiating Angular components via `ComponentHostComponent`
 - wiring up reactive property bindings via `ComponentBinder`
 
 <div class="text-sm text-gray-400">
 
-Source: [surface.component.ts](https://github.com/google/A2UI/blob/0af1b1e7/renderers/angular/src/v0_9/core/surface.component.ts) ·
-[component-host.component.ts#L67-L100](https://github.com/google/A2UI/blob/0af1b1e7/renderers/angular/src/v0_9/core/component-host.component.ts#L67-L100)
+Source: [surface.component.ts](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/angular/src/v0_9/core/surface.component.ts) ·
+[component-host.component.ts#L67-L100](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/angular/src/v0_9/core/component-host.component.ts#L67-L100)
 
 </div>
 
@@ -748,12 +748,13 @@ Source: [surface.component.ts](https://github.com/google/A2UI/blob/0af1b1e7/rend
 Speaker notes:
 Start the section here — this reframes everything correctly before diving into
 mechanism. What you write is a catalog. What the library gives you is a renderer.
-Your custom components extend `BasicCatalogComponent<T>`, which provides
-type-safe access to reactive props via Angular computed signals bridging from
-the underlying Preact signals in `web_core`.
-Source: catalog_component.ts#L36-L47.
-The canonical example in the repo is the custom slider component in the A2UI
-Explorer app — worth pulling up live if time allows.
+Your custom components extend `CatalogComponent<typeof XApi>`, which types
+`props()` straight from the Zod `ComponentApi`; each prop is a bound property
+whose `value()` is an Angular signal bridged from the underlying Preact signal
+in `web_core`. (`BasicCatalogComponent` is the subclass the library's own basic
+components use; the demo's custom ones don't need it.)
+The example to pull up live if time allows: the demo's PriorityBadge,
+demo/apps/client/src/app/catalog/priority-badge.ts.
 -->
 
 ---
@@ -762,15 +763,33 @@ rule: ['Angular as the Rendering Engine', 'Part 5']
 
 # Your entire Angular integration
 
-```html
-<a2ui-surface [messageProcessor]="processor" [catalog]="catalog" />
+```ts {1-4|6-9}
+// app.config.ts
+provideA2Ui(() => ({
+  catalogs: [createTicketCatalog(), new BasicCatalog()],
+}))
+
+// app.ts template
+@for (entry of renderer.surfaceGroup.surfacesMap; track entry[0]) {
+  <a2ui-v09-surface [surfaceId]="entry[0]" />
+}
 ```
+
+<div class="text-sm text-gray-400">
+
+Source: [app.config.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/apps/client/src/app/app.config.ts) ·
+[app.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/apps/client/src/app/app.ts) (trimmed)
+
+</div>
 
 <!--
 Speaker notes:
 Let this sit on screen for a second — it's deliberately anticlimactic.
-One element. That's the whole integration surface at the app-shell level.
-Everything else lives in the catalog you write next.
+One provider, one element per surface. That's the whole integration surface
+at the app-shell level. Messages go in with one call,
+`renderer.processMessages(messages)` (agent-client.ts). The real config also
+passes an `actionHandler` that sends button actions back to the agent; trimmed
+here. Everything else lives in the catalog you write next.
 -->
 
 ---
@@ -779,27 +798,29 @@ rule: ['Angular as the Rendering Engine', 'Part 5']
 
 # What your catalog looks like
 
-```ts
-// Extend the base catalog with your own components
-export class AppCatalog extends BasicCatalogBase {
-  override extraComponents = [
-    { api: MetricCardApi, implementation: MetricCardComponent },
-    { api: DataTableApi,  implementation: DataTableComponent },
-  ];
-}
+```ts {3|4-6}
+// Pair each Zod ComponentApi with the Angular component that draws it
+new AngularCatalog(TICKET_CATALOG_ID, 'v0.9', [
+  ...BASIC_COMPONENTS.filter((impl) => basicNames.has(impl.name)),
+  createComponentImplementation(TicketListApi, TicketListComponent),
+  createComponentImplementation(PriorityBadgeApi, PriorityBadgeComponent),
+  createComponentImplementation(AssigneeChipApi, AssigneeChipComponent),
+], [], BasicCatalogThemeSchema);
 ```
 
 <div class="text-sm text-gray-400">
 
-Source: [demo-catalog.ts#L29-L52](https://github.com/google/A2UI/blob/0af1b1e7/renderers/angular/a2ui_explorer/src/app/demo-catalog.ts#L29-L52)
+Source: [ticket-catalog.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/apps/client/src/app/catalog/ticket-catalog.ts)
 
 </div>
 
 <!--
 Speaker notes:
 This is the artifact your team actually maintains: a list of API/implementation
-pairs. Each `Api` is the Zod schema from section 4. Each `implementation` is a
-normal Angular component. There's no special DSL to learn beyond this.
+pairs. Each `Api` is the Zod schema from section 4, imported from the same
+`packages/catalog` the agent validates with. Each implementation is a normal
+Angular component. The basic components (Text, Row, Card…) are the library's
+own, filtered to the ones the catalog lists. No special DSL beyond this.
 -->
 
 ---
@@ -816,8 +837,8 @@ via `ComponentBinder`.
 
 <div class="text-sm text-gray-400">
 
-Source: [signals.ts#L1-L20](https://github.com/google/A2UI/blob/0af1b1e7/renderers/web_core/src/v0_9/reactivity/signals.ts#L1-L20) ·
-[component-binder.service.ts](https://github.com/google/A2UI/blob/0af1b1e7/renderers/angular/src/v0_9/core/component-binder.service.ts)
+Source: [signals.ts#L1-L20](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/web_core/src/v0_9/reactivity/signals.ts#L1-L20) ·
+[component-binder.service.ts](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/angular/src/v0_9/core/component-binder.service.ts)
 
 </div>
 
@@ -835,19 +856,26 @@ rule: ['Angular as the Rendering Engine', 'Part 5']
 
 # Inside a catalog component
 
-```ts
-export class MetricCardComponent extends BasicCatalogComponent<MetricCardProps> {
-  // props() is an Angular computed signal, updated reactively
-  // when the underlying Preact signal in web_core changes
-  protected label = computed(() => this.props()?.label ?? '');
-  protected value = computed(() => this.props()?.value ?? 0);
+```ts {1|2-4}
+export class PriorityBadgeComponent extends CatalogComponent<typeof PriorityBadgeApi> {
+  // 'low' | 'medium' | 'high' | 'urgent', inferred from the Zod enum;
+  // value() re-reads when the Preact signal in web_core changes
+  protected readonly priority = computed(() => this.props().priority?.value());
 }
 ```
+
+<div class="text-sm text-gray-400">
+
+Source: [priority-badge.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/apps/client/src/app/catalog/priority-badge.ts) ·
+[components.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/packages/catalog/src/components.ts) (`PriorityBadgeApi`, Zod 3)
+
+</div>
 
 <!--
 Speaker notes:
 This is what you actually write inside a catalog component: ordinary Angular
-`computed()` signals reading from `props()`. Nothing about Preact leaks into
+`computed()` signals reading `props().<name>.value()`. The type comes from
+`PriorityBadgeApi`, so there is no hand-written props interface to keep in sync. Nothing about Preact leaks into
 your component code — the bridge absorbs it entirely.
 -->
 
@@ -872,8 +900,8 @@ The rest of the surface is untouched.
 
 <div class="text-sm text-gray-400">
 
-Source: [a2ui_protocol.md#L22-L29](https://github.com/google/A2UI/blob/0af1b1e7/specification/v0_9/docs/a2ui_protocol.md#L22-L29) ·
-[component-context.ts#L27-L38](https://github.com/google/A2UI/blob/0af1b1e7/renderers/web_core/src/v0_9/rendering/component-context.ts#L27-L38)
+Source: [a2ui_protocol.md#L22-L29](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/specification/v0_9/docs/a2ui_protocol.md#L22-L29) ·
+[component-context.ts#L27-L38](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/web_core/src/v0_9/rendering/component-context.ts#L27-L38)
 
 </div>
 
@@ -1134,7 +1162,7 @@ The Angular README documents three threat categories: **UI spoofing**,
 
 <div class="text-sm text-gray-400">
 
-Source: [samples/client/angular/README.md#L54-L61](https://github.com/google/A2UI/blob/0af1b1e7/samples/client/angular/README.md#L54-L61)
+Source: [samples/client/angular/README.md#L54-L61](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/samples/client/angular/README.md#L54-L61)
 
 </div>
 
