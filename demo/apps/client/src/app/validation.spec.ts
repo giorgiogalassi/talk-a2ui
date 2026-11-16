@@ -38,7 +38,7 @@ function ticketList(priority: unknown, dataPriority = 'urgent'): unknown[] {
 }
 
 /**
- * A fetch that answers each POST /a2a with the next SSE body, and records the request bodies.
+ * A fetch that answers each POST /api/agent with the next SSE body, and records the request bodies.
  * A reply is a list of A2UI messages, or `{ text }` for a text-only answer (as server.ts sends it).
  */
 function fakeAgent(replies: (unknown[] | { text: string })[]) {

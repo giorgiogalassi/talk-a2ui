@@ -17,10 +17,10 @@ const MAX_REPORTS = 2;
 const PLACEHOLDER_TEXT = '⚠ This part of the answer could not be shown.';
 
 /**
- * Talks to this app's own server (POST /a2a), never to the agent directly.
+ * Talks to this app's own server (POST /api/agent), never to the agent directly.
  * Reads the server-sent events, each carrying plain A2UI messages, and hands them to the
- * renderer. Knows nothing of the transport between the server and the agent: `/a2a` is only
- * the route's name, kept as the contract with server.ts. Adapted from the official A2UI Angular sample (Apache-2.0).
+ * renderer. Knows nothing of the transport between the server and the agent: `/api/agent` is
+ * the contract with server.ts, and nothing on it is A2A. Adapted from the official A2UI Angular sample (Apache-2.0).
  */
 @Injectable({ providedIn: 'root' })
 export class AgentClient {
@@ -70,7 +70,7 @@ export class AgentClient {
     this.error.set(null);
     this.agentText.set(null);
     try {
-      const response = await fetch('/a2a', {
+      const response = await fetch('/api/agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...body, sessionId: this.sessionId }),
