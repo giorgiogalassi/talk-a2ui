@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, afterNextRender, signal } from '@angular/core';
 
-/** The agent's stage switches, as GET/PUT /demo/flags carries them (agent: src/demo-flags.ts). */
+/** The agent's stage switches, as GET/PUT /demo/flags carries them (agent: src/demo/demo-flags.ts). */
 interface DemoFlagsState {
   stub: boolean;
   invalidFirst: boolean;

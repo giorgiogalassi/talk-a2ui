@@ -21,7 +21,7 @@ import {type CatalogApi} from '@a2ui/web_core/catalog';
 import {basicCatalog} from '@a2ui/web_core/v0_9/basic_catalog';
 import {ticketCatalog} from '@demo/catalog';
 
-import {VERSIONS, type VersionProfile} from './versions.js';
+import {VERSIONS, type VersionProfile} from '../turn/versions.js';
 
 /** The basic catalog of each served version, keyed by version. */
 export type BasicCatalogs = ReadonlyMap<VersionProfile['version'], CatalogApi>;

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject } from '@angular/core';
 import { CatalogComponent } from '@a2ui/angular/v0_9';
 import { PriorityBadgeApi } from '@demo/catalog';
-import { ValidationIssues } from '../validation-issues';
+import { ValidationIssues } from '../agent/validation-issues';
 import { resolvedValueProblem } from './resolved-value';
 
 /**

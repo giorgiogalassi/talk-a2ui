@@ -47,7 +47,7 @@ Continue this guide... without the A2A extension." The extension spec itself
 (the DataPart embedding) is precise; the tutorial for it isn't written yet.
 The demo sidesteps the missing guide: the agent follows the official A2UI Node
 sample (restaurant finder, Apache-2.0), which already wires `@a2a-js/sdk`'s
-`AgentExecutor`, the agent card and the A2UI `DataPart`s (`apps/agent/src/a2a.ts`).
+`AgentExecutor`, the agent card and the A2UI `DataPart`s (`apps/agent/src/turn/a2a.ts`).
 On the client side the bridge follows the official **Angular** sample: the
 Angular SSR server (`apps/client/src/server.ts`) is the A2A client, and it is the
 only file in the demo that knows A2A. It unwraps the A2UI messages from the A2A
@@ -118,7 +118,7 @@ Why Cloud Run fits well, specifically:
   demand" workload rather than a constantly-hot service.
 - Horizontal scaling only works if session state is externalized, and the
   demo's isn't: conversation history lives in process memory (an `LruCache`
-  of `@google/genai` chats, 1,000 conversations, `apps/agent/src/model.ts`)
+  of `@google/genai` chats, 1,000 conversations, `apps/agent/src/model/model.ts`)
   and A2A tasks in the SDK's `InMemoryTaskStore`. Fine for one instance on a
   laptop; on Cloud Run you'd pin to one instance, add session affinity, or move
   that state to an external store. The demo hasn't picked one, so say that
@@ -132,7 +132,7 @@ Why Cloud Run fits well, specifically:
   thinking `MINIMAL` by default, `GEMINI_THINKING_LEVEL` overrides it) through
   `@google/genai` with an API key from `apps/agent/.env`. `STUB_LLM=true`
   serves canned replies with no model and no key, the stage fallback. Ticket
-  data comes from a local JSON file (`assets/tickets.json`, 8 tickets) through
+  data comes from a local JSON file (`data/tickets.json`, 8 tickets) through
   a `get_tickets` tool; there is no database. `@a2ui/agent` validates every
   reply against the Zod ticket catalog and retries once with the validation
   error, then falls back to a text apology. Then — the piece that matters
@@ -195,7 +195,7 @@ opinion on your business rules. Forbidden fields, disabled actions, and role
 restrictions are your application code, enforced before the payload ever
 reaches the client.
 
-In the demo that's `apps/agent/src/policy.ts`: it strips `internal_notes`
+In the demo that's `apps/agent/src/policy/policy.ts`: it strips `internal_notes`
 from the data model and removes any component bound to it or carrying the
 `delete_ticket` action, then mends the tree so the surface still validates.
 `STUB_LEAKY=true` shows it working: the SSE reaching the browser holds zero

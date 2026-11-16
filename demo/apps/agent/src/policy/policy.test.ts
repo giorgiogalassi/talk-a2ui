@@ -1,4 +1,4 @@
-// Demo: the server-side policy (src/policy.ts) on its own: what it strips, and that what it
+// Demo: the server-side policy (src/policy/policy.ts) on its own: what it strips, and that what it
 // leaves is still valid against the ticket catalog.
 
 import assert from 'node:assert/strict';
@@ -7,17 +7,17 @@ import {describe, it} from 'node:test';
 
 import {type AgentToRendererMessage, validatePayload} from '@a2ui/agent';
 
-import {loadBasicCatalogs, loadTicketCatalogs} from './catalogs.js';
-import {readMessages} from './examples.js';
-import {leakInternalNotes} from './model.js';
+import {loadBasicCatalogs, loadTicketCatalogs} from '../catalog/catalogs.js';
+import {readMessages} from '../catalog/examples.js';
+import {leakInternalNotes} from '../model/model.js';
 import {applyPolicy, DEMO_POLICY, enforcePolicy, textFragments, UNAVAILABLE_TEXT, WITHHELD_TEXT} from './policy.js';
-import {getPackageRootDir} from './tools.js';
+import {getPackageRootDir} from '../model/tools.js';
 
 const root = getPackageRootDir();
 const catalogs = [loadTicketCatalogs().get('v0.9')!, loadBasicCatalogs().get('v0.9')!];
 
 function leaky(name: string): AgentToRendererMessage[] {
-  return leakInternalNotes(readMessages(path.join(root, 'examples', 'v0.9', `${name}.json`)), root);
+  return leakInternalNotes(readMessages(path.join(root, 'data', 'examples', 'v0.9', `${name}.json`)), root);
 }
 
 const json = (value: unknown) => JSON.stringify(value);
@@ -199,7 +199,7 @@ describe('applyPolicy', () => {
 
   it('leaves the plain examples alone, apart from the Delete button', () => {
     for (const name of ['ticket_list', 'ticket_resolved']) {
-      const input = readMessages(path.join(root, 'examples', 'v0.9', `${name}.json`));
+      const input = readMessages(path.join(root, 'data', 'examples', 'v0.9', `${name}.json`));
       assert.deepEqual(applyPolicy(input, DEMO_POLICY), {messages: input, stripped: []});
     }
   });
@@ -263,7 +263,7 @@ describe('forbiddenText (notes the model writes out instead of binding)', () => 
   });
 
   it('leaves ordinary ticket text alone', () => {
-    const input = readMessages(path.join(root, 'examples', 'v0.9', 'ticket_list.json'));
+    const input = readMessages(path.join(root, 'data', 'examples', 'v0.9', 'ticket_list.json'));
     const {messages, stripped} = applyPolicy(input, DEMO_POLICY);
     assert.deepEqual(stripped, []);
     assert.equal(json(messages), json(input));

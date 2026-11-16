@@ -15,7 +15,7 @@ import {basicCatalog} from '@a2ui/web_core/v0_9/basic_catalog';
 import {getComponentReferences, type ComponentRefMap} from '@a2ui/web_core/validating';
 import {ticketCatalog} from '@demo/catalog';
 
-import {readInternalNotes} from './tools.js';
+import {readInternalNotes} from '../model/tools.js';
 
 /**
  * Which props of each component hold other components' ids, read from the catalogs' own Zod
@@ -113,7 +113,7 @@ function clip(fragment: string): string {
 
 /**
  * The demo's one policy: support agents never see a ticket's internal notes and cannot delete
- * tickets. `/ticket/internal_notes` is the detail view's data (examples/v0.9/ticket_detail.json
+ * tickets. `/ticket/internal_notes` is the detail view's data (data/examples/v0.9/ticket_detail.json
  * binds `/ticket/...`), which `/tickets/*\/internal_notes` alone does not cover.
  */
 export const DEMO_POLICY: Policy = {

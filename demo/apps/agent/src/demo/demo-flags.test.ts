@@ -1,9 +1,9 @@
-// Demo: the stage switches (src/demo-flags.ts).
+// Demo: the stage switches (src/demo/demo-flags.ts).
 import assert from 'node:assert/strict';
 import {describe, it} from 'node:test';
 
 import {DemoFlagStore, flagsFromEnv, SwitchableBackend} from './demo-flags.js';
-import type {ModelBackend, StubBackend, TurnInput} from './model.js';
+import type {ModelBackend, StubBackend, TurnInput} from '../model/model.js';
 
 const off = {stub: true, invalidFirst: false, leaky: false, clientInvalid: false, thinkingLevel: 'MINIMAL' as const};
 

@@ -4,8 +4,8 @@
  */
 
 import type {ClientError} from './a2a.js';
-import {LruCache} from './lru-cache.js';
-import {retryQuery} from './prompt.js';
+import {LruCache} from '../model/lru-cache.js';
+import {retryQuery} from '../model/prompt.js';
 
 /** What the agent keeps of a conversation's last turn, to redo it if the renderer rejects it. */
 interface LastTurn {

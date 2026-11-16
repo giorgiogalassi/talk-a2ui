@@ -25,12 +25,12 @@ import {DefaultRequestHandler, InMemoryTaskStore} from '@a2a-js/sdk/server';
 import {agentCardHandler, jsonRpcHandler, UserBuilder} from '@a2a-js/sdk/server/express';
 import express from 'express';
 
-import {TicketExecutor} from './agent.js';
-import {DemoFlagStore, flagsFromEnv, SwitchableBackend} from './demo-flags.js';
-import {loadBasicCatalogs, loadTicketCatalogs} from './catalogs.js';
+import {TicketExecutor} from './turn/agent.js';
+import {DemoFlagStore, flagsFromEnv, SwitchableBackend} from './demo/demo-flags.js';
+import {loadBasicCatalogs, loadTicketCatalogs} from './catalog/catalogs.js';
 import {resolveLlmMode, resolveModelName} from './config.js';
-import {GeminiBackend, type ModelBackend, StubBackend} from './model.js';
-import {resolveAssetsDir, verifyTicketData} from './tools.js';
+import {GeminiBackend, type ModelBackend, StubBackend} from './model/model.js';
+import {resolveAssetsDir, verifyTicketData} from './model/tools.js';
 
 const DEFAULT_PORT = 10002;
 
@@ -80,7 +80,7 @@ export async function createApp(options: {env?: NodeJS.ProcessEnv; port?: number
   // Demo: the ticket catalog from packages/catalog.
   const ticketCatalogs = loadTicketCatalogs();
 
-  // Demo: the stage switches (src/demo-flags.ts) start from the env and can change at runtime
+  // Demo: the stage switches (src/demo/demo-flags.ts) start from the env and can change at runtime
   // through /demo/flags. STUB_INVALID_FIRST=true makes each turn's first attempt fail
   // validation; STUB_LEAKY=true serves internal notes for the policy to strip;
   // STUB_CLIENT_INVALID=true makes the first attempt pass the agent and fail the renderer.

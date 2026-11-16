@@ -295,7 +295,7 @@ flowchart LR
 ## Phase 5 — server-side policy (done 2026-11-06) ← current
 
 `answer()` no longer publishes what `@a2ui/agent` emits directly: every message goes through
-`applyPolicy` (`src/policy.ts`) first, on the streaming path (each `stream.feed(chunk)` and
+`applyPolicy` (`src/policy/policy.ts`) first, on the streaming path (each `stream.feed(chunk)` and
 `stream.close()` result, so every re-send of a growing message) and on the non-streaming path
 (`parseResponse`). It strips forbidden data paths (`internal_notes` under `/tickets/*` and
 `/ticket`) and removes components bound to them or carrying a disabled action (`delete_ticket`),

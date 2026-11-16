@@ -587,7 +587,7 @@ flowchart LR
 
 **Policy: same `applyPolicy(messages, policy)` as item 6, new hook points.**
 - *Revised 2026-10-31 for `@a2ui/agent` 0.0.2, which removed `streamText()` and `validate()`.*
-  It runs on A2UI messages **before** `toA2aParts` in `answer()` in `apps/agent/src/agent.ts`,
+  It runs on A2UI messages **before** `toA2aParts` in `answer()` in `apps/agent/src/turn/agent.ts`,
   in two places: the streaming path's `send()` (each `stream.feed(chunk)` and `stream.close()`
   result) and the non-streaming path (the `processor.parseResponse(fullText)` result).
 - Both are needed. In Direct JSON mode the stream publishes each message as it grows, before
@@ -598,12 +598,12 @@ flowchart LR
   `disabledActions: ['delete_ticket']`. Log every strip (observability slide).
   *Built 2026-11-06 with `'/ticket/internal_notes'` added:* the detail view keeps its ticket at
   `/ticket`, which the pattern above does not cover (`demo/README.md`, incident 5).
-- Keep it in its own file (`src/policy.ts`) with a unit test, so the deck can
+- Keep it in its own file (`src/policy/policy.ts`) with a unit test, so the deck can
   show it whole and the diff against the upstream sample stays small.
 
 One turn, with the policy hooks and the client-side validation (Direct JSON mode, `@a2ui/agent`
 0.0.2). `applyPolicy` is built (2026-11-06), the retry loop is (`generateUi` → `answer()` in
-`agent.ts`), and so is the `VALIDATION_FAILED` path (2026-11-12, `src/client-retry.ts`).
+`agent.ts`), and so is the `VALIDATION_FAILED` path (2026-11-12, `src/turn/client-retry.ts`).
 
 ```mermaid
 sequenceDiagram
@@ -747,7 +747,7 @@ the renderer, `VALIDATION_FAILED` back to the agent, client step 8).
       path** (section above). *Done when:* a unit test strips
       `internal_notes` and a `delete_ticket` button, and in the browser the
       field never appears, not even mid-stream.
-      **Done 2026-11-06** (stub mode; `demo/README.md` step 5): `src/policy.ts`
+      **Done 2026-11-06** (stub mode; `demo/README.md` step 5): `src/policy/policy.ts`
       + `policy.test.ts`, executor tests on both paths incl. a growing streamed
       message, `STUB_LEAKY=true` checked in a headless browser (0
       `internal_notes` / `delete_ticket` in the SSE). Deviation: the policy also
@@ -757,7 +757,7 @@ the renderer, `VALIDATION_FAILED` back to the agent, client step 8).
       (the spec lists A2A, AG-UI, SSE, WebSockets; CopilotKit runs A2UI over
       AG-UI), so switching transport should touch one adapter, never the
       catalog, the components or the renderer. Today the A2A shape leaks into
-      the browser: `apps/client/src/app/agent-client.ts` filters
+      the browser: `apps/client/src/app/agent/agent-client.ts` filters
       `parts` / `kind: 'data'` and reads `contextId`. Move the unwrapping into
       `server.ts` so the browser's SSE carries plain A2UI messages
       (`createSurface` / `updateComponents` / `updateDataModel`) plus an
@@ -898,7 +898,7 @@ the Angular client.
   0.0.1 → 0.0.2** (Giorgio): 0.0.1's streaming parser dropped `path` from
   streamed `updateDataModel` messages and then suppressed the complete one, so
   the live list rendered empty. 0.0.2 (released 2026-10-24) rewrote the parser;
-  `src/agent.ts` replaced with the sample's file at the release commit
+  `src/turn/agent.ts` replaced with the sample's file at the release commit
   `409ded29cc`. Knock-on: every reply now re-sends `createSurface`, so the
   client clears surfaces before every request, as the official Angular sample
   does. Policy hook points revised (`streamText()`/`validate()` no longer
@@ -935,7 +935,7 @@ the Angular client.
   ticket so it skips the tool-decision call, an "Agent is working…" state in the client,
   and model errors logged apart from A2UI validation. Measurements in `demo/README.md` →
   "Latency".
-- **2026-11-06 (later)** — Phase 5 done (stub mode): `applyPolicy` in `src/policy.ts`, hooked into
+- **2026-11-06 (later)** — Phase 5 done (stub mode): `applyPolicy` in `src/policy/policy.ts`, hooked into
   `answer()` on the streamed (`feed`/`close`) and the `parseResponse` path; strips forbidden data
   paths, removes components with a disabled action or a forbidden binding and mends the tree.
   Detail example gains a *Delete ticket* (`delete_ticket`) button for the policy to remove;
@@ -970,3 +970,10 @@ the Angular client.
   `pickA2ui`). Every file adapted from the A2UI samples carries an `Original:` link to the
   upstream file, and the data-flow page labels each code link: adapted from Google's sample,
   library, or the demo's own.
+- **2026-11-16** — Folders a reader can follow. Agent `src/`: `turn/` (executor, A2A in/out,
+  negotiation, query, client retry), `model/` (Gemini + stub, prompt, tool), `catalog/`, `policy/`,
+  `demo/` (stage switches); data files in `apps/agent/data/`. File names stay the sample's, so each
+  can be compared with its original. Client `app/`: `agent/` (agent-client, validation issues),
+  `demo/` (presenter panel); `app.ts`, `app.config.ts` and `catalog/` unchanged (the deck links
+  them). Map in `demo/README.md` → "Find your way". Paths in docs and the data-flow map updated;
+  no public link pointed at a moved file.

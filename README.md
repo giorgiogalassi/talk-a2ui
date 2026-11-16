@@ -111,6 +111,6 @@ MIT, see [`LICENSE`](LICENSE).
 ([a2ui-project/a2ui](https://github.com/a2ui-project/a2ui), Apache-2.0, Copyright Google LLC):
 the agent files in `demo/apps/agent/src/` that carry the Apache-2.0 header (from
 `samples/agent/node/restaurant_finder`), and the client's `demo/apps/client/src/server.ts` and
-`src/app/agent-client.ts` (from `samples/client/angular/projects/restaurant`). They keep that
+`src/app/agent/agent-client.ts` (from `samples/client/angular/projects/restaurant`). They keep that
 header and mark the demo's changes with `// Demo:`. The rest (policy, demo switches, client
 retry, catalog, tests) is the demo's own, under MIT.

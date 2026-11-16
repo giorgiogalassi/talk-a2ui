@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { BasicCatalog, provideA2Ui, provideMarkdownRenderer } from '@a2ui/angular/v0_9';
 import { renderMarkdown } from '@a2ui/markdown-it';
 import { AgentClient } from './agent-client';
-import { createTicketCatalog } from './catalog/ticket-catalog';
+import { createTicketCatalog } from '../catalog/ticket-catalog';
 
 // Demo: AgentClient on the paths that matter on stage: one turn at a time, and readable errors.
 
