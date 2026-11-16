@@ -6,8 +6,11 @@
     "packages/*"
   ],
   "scripts": {
+    "demo": "node scripts/start.mjs",
+    "demo:live": "node scripts/start.mjs --live",
     "start:client": "npm start -w client",
-    "build:client": "npm run build -w client"
+    "build:client": "npm run build -w client",
+    "test": "npm test -w agent && npm test -w client -- --watch=false"
   },
   "overrides": {
     "@a2ui/angular": {
@@ -15,5 +18,9 @@
       "@angular/common": "^22.2.3",
       "@angular/platform-browser": "^22.2.3"
     }
-  }
+  },
+  "engines": {
+    "node": "^22.22.3 || ^24.15.0 || >=26"
+  },
+  "license": "MIT"
 }
