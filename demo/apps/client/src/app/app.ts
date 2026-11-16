@@ -9,7 +9,7 @@ import { DemoPanel } from './demo-panel';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form (submit)="submit($event, prompt.value)">
-      <input #prompt name="prompt" value="Show me the open tickets" [disabled]="agent.isLoading()" />
+      <input #prompt name="prompt" aria-label="Ask the agent" value="Show me the open tickets" [disabled]="agent.isLoading()" />
       <button type="submit" [disabled]="agent.isLoading()" [class.working]="agent.waitingForUi()">
         <span class="label">Ask</span>
         <span class="busy" role="status" aria-live="polite">{{ agent.waitingForUi() ? 'Working…' : '' }}</span>
@@ -22,12 +22,13 @@ import { DemoPanel } from './demo-panel';
     }
 
     @if (agent.error(); as error) {
-      <p class="error">{{ error }}</p>
+      <p class="error" role="alert">{{ error }}</p>
     }
 
     <!-- Demo: tracked by the SurfaceModel, not its id: a surface deleted and re-created under the
          same id (a corrected reply) must get a new element, or the old components stay drawn. -->
-    <div class="surfaces" [class.stale]="agent.waitingForUi()">
+    <!-- Demo: inert while a turn runs, so a click can't start a second turn on top of it. -->
+    <div class="surfaces" [class.stale]="agent.waitingForUi()" [inert]="agent.isLoading()">
       @for (entry of renderer.surfaceGroup.surfacesMap; track entry[1]) {
         <a2ui-v09-surface [surfaceId]="entry[0]" />
       }

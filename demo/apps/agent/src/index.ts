@@ -41,7 +41,8 @@ function buildAgentCard(port: number, stub: boolean): AgentCard {
     version: '1.0.0',
     url: `http://localhost:${port}/a2a/json-rpc`,
     defaultInputModes: ['text/plain'],
-    defaultOutputModes: ['text/plain'],
+    // A2UI messages travel as data parts of this MIME type; the fallback as text.
+    defaultOutputModes: ['application/a2ui+json', 'text/plain'],
     skills: [
       {
         id: 'show_tickets',
@@ -105,23 +106,7 @@ export async function createApp(options: {env?: NodeJS.ProcessEnv; port?: number
 
   const app = express();
 
-  // Hand-written CORS middleware matching Python's allow_origin_regex. The lit client
-  // calls the agent from the browser.
-  app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    if (origin && /^http:\/\/localhost:\d+$/.test(origin)) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE, PATCH');
-      const reqHeaders = req.headers['access-control-request-headers'];
-      res.setHeader('Access-Control-Allow-Headers', reqHeaders || '*');
-    }
-    if (req.method === 'OPTIONS') {
-      res.status(204).end();
-      return;
-    }
-    next();
-  });
+  // Demo: no CORS. Only the app's own server calls the agent, never a browser (README, "What runs where").
 
   app.use(express.json());
 
@@ -172,7 +157,13 @@ export async function main() {
   }
 
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : DEFAULT_PORT;
-  return app.listen(port, '0.0.0.0', () => {
+  return app.listen(port, '0.0.0.0', error => {
+    // Demo: a port already in use (an old agent still running in another terminal) must stop
+    // this one, not leave the old one, maybe in another mode, serving the demo.
+    if (error) {
+      console.error(`Could not listen on port ${port}: ${error.message}. Is another agent still running?`);
+      process.exit(1);
+    }
     console.log(`Support Ticket Agent (A2UI demo) running on port ${port}`);
     console.log(`Format: ${format}`);
     console.log(

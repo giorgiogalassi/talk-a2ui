@@ -82,14 +82,30 @@ function getAgent(): Promise<A2AClient> {
   return agent;
 }
 
+/**
+ * Demo: what the browser is told when the agent can't answer. The details (the agent's URL, its
+ * response bodies) go to this server's log only: the browser never learns where the agent is.
+ */
+const AGENT_UNREACHABLE = 'The agent is not reachable. Is it running?';
+const AGENT_FAILED = 'The agent could not answer. Try again, or switch to the stub (Alt+Shift+D).';
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
 app.post('/api/agent', express.json(), async (req, res) => {
   // The browser's session id is A2A's contextId: the one place the two names meet.
-  const { query, event, error, sessionId: contextId } = req.body as {
-    query?: string;
-    event?: Record<string, unknown>;
-    error?: Record<string, unknown>;
-    sessionId?: string;
-  };
+  // Demo: a body that isn't a JSON object (wrong Content-Type) arrives as undefined.
+  const body: Record<string, unknown> = isObject(req.body) ? req.body : {};
+  const { query, event, error, sessionId: contextId } = body;
+  if (
+    (query !== undefined && typeof query !== 'string') ||
+    (event !== undefined && !isObject(event)) ||
+    (error !== undefined && !isObject(error)) ||
+    (contextId !== undefined && (typeof contextId !== 'string' || contextId.length > 100))
+  ) {
+    res.status(400).json({ error: 'Expected { query?: string, event?: object, error?: object, sessionId?: string }.' });
+    return;
+  }
   // Demo: a renderer error must have the v0.9 fields the agent reads (VALIDATION_FAILED: path too).
   if (error && !isClientError(error)) {
     res.status(400).json({ error: 'error needs string code, surfaceId and message (and path for VALIDATION_FAILED)' });
@@ -113,8 +129,22 @@ app.post('/api/agent', express.json(), async (req, res) => {
     },
   };
 
+  let client: A2AClient;
   try {
-    const stream = (await getAgent()).sendMessageStream(params);
+    client = await getAgent();
+  } catch (e) {
+    console.error('[a2a bridge] agent card:', e instanceof Error ? e.message : e);
+    res.status(502).json({ error: AGENT_UNREACHABLE });
+    return;
+  }
+  // Demo: the browser gave up (a reload, its own timeout): stop reading the agent's stream.
+  let browserGone = false;
+  res.on('close', () => {
+    browserGone = !res.writableFinished;
+  });
+
+  try {
+    const stream = client.sendMessageStream(params);
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
@@ -122,6 +152,10 @@ app.post('/api/agent', express.json(), async (req, res) => {
       'X-Accel-Buffering': 'no',
     });
     for await (const evt of stream) {
+      if (browserGone) {
+        console.log('[a2a bridge] browser disconnected; stopped reading the agent');
+        break;
+      }
       const parts =
         evt.kind === 'task' || evt.kind === 'status-update'
           ? (evt.status.message?.parts ?? [])
@@ -138,12 +172,11 @@ app.post('/api/agent', express.json(), async (req, res) => {
     }
     res.end();
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error('[a2a bridge]', message);
+    console.error('[a2a bridge]', error instanceof Error ? error.message : error);
     if (!res.headersSent) {
-      res.status(502).json({ error: message });
-    } else {
-      res.write(`data: ${JSON.stringify({ error: message })}\n\n`);
+      res.status(502).json({ error: AGENT_FAILED });
+    } else if (!browserGone) {
+      res.write(`data: ${JSON.stringify({ error: AGENT_FAILED })}\n\n`);
       res.end();
     }
   }
@@ -174,7 +207,8 @@ async function forwardFlags(res: express.Response, method: 'GET' | 'PUT', body?:
     });
     res.status(response.status).json(await response.json());
   } catch (error) {
-    res.status(502).json({ error: `Agent unreachable: ${error instanceof Error ? error.message : String(error)}` });
+    console.error('[demo flags]', error instanceof Error ? error.message : error);
+    res.status(502).json({ error: AGENT_UNREACHABLE });
   }
 }
 
@@ -200,7 +234,22 @@ app.use((req, res, next) => {
 });
 
 /**
- * Start the server if this module is the main entry point, or it is ran via PM2.
+ * Demo: errors no route handled (a body that isn't JSON, an SSR failure) answer with a short
+ * JSON message instead of Express's HTML page, which carries a stack trace with local paths.
+ */
+app.use((error: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (res.headersSent) {
+    next(error);
+    return;
+  }
+  const status = isObject(error) && typeof error['status'] === 'number' ? error['status'] : 500;
+  if (status >= 500) console.error('[server]', error);
+  res.status(status).json({ error: status === 400 ? 'The request body is not valid JSON.' : 'Something went wrong on the server.' });
+});
+
+/**
+ * Start the server if this module is the main entry point, or it is run by a process manager
+ * (Angular CLI boilerplate).
  * The server listens on the port defined by the `PORT` environment variable, or defaults to 4000.
  */
 if (isMainModule(import.meta.url) || process.env['pm_id']) {
@@ -215,6 +264,6 @@ if (isMainModule(import.meta.url) || process.env['pm_id']) {
 }
 
 /**
- * Request handler used by the Angular CLI (for dev-server and during build) or Firebase Cloud Functions.
+ * Request handler used by the Angular CLI (dev server and build). Angular CLI boilerplate.
  */
 export const reqHandler = createNodeRequestHandler(app);
