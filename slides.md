@@ -1019,8 +1019,8 @@ Start the section here — this reframes everything correctly before diving into
 mechanism. What you write is a catalog. What the library gives you is a renderer.
 Your custom components extend `CatalogComponent<typeof XApi>`, which types
 `props()` straight from the Zod `ComponentApi`; each prop is a bound property
-whose `value()` is an Angular signal bridged from the underlying Preact signal
-in `web_core`. (`BasicCatalogComponent` is the subclass the library's own basic
+whose `value()` is an Angular signal (web_core runs on Angular's own signals,
+next slide). (`BasicCatalogComponent` is the subclass the library's own basic
 components use; the demo's custom ones don't need it.)
 The example to pull up live if time allows: the demo's PriorityBadge,
 demo/apps/client/src/app/catalog/priority-badge.ts.
@@ -1030,46 +1030,54 @@ demo/apps/client/src/app/catalog/priority-badge.ts.
 rule: ['Angular as the Rendering Engine', 'Part 6']
 ---
 
-# Reactivity — Preact signals meet Angular signals
+# Reactivity: one signal graph, Angular's
 
-The reactive layer, `@preact/signals-core`, lives inside `web_core` —
-framework-agnostic by design.
+`web_core` writes its reactivity against a small signal API: `signal`, `computed`, `effect`.
+By default it runs on `@preact/signals-core`: tiny, framework-free.
 
-The Angular renderer bridges Preact signals into Angular's component model
-via `ComponentBinder`.
+The Angular renderer **swaps in Angular's own signals** at startup. No bridge between two
+systems: every signal `web_core` creates is an Angular signal.
 
-## Inside a catalog component
+```ts {1-2|4-7}
+// @a2ui/angular, once per app (ComponentBinder's constructor)
+setSignalImplementation({ signal, computed, effect, /* … from @angular/core */ });
 
-```ts {1|2-4}
+// your catalog component: props().priority is an Angular signal
 export class PriorityBadgeComponent extends CatalogComponent<typeof PriorityBadgeApi> {
-  // 'low' | 'medium' | 'high' | 'urgent', inferred from the Zod enum;
-  // value() re-reads when the Preact signal in web_core changes
   protected readonly priority = computed(() => this.props().priority?.value());
 }
 ```
 
 <div class="text-sm text-gray-400">
 
-Source: [signals.ts#L1-L20](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/web_core/src/v0_9/reactivity/signals.ts#L1-L20) ·
-[component-binder.service.ts](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/angular/src/v0_9/core/component-binder.service.ts) ·
-[priority-badge.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/apps/client/src/app/catalog/priority-badge.ts) ·
-[components.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/packages/catalog/src/components.ts) (`PriorityBadgeApi`, Zod 3)
+Source: [signals.ts#L62-L119](https://github.com/a2ui-project/a2ui/blob/8cd8b269/typescript/core/web_core/src/reactivity/signals.ts#L62-L119) ·
+[reactivity.ts#L48-L103](https://github.com/a2ui-project/a2ui/blob/8cd8b269/typescript/renderers/angular/src/core/reactivity.ts#L48-L103) ·
+[component-binder.service.ts#L166](https://github.com/a2ui-project/a2ui/blob/8cd8b269/typescript/renderers/angular/src/core/component-binder.service.ts#L166) ·
+[priority-badge.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/apps/client/src/app/catalog/priority-badge.ts)
 
 </div>
 
 <!--
 Speaker notes:
+The common assumption is that A2UI "uses Preact signals" and Angular bridges them.
+It doesn't. web_core is written against an abstract signal API, and the default
+implementation is @preact/signals-core because it's tiny and framework-free: that's
+what runs in the Node agent or on a plain web-components page.
 
-Preact signals were chosen at the protocol level precisely because they're
-tiny and framework-agnostic — any renderer, in any framework, can bridge them
-into its own reactivity model. Angular's bridge is `ComponentBinder`; a
-different framework would write its own bridge over the same underlying signal.
+A framework can provide its own. The Angular renderer does, once per app: the
+ComponentBinder's constructor calls setSignalImplementation with signal, computed and
+effect from @angular/core. From then on, the data model's per-path signals, resolved
+bindings and computed values are all Angular signals. One graph, Angular's.
 
-[Inside a catalog component]
-This is what you actually write inside a catalog component: ordinary Angular
-`computed()` signals reading `props().<name>.value()`. The type comes from
-`PriorityBadgeApi`, so there is no hand-written props interface to keep in sync. Nothing about Preact leaks into
-your component code — the bridge absorbs it entirely.
+[click: the component] What you write: ComponentBinder resolves each prop to
+{ value, raw, onUpdate }, the component host passes that in as the `props` input of your
+CatalogComponent, and value() is a plain Angular signal read. computed() tracks it
+natively. The type comes from PriorityBadgeApi, so there's no props interface to keep in
+sync.
+
+If asked: the swap is global to the page (module-level state in web_core), so two
+different renderers on one page would compete for it. An edge case, but a real one.
+How the React renderer does it, I haven't checked.
 -->
 
 ---
@@ -1085,9 +1093,9 @@ A2UI separates component **structure** from **data** into distinct message types
 
 <div class="callout">
 
-Only the Preact signal at that path fires. Only the Angular computed signal
-that reads it re-evaluates. Only the component that depends on it re-renders.
-The rest of the surface is untouched.
+Only the signal at that path changes (in Angular, an Angular signal). Only the
+`computed()` that reads it re-evaluates. Only the component that depends on it
+re-renders. The rest of the surface is untouched.
 
 </div>
 
@@ -1104,6 +1112,9 @@ This is the architectural payoff of the signal-per-path design, and it's worth
 slowing down for. When the agent streams a data update, it's targeting one
 JSON Pointer path — not re-sending the whole tree. That precision is what
 makes fine-grained reactivity possible at all downstream.
+And because web_core runs on Angular's signals here (previous slide), "the signal at
+that path" is an Angular signal: nothing to translate between the protocol and the
+component.
 -->
 
 ---
@@ -1373,8 +1384,8 @@ structured trace.
 
 Separate `updateComponents` / `updateDataModel` message types.
 
-Per-path Preact signals. Angular computed signals with OnPush. Zoneless
-architecture.
+Per-path signals: Angular's own, plugged into `web_core`. Computed signals with
+OnPush. Zoneless.
 
 <div class="callout">
 
