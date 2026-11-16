@@ -532,7 +532,7 @@ flowchart TB
 ```mermaid {scale: 0.74}
 %%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "11px", "lineColor": "#9aa0a6", "edgeLabelBackground": "#262626"}, "flowchart": {"curve": "basis", "nodeSpacing": 24, "rankSpacing": 44, "padding": 10}}}%%
 flowchart TB
-  S1["<b>A2A client</b><br/>server.ts"] --> S2["supportedCatalogIds"]
+  S1["<b>A2A client</b><br/>(app-to-agent)<br/>server.ts"] --> S2["supportedCatalogIds"]
   classDef file fill:#2a2a2a,stroke:#454545,stroke-width:1px,color:#9cdcfe
   classDef step fill:#333333,stroke:#569cd6,stroke-width:2px,color:#f0ebe4
   class S1 step
@@ -541,8 +541,8 @@ flowchart TB
 
 </div>
 <div class="dg-wire">
-  <div class="arrow">A2A</div>
-  <div class="arrow left">A2A stream</div>
+  <div class="arrow">A2A (app-to-agent)</div>
+  <div class="arrow left">A2A stream (app-to-agent)</div>
 </div>
 <div class="dg-lane dg-wide">
 <div class="dg-label">// agent · @a2ui/agent</div>
@@ -570,14 +570,17 @@ Read it left to right, one lane at a time. Three boxes, two different wires.
 
 Browser to our own server: plain POST /api/agent, SSE (Server-Sent Events) back.
 That's our API (Application Programming Interface), not A2A (Agent2Agent
-protocol). The browser never sees an A2A type; it only gets A2UI (Agent-to-User
-Interface) messages.
+protocol, used here app-to-agent: our server to the agent). The browser never
+sees an A2A (app-to-agent) type; it only gets A2UI (Agent-to-User Interface)
+messages.
 
-Server to agent: this is the only A2A hop. server.ts is the A2A client and the
-only file that knows A2A exists, so swapping the transport for AG-UI
+Server to agent: this is the only A2A (app-to-agent) hop. server.ts is the A2A
+(app-to-agent) client and the only file that knows A2A (app-to-agent) exists,
+so swapping the transport for AG-UI
 (Agent-User Interaction Protocol), MCP (Model Context Protocol) or plain REST
 (Representational State Transfer) means rewriting one file. Note: A2A here is app-to-agent, one agent. No
-agent-to-agent delegation in this demo; that's what A2A would add later.
+agent-to-agent delegation in this demo; that's what A2A (agent-to-agent) would
+add later.
 
 Inside the agent: negotiate the catalog from supportedCatalogIds, put
 catalog.toJson() in the prompt, call Gemini, validate against the Zod catalog,
