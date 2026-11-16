@@ -87,7 +87,19 @@ html.dark .ta-deck, html.dark .ta {
   background: color-mix(in srgb, var(--ta-accent) 7%, transparent);
 }
 .ta-deck table th { color: var(--ta-accent); }
-.ta-deck .tag { color: var(--ta-accent); border-color: color-mix(in srgb, var(--ta-accent) 55%, transparent); }
+/* Tags: the blog's primary button (ggalassi.dev, "Book a free 30-min call"): solid burnt-orange
+   fill, white text, fully rounded, weight 500. #c2491b is the blog's fill (white on it ~4.9:1, AA);
+   dark mode uses the deck's accent with its on-accent text. */
+.ta-deck .tag {
+  --tag-fill: #c2491b;
+  --tag-text: #ffffff;
+  background: var(--tag-fill);
+  color: var(--tag-text);
+  border: 0;
+  padding: 0.3em 0.95em;
+  line-height: 1.2;
+}
+html.dark .ta-deck .tag { --tag-fill: var(--ta-accent); --tag-text: var(--ta-on-accent); }
 .ta-deck .caption, .ta-deck .text-gray-400 { color: var(--ta-muted); }
 /* Code keeps its syntax colours: setup/shiki.ts picks github-light/dark, whose tokens hold AA contrast. */
 
@@ -186,6 +198,8 @@ html.dark:has(.ta-deck) .talk-footer { color: #ada593; }
 }
 .ta-thanks .who b { display: block; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 1.3rem; font-weight: 600; letter-spacing: -0.02em; }
 .ta-thanks .who span { color: var(--ta-muted); font-size: 0.9rem; }
+/* The tags sit inside .who: keep their button look over the muted bio text. */
+.ta-thanks .who span.tag { color: var(--tag-text); font-size: 0.8rem; }
 .ta-thanks .qr { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; font-size: 0.75rem; color: var(--ta-muted); }
 
 /* ---- Specificity: beat index.css's `.slidev-layout table th` ---- */
