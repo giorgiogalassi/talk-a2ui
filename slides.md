@@ -514,7 +514,7 @@ rule: ['Anatomy of an A2UI System', 'Part 4']
 Three libraries from the A2UI project, one per side of the wire.
 
 <div class="ta-cols c3">
-<div>
+<div v-click>
 
 ## `@a2ui/web_core`
 
@@ -524,7 +524,7 @@ validation, the data model and bindings.
 Both sides use it: the agent and the browser check against the same catalog.
 
 </div>
-<div>
+<div v-click>
 
 ## `@a2ui/agent`
 
@@ -534,7 +534,7 @@ model streams, validates every message before it leaves.
 You still bring the model and the agent logic.
 
 </div>
-<div>
+<div v-click>
 
 ## `@a2ui/angular`
 
@@ -546,7 +546,7 @@ Built on `web_core`, with signals.
 </div>
 </div>
 
-<div class="text-sm text-gray-400">
+<div v-click class="text-sm text-gray-400">
 
 Not from A2UI: the transport (A2A, `@a2a-js/sdk`) and the model (Gemini, `@google/genai`).
 In the demo: `web_core` 0.14, `agent` 0.0.2, `angular` 0.13, all on protocol v0.9.
@@ -557,17 +557,19 @@ In the demo: `web_core` 0.14, `agent` 0.0.2, `angular` 0.13, all on protocol v0.
 Speaker notes:
 Before the pipeline, name the pieces, so nothing on the next slide is new.
 
-Three packages, one job each. web_core is the protocol: the message shapes, the
-catalog as Zod, the validation. It's the one both sides share, which is why the
-same catalog can be checked on the agent and again in the browser.
+Three packages, one job each.
 
-@a2ui/agent is the server side: it writes the catalog into the model's prompt and
-checks what the model sends back, message by message, while it streams.
+[click: web_core] The protocol: the message shapes, the catalog as Zod, the
+validation. It's the one both sides share, which is why the same catalog can be
+checked on the agent and again in the browser.
 
-@a2ui/angular is the renderer: a provider, an element per surface, and the
+[click: @a2ui/agent] The server side: it writes the catalog into the model's prompt
+and checks what the model sends back, message by message, while it streams.
+
+[click: @a2ui/angular] The renderer: a provider, an element per surface, and the
 components you register.
 
-What A2UI doesn't give you: how messages travel (we use A2A) and which model
+[click: footer] What A2UI doesn't give you: how messages travel (we use A2A) and which model
 writes them (Gemini). Those are your choices.
 -->
 
@@ -579,11 +581,11 @@ rule: ['Anatomy of an A2UI System', 'Part 4']
 
 <div class="dg dg-seq">
 
-```mermaid {scale: 0.62}
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "13px", "actorBkg": "#333333", "actorBorder": "#569cd6", "actorTextColor": "#f0ebe4", "actorLineColor": "#4a4740", "signalColor": "#9aa0a6", "signalTextColor": "#e6e1d8", "noteBkgColor": "#2a2722", "noteBorderColor": "#4a4740", "noteTextColor": "#e6e1d8", "sequenceNumberColor": "#1d1b18"}, "sequence": {"mirrorActors": false, "actorMargin": 70, "messageMargin": 18, "noteMargin": 6, "boxMargin": 4, "height": 44, "showSequenceNumbers": true}}}%%
+```mermaid {scale: 0.64}
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "13px", "actorBkg": "#333333", "actorBorder": "#569cd6", "actorTextColor": "#f0ebe4", "actorLineColor": "#4a4740", "signalColor": "#9aa0a6", "signalTextColor": "#e6e1d8", "noteBkgColor": "#2a2722", "noteBorderColor": "#4a4740", "noteTextColor": "#e6e1d8", "sequenceNumberColor": "#1d1b18"}, "sequence": {"mirrorActors": false, "width": 170, "actorMargin": 100, "messageMargin": 14, "noteMargin": 5, "boxMargin": 4, "height": 40, "diagramMarginY": 12, "showSequenceNumbers": true}}}%%
 sequenceDiagram
   autonumber
-  participant B as Browser<br/>@a2ui/angular + web_core
+  participant B as Browser<br/>@a2ui/angular
   participant S as App server<br/>server.ts
   participant A as Agent<br/>@a2ui/agent
   participant M as Gemini
@@ -594,15 +596,14 @@ sequenceDiagram
   end
   M-->>A: A2UI JSON, streamed
   rect rgba(224, 122, 80, 0.16)
-  Note over A: ◆ Zod check, retry once
+  Note over A,M: ◆ Zod check every message, retry once
   end
-  Note over A: policy: strip notes, remove Delete
+  Note over A,M: policy: strip notes, remove Delete
   A-->>S: A2UI messages (A2A stream)
   S-->>B: A2UI messages (SSE)
   rect rgba(224, 122, 80, 0.16)
-  Note over B: ◆ Zod check (web_core)
+  Note over B,S: ◆ Zod check (web_core), then render
   end
-  Note over B: render your components
   B-)A: VALIDATION_FAILED (via the server): redo the turn once
 ```
 
@@ -650,8 +651,7 @@ rule: ['Anatomy of an A2UI System', 'Part 4']
 
 <div class="ta">
   <div class="ta-hero">
-    <FitText>The Trust</FitText>
-    <FitText>Boundary.</FitText>
+    <FitText>The Trust Boundary.</FitText>
   </div>
 </div>
 
