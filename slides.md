@@ -35,7 +35,7 @@ rule: ['A2UI · AngularDay 2026', 'Structured generative UI']
 <!--
 Speaker notes:
 Welcome the room. No preamble needed.
-Then 15 seconds about you, no more: name, what you do (frontend, Angular, GDG Roma
+Then 15 seconds about you, no more: name, what you do (freelance senior Angular engineer, GDG Roma
 Città), and that you built the demo you're about to show. The full "who I am" is at
 the end.
 Point at the QR once: questions can go in the AngularDay app during the talk,
@@ -1556,7 +1556,7 @@ rule: ['Thank you', 'ggalassi.dev']
   <div class="ta-thanks" style="grid-template-columns:1fr;gap:0.6rem;padding-top:0.6rem">
     <div class="who">
       <b>Giorgio Galassi</b>
-      <span>Senior Frontend Engineer (Freelancer) · GDG Roma Città Organizer</span>
+      <span>Freelance Senior Angular Engineer · GDG Roma Città Organizer</span>
       <div class="tags" style="margin-top:0.5rem">
         <span class="tag">Angular</span>
         <span class="tag">AI</span>
