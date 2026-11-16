@@ -329,3 +329,9 @@ html.dark:has(.ta-deck) .talk-footer { color: #ada593; }
 .ta-promo span { color: var(--ta-muted); font-size: 0.95rem; }
 .slidev-layout .ta-promo img.qr-code, .ta-promo .qr-placeholder { width: 5.4rem; height: 5.4rem; flex: none; margin: 0; background: #fff; padding: 0.25rem; border-radius: 4px; }
 .ta-promo .qr-placeholder { display: grid; place-items: center; text-align: center; font-size: 0.75rem; line-height: 1.2; color: var(--ta-muted); border: 1.5px dashed var(--ta-line); background: transparent; }
+
+/* ---- .dg-seq: the pipeline as one sequence diagram (2026-11-16): time runs down, requests
+   go right, answers come back left. Mermaid's own lane lines replace the bordered lanes. ---- */
+.ta-deck .dg.dg-seq { justify-content: center; padding: 0.4rem 0.7rem; }
+.ta-deck .dg.dg-seq .mermaid,
+.ta-deck .dg.dg-seq svg { margin: auto; }

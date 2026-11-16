@@ -122,7 +122,7 @@ from a remote agent in your client application.
 
 ## Option 2 — return data, let the frontend render it
 
-Clean. Predictable. And now the agent has no voice in how its output is presented.
+Clean. Predictable. The frontend decides the screen; the agent only fills it.
 
 It cannot say "show this as an approval workflow."
 It cannot say "this data needs a date picker."
@@ -156,6 +156,11 @@ land here by default. It's not wrong, it's just incomplete — you've solved saf
 by removing the agent's ability to express intent about presentation at all.
 The dashboard demo later in the talk is specifically the case where this breaks:
 the agent needs to choose the shape of the response, not just supply values.
+If someone asks "isn't A2UI also just JSON?": yes, both are JSON. The difference is
+who decides the screen. Here the frontend has one fixed screen per kind of data and
+the agent fills in values. With A2UI the agent picks which components and in what
+layout (an approval flow, a date picker), but only from components the frontend
+wrote and registered; how each one looks and behaves stays the frontend's.
 
 [click: Option 3]
 Quick beat, don't over-explain. This is the fallback most teams actually ship
@@ -504,95 +509,159 @@ rule: ['Part 4', 'Anatomy of an A2UI System']
 rule: ['Anatomy of an A2UI System', 'Part 4']
 ---
 
-# The full pipeline
+# The pieces
 
-<div class="dg">
-<div class="dg-lane">
-<div class="dg-label">// browser</div>
+Three libraries from the A2UI project, one per side of the wire.
 
-```mermaid {scale: 0.74}
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "11px", "lineColor": "#9aa0a6", "edgeLabelBackground": "#262626"}, "flowchart": {"curve": "basis", "nodeSpacing": 24, "rankSpacing": 44, "padding": 10}}}%%
-flowchart TB
-  B1["A2UI messages"] --> B2["<b>web_core</b><br/>same Zod catalog"] --> B3["Angular<br/>components"]
-  classDef file fill:#2a2a2a,stroke:#454545,stroke-width:1px,color:#9cdcfe
-  classDef step fill:#333333,stroke:#569cd6,stroke-width:2px,color:#f0ebe4
-  class B1 file
-  class B2,B3 step
-```
+<div class="ta-cols c3">
+<div>
+
+## `@a2ui/web_core`
+
+The protocol itself, framework-agnostic: message schemas, catalogs written in Zod,
+validation, the data model and bindings.
+
+Both sides use it: the agent and the browser check against the same catalog.
 
 </div>
-<div class="dg-wire">
-  <div class="arrow">POST /api/agent</div>
-  <div class="arrow left">SSE</div>
-  <div class="arrow">VALIDATION_FAILED</div>
-</div>
-<div class="dg-lane">
-<div class="dg-label">// ssr server</div>
+<div>
 
-```mermaid {scale: 0.74}
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "11px", "lineColor": "#9aa0a6", "edgeLabelBackground": "#262626"}, "flowchart": {"curve": "basis", "nodeSpacing": 24, "rankSpacing": 44, "padding": 10}}}%%
-flowchart TB
-  S1["<b>A2A client</b><br/>(app-to-agent)<br/>server.ts"] --> S2["supportedCatalogIds"]
-  classDef file fill:#2a2a2a,stroke:#454545,stroke-width:1px,color:#9cdcfe
-  classDef step fill:#333333,stroke:#569cd6,stroke-width:2px,color:#f0ebe4
-  class S1 step
-  class S2 file
-```
+## `@a2ui/agent`
+
+The agent's toolkit (Node): turns a catalog into the model's prompt, parses what the
+model streams, validates every message before it leaves.
+
+You still bring the model and the agent logic.
 
 </div>
-<div class="dg-wire">
-  <div class="arrow">A2A (app-to-agent)</div>
-  <div class="arrow left">A2A stream (app-to-agent)</div>
-</div>
-<div class="dg-lane dg-wide">
-<div class="dg-label">// agent · @a2ui/agent</div>
+<div>
 
-```mermaid {scale: 0.74}
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "11px", "lineColor": "#9aa0a6", "edgeLabelBackground": "#262626", "primaryTextColor": "#f0ebe4"}, "flowchart": {"curve": "basis", "nodeSpacing": 28, "rankSpacing": 30, "padding": 8}}}%%
-flowchart TB
-  A1["<b>negotiate</b><br/>pick-a2ui.ts"] --> A2["<b>prompt</b><br/>catalog.toJson()"] --> A3["Gemini"] --> A4{"valid?"}
-  A4 -- "no · retry once" --> A2
-  A4 -- yes --> A5["<b>applyPolicy</b><br/>strip · remove"]
-  classDef step fill:#333333,stroke:#569cd6,stroke-width:2px,color:#f0ebe4
-  classDef hot fill:#3d3530,stroke:#ce9178,stroke-width:3px,color:#ce9178
-  classDef tool fill:#26302a,stroke:#6a9955,stroke-width:2px,color:#b5cea8
-  class A1,A2,A4 step
-  class A3 tool
-  class A5 hot
-```
+## `@a2ui/angular`
+
+The renderer: `provideA2Ui`, one `<a2ui-v09-surface>` per surface, and your
+catalog of Angular components.
+
+Built on `web_core`, with signals.
 
 </div>
+</div>
+
+<div class="text-sm text-gray-400">
+
+Not from A2UI: the transport (A2A, `@a2a-js/sdk`) and the model (Gemini, `@google/genai`).
+In the demo: `web_core` 0.14, `agent` 0.0.2, `angular` 0.13, all on protocol v0.9.
+
 </div>
 
 <!--
 Speaker notes:
-Read it left to right, one lane at a time. Three boxes, two different wires.
+Before the pipeline, name the pieces, so nothing on the next slide is new.
 
-Browser to our own server: plain POST /api/agent, SSE (Server-Sent Events) back.
-That's our API (Application Programming Interface), not A2A (Agent2Agent
-protocol, used here app-to-agent: our server to the agent). The browser never
-sees an A2A (app-to-agent) type; it only gets A2UI (Agent-to-User Interface)
-messages.
+Three packages, one job each. web_core is the protocol: the message shapes, the
+catalog as Zod, the validation. It's the one both sides share, which is why the
+same catalog can be checked on the agent and again in the browser.
 
-Server to agent: this is the only A2A (app-to-agent) hop. server.ts is the A2A
-(app-to-agent) client and the only file that knows A2A (app-to-agent) exists,
-so swapping the transport for AG-UI
-(Agent-User Interaction Protocol), MCP (Model Context Protocol) or plain REST
-(Representational State Transfer) means rewriting one file. Note: A2A here is app-to-agent, one agent. No
-agent-to-agent delegation in this demo; that's what A2A (agent-to-agent) would
-add later.
+@a2ui/agent is the server side: it writes the catalog into the model's prompt and
+checks what the model sends back, message by message, while it streams.
 
-Inside the agent: negotiate the catalog from supportedCatalogIds, put
-catalog.toJson() in the prompt, call Gemini, validate against the Zod catalog,
-retry once on failure, then applyPolicy on every streamed message, not just the
-last one. The orange box is the one validation can't replace.
+@a2ui/angular is the renderer: a provider, an element per surface, and the
+components you register.
 
-Back in the browser, web_core checks the same Zod catalog again on arrival.
-The dashed VALIDATION_FAILED arrow is the renderer reporting back to the agent
-(app code, not web_core): the agent redoes the turn once, then answers in text.
+What A2UI doesn't give you: how messages travel (we use A2A) and which model
+writes them (Gemini). Those are your choices.
 -->
 
+---
+rule: ['Anatomy of an A2UI System', 'Part 4']
+---
 
+# The full pipeline
+
+<div class="dg dg-seq">
+
+```mermaid {scale: 0.62}
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "13px", "actorBkg": "#333333", "actorBorder": "#569cd6", "actorTextColor": "#f0ebe4", "actorLineColor": "#4a4740", "signalColor": "#9aa0a6", "signalTextColor": "#e6e1d8", "noteBkgColor": "#2a2722", "noteBorderColor": "#4a4740", "noteTextColor": "#e6e1d8", "sequenceNumberColor": "#1d1b18"}, "sequence": {"mirrorActors": false, "actorMargin": 70, "messageMargin": 18, "noteMargin": 6, "boxMargin": 4, "height": 44, "showSequenceNumbers": true}}}%%
+sequenceDiagram
+  autonumber
+  participant B as Browser<br/>@a2ui/angular + web_core
+  participant S as App server<br/>server.ts
+  participant A as Agent<br/>@a2ui/agent
+  participant M as Gemini
+  B->>S: POST /api/agent { query }
+  S->>A: A2A message + supportedCatalogIds
+  rect rgba(224, 122, 80, 0.16)
+  A->>M: prompt + catalog.toJson() ◆
+  end
+  M-->>A: A2UI JSON, streamed
+  rect rgba(224, 122, 80, 0.16)
+  Note over A: ◆ Zod check, retry once
+  end
+  Note over A: policy: strip notes, remove Delete
+  A-->>S: A2UI messages (A2A stream)
+  S-->>B: A2UI messages (SSE)
+  rect rgba(224, 122, 80, 0.16)
+  Note over B: ◆ Zod check (web_core)
+  end
+  Note over B: render your components
+  B-)A: VALIDATION_FAILED (via the server): redo the turn once
+```
+
+</div>
+
+<div class="text-sm text-gray-400">
+
+Time runs down. Requests go right, answers come back left. ◆ The Zod catalog checks here: the trust boundary.
+
+</div>
+
+<!--
+Speaker notes:
+Read it top to bottom: time goes down. Every arrow to the right is a request, every
+arrow to the left is an answer coming back.
+
+1, browser to our own server: plain POST /api/agent, SSE (Server-Sent Events) back.
+That's our API (Application Programming Interface), not A2A (Agent2Agent protocol,
+used here app-to-agent: our server to the agent). The browser never sees an A2A type;
+it only gets A2UI (Agent-to-User Interface) messages.
+
+2, server to agent: the only A2A (app-to-agent) hop. server.ts is the only file that
+knows A2A exists, so swapping the transport for AG-UI (Agent-User Interaction
+Protocol), MCP (Model Context Protocol) or plain REST (Representational State
+Transfer) means rewriting one file. One agent, no agent-to-agent delegation here;
+that's what A2A (agent-to-agent) would add later.
+
+3 and 4, inside the agent: pick the catalog from supportedCatalogIds, put
+catalog.toJson() in the prompt, and check every streamed message against the Zod
+catalog, retrying once. Then the policy, on every message: the one check validation
+can't replace.
+
+5 and 6, back to the browser: web_core checks the same Zod catalog again on arrival,
+then Angular renders your components.
+
+7, the last arrow: the renderer reports VALIDATION_FAILED (app code, not web_core),
+through our server; the agent redoes the turn once, then answers in text.
+
+The ◆ marks are where Zod checks the agent's output. That's the next section.
+-->
+
+---
+rule: ['Anatomy of an A2UI System', 'Part 4']
+---
+
+<div class="ta">
+  <div class="ta-hero">
+    <FitText>The Trust</FitText>
+    <FitText>Boundary.</FitText>
+  </div>
+</div>
+
+<!--
+Speaker notes:
+The ◆ in the pipeline: one Zod catalog, checked three times. In the prompt (the
+model only sees what the catalog allows), on the agent (before anything leaves),
+and in the browser (before anything renders). The next slides are about that
+catalog: what it is, who checks what, and what it can't do on its own.
+-->
 
 ---
 rule: ['Anatomy of an A2UI System', 'Part 4']
