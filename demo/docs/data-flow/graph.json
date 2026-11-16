@@ -883,7 +883,7 @@
         "label": "DefaultRequestHandler",
         "group": "a2a",
         "order": 3,
-        "detail": "@a2a-js/sdk 0.3.13 with an InMemoryTaskStore. Calls RestaurantExecutor.execute(requestContext, eventBus) once per incoming message and streams what the executor publishes on the event bus.",
+        "detail": "@a2a-js/sdk 0.3.13 with an InMemoryTaskStore. Calls TicketExecutor.execute(requestContext, eventBus) once per incoming message and streams what the executor publishes on the event bus.",
         "source": "demo/apps/agent/src/index.ts",
         "status": "done"
       },
