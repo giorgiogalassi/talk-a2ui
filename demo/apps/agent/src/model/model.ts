@@ -23,10 +23,10 @@ import path from 'path';
 import type {AgentToRendererMessage} from '@a2ui/agent';
 import {Chat, FunctionCall, GoogleGenAI, PartListUnion, type ThinkingLevel} from '@google/genai';
 
-import {readMessages, toResponseText} from './examples.js';
+import {readMessages, toResponseText} from '../catalog/examples.js';
 import {LruCache} from './lru-cache.js';
 import {executeGetTickets, getPackageRootDir, getTicketsDeclaration} from './tools.js';
-import {VERSIONS, type VersionProfile} from './versions.js';
+import {VERSIONS, type VersionProfile} from '../turn/versions.js';
 
 /** One model turn, as the executor asks for it. */
 export interface TurnInput {
@@ -67,7 +67,7 @@ export class GeminiBackend implements ModelBackend {
     private readonly options: {
       apiKey: string;
       modelName: string;
-      /** Demo: the directory with assets/tickets.json, for the get_tickets tool. */
+      /** Demo: the directory with data/tickets.json, for the get_tickets tool. */
       assetsDir: string;
       /** Demo: the thinking level, read per turn (the demo panel can change it). Default: the env. */
       thinkingLevel?: () => string | undefined;
@@ -194,7 +194,7 @@ export class StubBackend implements ModelBackend {
      * Demo: when true (`STUB_LEAKY=true`), the replies are what a careless model would write:
      * every ticket in the data model keeps its `internal_notes`, and the detail view shows
      * them in an extra Text (the Delete button is in the example already). Valid against the
-     * catalog, so only the policy (src/policy.ts) stops them. The reply streams in small
+     * catalog, so only the policy (src/policy/policy.ts) stops them. The reply streams in small
      * chunks, so each message is re-sent many times as it grows and the notes appear mid-stream.
      */
     private readonly leaky = false,
@@ -209,14 +209,14 @@ export class StubBackend implements ModelBackend {
     private readonly clientInvalidFirstAttempt = false,
   ) {
     for (const profile of VERSIONS) {
-      const notice = readMessages(path.join(packageRoot, 'stub_notice', `${profile.version}.json`));
+      const notice = readMessages(path.join(packageRoot, 'data', 'stub_notice', `${profile.version}.json`));
       const byExample: Record<string, string> = {};
       const invalid: Record<string, string> = {};
       const clientInvalid: Record<string, string> = {};
       // Demo: the ticket flow: list, then one ticket, then the resolved confirmation.
       for (const name of ['ticket_list', 'ticket_detail', 'ticket_resolved']) {
         const read = readMessages(
-          path.join(packageRoot, 'examples', profile.version, `${name}.json`),
+          path.join(packageRoot, 'data', 'examples', profile.version, `${name}.json`),
         );
         const example = leaky ? leakInternalNotes(read, packageRoot) : read;
         byExample[name] = toResponseText([...notice, ...example]);
@@ -275,12 +275,12 @@ export function priorityOutsideCatalog(messages: AgentToRendererMessage[]): Agen
 }
 
 /**
- * Demo: the example messages with each ticket's `internal_notes` (from assets/tickets.json)
+ * Demo: the example messages with each ticket's `internal_notes` (from data/tickets.json)
  * put back into the data model, and, where a detail view binds `/ticket`, a Text showing them.
  * What `STUB_LEAKY=true` serves.
  */
 export function leakInternalNotes(messages: AgentToRendererMessage[], packageRoot: string): AgentToRendererMessage[] {
-  const tickets = JSON.parse(fs.readFileSync(path.join(packageRoot, 'assets', 'tickets.json'), 'utf-8')) as {
+  const tickets = JSON.parse(fs.readFileSync(path.join(packageRoot, 'data', 'tickets.json'), 'utf-8')) as {
     id: string;
     internal_notes: string;
   }[];

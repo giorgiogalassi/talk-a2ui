@@ -4,8 +4,8 @@ import { A2uiRendererService, BasicCatalog, provideA2Ui, provideMarkdownRenderer
 import { renderMarkdown } from '@a2ui/markdown-it';
 import { PriorityBadgeApi, TICKET_CATALOG_ID } from '@demo/catalog';
 import { AgentClient } from './agent-client';
-import { createTicketCatalog } from './catalog/ticket-catalog';
-import { absolutePath, resolvedValueProblem } from './catalog/resolved-value';
+import { createTicketCatalog } from '../catalog/ticket-catalog';
+import { absolutePath, resolvedValueProblem } from '../catalog/resolved-value';
 import { ValidationIssues } from './validation-issues';
 
 // Demo: phase 6. What the renderer does with a reply it partly rejects, and what it reports.

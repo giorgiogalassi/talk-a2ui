@@ -22,8 +22,8 @@ import path from 'path';
 
 import {type AgentToRendererMessage} from '@a2ui/agent';
 
-import {getPackageRootDir} from './tools.js';
-import type {VersionProfile} from './versions.js';
+import {getPackageRootDir} from '../model/tools.js';
+import type {VersionProfile} from '../turn/versions.js';
 
 export interface LoadedExamples {
   /** Example JSON text by file basename. */
@@ -42,12 +42,12 @@ export function toResponseText(messages: AgentToRendererMessage[]): string {
   return `<a2ui-json>\n${JSON.stringify(messages, null, 2)}\n</a2ui-json>`;
 }
 
-/** Loads the examples in examples/<version>/. They are validated by the tests, not here. */
+/** Loads the examples in data/examples/<version>/. They are validated by the tests, not here. */
 export function loadExamples(
   profile: VersionProfile,
   packageRoot: string = getPackageRootDir(),
 ): LoadedExamples {
-  const examplesDir = path.join(packageRoot, 'examples', profile.version);
+  const examplesDir = path.join(packageRoot, 'data', 'examples', profile.version);
   if (!fs.existsSync(examplesDir)) {
     throw new Error(`Examples directory not found at ${examplesDir}`);
   }

@@ -212,7 +212,7 @@ data: {"messages":[],"text":"I'm sorry, I'm having trouble generating the interf
 If the agent can't be reached before the stream starts, the server answers `502 { "error": "…" }`;
 after it started, `data: {"error":"…"}` and the stream ends.
 
-**The A2UI messages themselves** (from `apps/agent/examples/v0.9/ticket_list.json`):
+**The A2UI messages themselves** (from `apps/agent/data/examples/v0.9/ticket_list.json`):
 
 ```json
 { "version": "v0.9", "createSurface": { "surfaceId": "tickets", "catalogId": "…/tickets/v0_9/catalog.json" } }

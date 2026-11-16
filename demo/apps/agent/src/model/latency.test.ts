@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {describe, it} from 'node:test';
 
 import {thinkingConfig} from './model.js';
-import {buildUserQuery} from './user-query.js';
+import {buildUserQuery} from '../turn/user-query.js';
 
 describe('thinking level', () => {
   it('defaults to MINIMAL', () => {

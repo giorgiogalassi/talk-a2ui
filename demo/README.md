@@ -38,7 +38,7 @@ Gemini's load (503s seen on 2026-11-06), so keep the stub one switch away.
 Live / Stub, *First attempt invalid* (the agent's retry), *Leaky replies* (internal notes and a
 Delete button, for the policy to strip), *Renderer rejects first attempt* (VALIDATION_FAILED back to
 the agent) and the thinking level. A change applies from the next prompt or click. Behind it:
-`GET/PUT /demo/flags` on the agent (`apps/agent/src/demo-flags.ts`), forwarded by the client's
+`GET/PUT /demo/flags` on the agent (`apps/agent/src/demo/demo-flags.ts`), forwarded by the client's
 `server.ts`; a change is accepted only from this machine. The same switches can start on with
 `STUB_INVALID_FIRST`, `STUB_LEAKY`, `STUB_CLIENT_INVALID` (`true`). `MODEL_NAME` needs a restart.
 
@@ -51,6 +51,47 @@ npm run start -w agent      # ... or live
 npm run start:client        # terminal 2, http://localhost:4200
 ```
 
+## Find your way
+
+Follow one turn: the browser asks → `server.ts` forwards it over A2A → the agent picks a catalog,
+asks the model, validates and polices the reply → the browser renders it. Files marked *(sample)*
+are adapted from Google's A2UI samples; the link to each original is in its header.
+
+```
+apps/client/src/                      the Angular app
+  server.ts                           SSR server: POST /api/agent, the only A2A client (sample)
+  app/
+    app.ts · app.config.ts            the page and the A2UI setup (provideA2Ui, actionHandler)
+    agent/                            talking to the agent
+      agent-client.ts                 send, read the stream, render, report errors (sample + ours)
+      validation-issues.ts            what the renderer rejected, for VALIDATION_FAILED
+    catalog/                          the components the agent may use: TicketList,
+                                      PriorityBadge, AssigneeChip (+ resolved-value checks)
+    demo/demo-panel.ts                presenter-only switches (Alt+Shift+D)
+
+apps/agent/src/                       the agent
+  index.ts                            HTTP server: A2A endpoint, agent card, /demo/flags (sample)
+  config.ts                           environment: stub or live, model name (sample)
+  turn/                               one A2A message in, one answer out
+    agent.ts                          TicketExecutor: the steps of a turn, read it first (sample)
+    pick-a2ui.ts · versions.ts        which A2UI version and catalogs (stage 1) (sample)
+    a2a.ts                            read the A2A message, publish A2A events (sample)
+    user-query.ts                     a prompt or a click → the model's query (sample)
+    client-retry.ts                   VALIDATION_FAILED from the browser → redo the turn once
+  model/                              who writes the A2UI
+    model.ts                          GeminiBackend (live) and StubBackend (canned) (sample)
+    prompt.ts · tools.ts              system prompt, get_tickets (sample)
+  catalog/                            catalogs.ts (basic + ticket catalog), examples.ts (sample)
+  policy/policy.ts                    what this user may see: strips notes, removes Delete
+  demo/demo-flags.ts                  the stage switches behind the presenter panel
+apps/agent/data/                      tickets.json, examples/v0.9/ (prompt examples), stub_notice/
+
+packages/catalog/                     the ticket catalog as Zod, shared by agent and app
+docs/data-flow/                       the same journey, step by step, with every file and line
+```
+
+Tests sit next to the code they test (`*.test.ts` in the agent, `*.spec.ts` in the app).
+
 ## Versions
 
 - Angular **22.2.3**. `@a2ui/angular@0.13.0` declares `@angular/*@^21.2.5` as peers, so the root
@@ -59,7 +100,7 @@ npm run start:client        # terminal 2, http://localhost:4200
 - `zod@3.25.76` in `packages/catalog`, deduped with `@a2ui/web_core`'s and `@a2ui/angular`'s
   (Zod 3, not 4: `ComponentApi` is typed against Zod 3).
 - `@a2ui/web_core@0.14.0`, `@a2ui/markdown-it@0.2.2`, `@a2ui/agent@0.0.2` (pinned; was 0.0.1 until
-  2026-10-31, see incident 1. `src/agent.ts` must match the sample at the pinned release's commit).
+  2026-10-31, see incident 1. `src/turn/agent.ts` must match the sample at the pinned release's commit).
 - `@a2a-js/sdk@^0.3.13` on both sides (A2A v0.3), like the official samples (decided 2026-10-22).
 
 ## Build history
@@ -79,7 +120,7 @@ basic catalog. Checked in a browser: typing into fields sends nothing; *Submit R
 own server) → A2A `message/stream` → agent → A2UI messages back as SSE → renderer. Checked in a
 browser: prompt → restaurant list → *Book Now* → booking form → *Submit* → confirmation.
 - Gotcha found: the agent reads a UI action inside a v0.9 envelope, `{ version: 'v0.9', action }`,
-  or as the legacy `{ userAction }` (fallback in `apps/agent/src/a2a.ts`). A bare action, which is
+  or as the legacy `{ userAction }` (fallback in `apps/agent/src/turn/a2a.ts`). A bare action, which is
   what the renderer hands the client, is ignored and the agent answers as if it were a new query.
   The bridge wraps it (`apps/client/src/server.ts`). Corrected 2026-11-02 after testing all three
   shapes against the stub agent: envelope and `userAction` both return the booking form, the bare
@@ -101,9 +142,9 @@ basic `TextApi`/`RowApi`/`ColumnApi`/`CardApi`/`DividerApi`/`ButtonApi` as they 
 `new Catalog(TICKET_CATALOG_ID, 'v0.9', components, [], { themeSchema, … })`;
 `ticketCatalogDocument()` returns `toJson()`. Id:
 `https://github.com/giorgiogalassi/talk-a2ui/demo/catalogs/tickets/v0_9/catalog.json`.
-- *Agent:* registers that Zod `Catalog` next to the basic one (`src/catalogs.ts`); the prompt carries
+- *Agent:* registers that Zod `Catalog` next to the basic one (`src/catalog/catalogs.ts`); the prompt carries
   its `toJson()` document, validation runs on its Zod. Restaurants replaced: `get_tickets` over
-  `assets/tickets.json` (8 tickets, with `internal_notes` for step 5's policy to strip; the tool
+  `data/tickets.json` (8 tickets, with `internal_notes` for step 5's policy to strip; the tool
   returns them whole), ticket examples (`ticket_list`, `ticket_detail`, `ticket_resolved`), actions
   `open_ticket` and `resolve_ticket`, agent card. The stub notice moved to the ticket catalog.
 - *Client:* `apps/client/src/app/catalog/`: three components extending
@@ -121,9 +162,9 @@ basic `TextApi`/`RowApi`/`ColumnApi`/`CardApi`/`DividerApi`/`ButtonApi` as they 
   list. Express format checked with the stub too.
 - Two things the plan didn't expect: incidents 3 and 4 below.
 
-**Step 5, server-side policy — done (2026-11-06), checked in stub mode.** `apps/agent/src/policy.ts`:
+**Step 5, server-side policy — done (2026-11-06), checked in stub mode.** `apps/agent/src/policy/policy.ts`:
 `applyPolicy(messages, policy)` is pure and per message; `enforcePolicy(parts)` wraps it for
-`@a2ui/agent`'s response parts and logs one line per strip. `answer()` in `src/agent.ts` calls it in
+`@a2ui/agent`'s response parts and logs one line per strip. `answer()` in `src/turn/agent.ts` calls it in
 the two places the plan names: the streaming path's `send()` (every `stream.feed(chunk)` and the
 `stream.close()` result, so each re-send of a growing message is filtered) and the
 `processor.parseResponse(fullText)` result. Policy (`DEMO_POLICY`): `forbiddenDataPaths:
@@ -147,7 +188,7 @@ the two places the plan names: the streaming path's `send()` (every `stream.feed
   next to *Mark as resolved* in a `detail_actions` row) and the prompt names both actions, so the
   model offers Delete and the policy always removes it, in stub mode too.
 - *`STUB_LEAKY=true`:* the canned replies keep each ticket's `internal_notes` (from
-  `assets/tickets.json`) in the data model and add a `Text` bound to `/ticket/internal_notes` to the
+  `data/tickets.json`) in the data model and add a `Text` bound to `/ticket/internal_notes` to the
   detail view: all valid against the catalog. They stream in 80-character chunks, so every message is
   re-sent many times as it grows. Live mode needs no switch: `get_tickets` and the `open_ticket`
   prefetch hand the model the notes on purpose.
@@ -195,7 +236,7 @@ in stub mode.** The renderer tells the agent what it could not show, and the age
   `{ messages: [], text }` and show above the surface (`agentText`), so the text fallback after a second
   report is visible instead of a page that stays on the `?` badge (added after review, 2026-11-12).
 - *Agent:* `readInboundMessage` reads the error (`clientError`). The executor remembers each
-  conversation's last turn (`src/client-retry.ts`); on `VALIDATION_FAILED` it logs
+  conversation's last turn (`src/turn/client-retry.ts`); on `VALIDATION_FAILED` it logs
   `--- A2UI client reported VALIDATION_FAILED on surface 'tickets' at /tickets/0/priority: … ---` and
   re-generates that turn once with `retryQuery(error)`, the server-side retry's query, then publishes
   the new UI (or the text fallback, if the server-side checks fail twice). A second report about the
@@ -235,7 +276,7 @@ in stub mode.** The renderer tells the agent what it could not show, and the age
   deltas landed at the data-model root as `"0"`, `"1"`, `"2"`. When the complete message closed,
   its dedupe check compared it to those same keys, found nothing new, and never sent it.
 - *Fix:* upgraded to **0.0.2** (2026-10-24), which rewrote the streaming parser
-  (`DirectJsonResponseStream`, whole messages re-sent as they grow, `path` kept). `src/agent.ts` replaced
+  (`DirectJsonResponseStream`, whole messages re-sent as they grow, `path` kept). `src/turn/agent.ts` replaced
   with the sample's file at the release commit `409ded29cc`; ours was the unmodified 0.0.1-release file, and
   the other `src/` files are unchanged upstream between the two releases.
 - *Knock-on:* 0.0.2 checks each reply against a fresh renderer state, so every reply carries its
@@ -262,7 +303,7 @@ in stub mode.** The renderer tells the agent what it could not show, and the age
   agent and fail the renderer; `action: 42` fails both.
 - *Takeaway:* validation is only as strong as the schema each side holds. Two copies of "the same"
   catalog drifted; one shared Zod source (step 4, `packages/catalog`) removes the gap.
-- *Fix:* `apps/agent/src/catalogs.ts` serves v0.9 with `basicCatalog` from
+- *Fix:* `apps/agent/src/catalog/catalogs.ts` serves v0.9 with `basicCatalog` from
   `@a2ui/web_core/v0_9/basic_catalog` instead of the JSON file. Both produce the same catalog
   document (equal ignoring key order), so the prompt is unchanged. With it, the agent rejects `{}`
   and `{zz: 1}`, a stream cut inside the binding holds the message back, and the live booking form
@@ -279,7 +320,7 @@ in stub mode.** The renderer tells the agent what it could not show, and the age
 - *Done instead:* the agent registers the Zod `Catalog` object itself with `CatalogConfig`. The model
   still reads the generated document (`@a2ui/agent`'s prompt generator writes `catalog.toJson()`),
   so one Zod source feeds prompt, agent validation and renderer. Switching to the provider is one
-  line in `src/catalogs.ts` if wanted.
+  line in `src/catalog/catalogs.ts` if wanted.
 
 **4 · A streamed retry broke the client: "Surface stub-notice already exists." (2026-11-06, fixed).**
 - *Symptom:* with the first attempt invalid (`STUB_INVALID_FIRST=true`), the browser showed that
@@ -292,7 +333,7 @@ in stub mode.** The renderer tells the agent what it could not show, and the age
 
 **5 · The plan's policy path missed the detail view; ids still stream before their component (2026-11-06, decided in code).**
 - *Plan:* `forbiddenDataPaths: ['/tickets/*/internal_notes']`.
-- *Found:* the detail view keeps its ticket at `/ticket` (singular, `examples/v0.9/ticket_detail.json`),
+- *Found:* the detail view keeps its ticket at `/ticket` (singular, `data/examples/v0.9/ticket_detail.json`),
   so a model echoing the notes there writes `/ticket/internal_notes`, which that pattern does not
   match. The policy lists both paths. Takeaway for the talk: a path denylist only covers the shapes
   you thought of; a model that writes the notes under another key (`/ticket/notes`) passes it. The
@@ -318,7 +359,7 @@ in stub mode.** The renderer tells the agent what it could not show, and the age
 
 **What happened.** First live run on the ticket domain: every request waited 15-20 s before the
 first UI arrived, and one *Open* took about 50 s. Measured with per-call timing in the agent log
-(`--- timing: call N first chunk … ms ---`, `src/model.ts`):
+(`--- timing: call N first chunk … ms ---`, `src/model/model.ts`):
 
 | Request | Call 1 (decides to call `get_tickets`) | Call 2 (writes the UI) | First UI |
 |---|---|---|---|
@@ -334,15 +375,15 @@ Gemini 503, which the retry loop logged as "A2UI validation failed" and retried 
 prompt.
 
 **What changed.**
-1. **Thinking defaults to `MINIMAL`** (`src/model.ts`, `thinkingConfig`): call 2's first token went
+1. **Thinking defaults to `MINIMAL`** (`src/model/model.ts`, `thinkingConfig`): call 2's first token went
    from ~10 s to ~3-7 s. `GEMINI_THINKING_LEVEL` overrides it; `DEFAULT` restores the model's own.
-2. **`open_ticket` skips call 1** (`src/user-query.ts`): the click already names the ticket, so the
+2. **`open_ticket` skips call 1** (`src/turn/user-query.ts`): the click already names the ticket, so the
    agent fetches it itself and puts it in the query (`TICKET_DATA`); the prompt says not to call
    the tool again. Logged as `--- get_tickets {...}, prefetched for open_ticket ---`. Free-text
    questions still go through the model's tool call, so the demo still shows tool calling.
 3. **The client says it's working** (`apps/client`, `waitingForUi`): "Agent is working…" from the
    request until the first A2UI message, since the old UI is cleared at once.
-4. **Model errors have their own log line** (`src/agent.ts`): only A2UI errors (`A2uiError`, or a
+4. **Model errors have their own log line** (`src/turn/agent.ts`): only A2UI errors (`A2uiError`, or a
    reply with no A2UI) log `--- A2UI validation failed ---` and retry with the error; anything else
    (e.g. a 503) logs `--- Model call failed: 503 … ---` and retries the original query.
 

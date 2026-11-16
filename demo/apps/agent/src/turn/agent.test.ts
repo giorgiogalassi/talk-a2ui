@@ -13,11 +13,11 @@ import {A2uiGenerator, CatalogConfig, DirectJsonFormatFactory} from '@a2ui/agent
 import {TICKET_CATALOG_ID} from '@demo/catalog';
 
 import {TicketExecutor} from './agent.js';
-import {loadBasicCatalogs, loadTicketCatalogs} from './catalogs.js';
-import {readMessages, toResponseText} from './examples.js';
-import {leakInternalNotes, type ModelBackend, type TurnInput} from './model.js';
-import {FALLBACK_TEXT} from './prompt.js';
-import {getPackageRootDir} from './tools.js';
+import {loadBasicCatalogs, loadTicketCatalogs} from '../catalog/catalogs.js';
+import {readMessages, toResponseText} from '../catalog/examples.js';
+import {leakInternalNotes, type ModelBackend, type TurnInput} from '../model/model.js';
+import {FALLBACK_TEXT} from '../model/prompt.js';
+import {getPackageRootDir} from '../model/tools.js';
 import {V0_9} from './versions.js';
 
 const ticketCatalog = loadTicketCatalogs().get('v0.9')!;
@@ -25,7 +25,7 @@ const ticketCatalog = loadTicketCatalogs().get('v0.9')!;
 /** The ticket list example as the model would write it, optionally with a wrong priority. */
 function ticketListText(priority?: unknown): string {
   const messages = readMessages(
-    path.join(getPackageRootDir(), 'examples', 'v0.9', 'ticket_list.json'),
+    path.join(getPackageRootDir(), 'data', 'examples', 'v0.9', 'ticket_list.json'),
   );
   if (priority !== undefined) {
     const update = messages[1] as {updateComponents: {components: Record<string, unknown>[]}};
@@ -186,7 +186,7 @@ describe('the server-side policy', () => {
   /** A leaky example, as a careless model would write it: notes in the data, Delete button. */
   function leakyText(name: string): string {
     const root = getPackageRootDir();
-    const messages = leakInternalNotes(readMessages(path.join(root, 'examples', 'v0.9', `${name}.json`)), root);
+    const messages = leakInternalNotes(readMessages(path.join(root, 'data', 'examples', 'v0.9', `${name}.json`)), root);
     return toResponseText(messages);
   }
   const CHUNK = 80;

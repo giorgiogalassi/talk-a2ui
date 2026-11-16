@@ -18,7 +18,7 @@
  */
 
 // Everything that differs by A2UI protocol version lives here, as in the sample: examples live
-// in examples/<version>/ and the stub notice in stub_notice/<version>.json. Demo: one version,
+// in data/examples/<version>/ and the stub notice in data/stub_notice/<version>.json. Demo: one version,
 // v0.9 (the sample also serves v1.0).
 
 /** One A2UI protocol version this agent can answer in. */

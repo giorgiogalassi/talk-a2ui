@@ -11,10 +11,10 @@ import {TICKET_CATALOG_ID} from '@demo/catalog';
 
 import {readInboundMessage} from './a2a.js';
 import {TicketExecutor} from './agent.js';
-import {loadBasicCatalogs, loadTicketCatalogs} from './catalogs.js';
+import {loadBasicCatalogs, loadTicketCatalogs} from '../catalog/catalogs.js';
 import {ClientRetries} from './client-retry.js';
-import {StubBackend, type TurnInput} from './model.js';
-import {FALLBACK_TEXT} from './prompt.js';
+import {StubBackend, type TurnInput} from '../model/model.js';
+import {FALLBACK_TEXT} from '../model/prompt.js';
 
 const ERROR = {
   code: 'VALIDATION_FAILED',

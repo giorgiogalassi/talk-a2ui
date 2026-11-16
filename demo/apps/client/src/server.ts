@@ -200,7 +200,7 @@ app.post('/api/agent', express.json(), async (req, res) => {
 });
 
 /**
- * Demo: the agent's stage switches (agent: src/demo-flags.ts), for the demo panel (Alt+Shift+D).
+ * Demo: the agent's stage switches (agent: src/demo/demo-flags.ts), for the demo panel (Alt+Shift+D).
  * Passed through as they are; changes only from this machine, like on the agent.
  */
 app.get('/demo/flags', async (_req, res) => {

@@ -5,7 +5,7 @@
   "type": "module",
   "description": "A2UI demo agent (support tickets), adapted from the official A2UI Node restaurant_finder sample (Apache-2.0)",
   "scripts": {
-    "build": "npm run build -w @demo/catalog && tsc -p tsconfig.json",
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && npm run build -w @demo/catalog && tsc -p tsconfig.json",
     "test": "npm run build && node --test \"dist/src/**/*.test.js\"",
     "start": "node --env-file-if-exists=.env dist/src/index.js",
     "start:stub": "STUB_LLM=true node --env-file-if-exists=.env dist/src/index.js"

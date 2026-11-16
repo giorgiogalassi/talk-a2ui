@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { A2uiRendererService, SurfaceComponent } from '@a2ui/angular/v0_9';
-import { AgentClient } from './agent-client';
-import { DemoPanel } from './demo-panel';
+import { AgentClient } from './agent/agent-client';
+import { DemoPanel } from './demo/demo-panel';
 
 @Component({
   selector: 'app-root',

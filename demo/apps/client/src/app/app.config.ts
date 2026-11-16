@@ -2,7 +2,7 @@ import { ApplicationConfig, Injector, inject, provideBrowserGlobalErrorListeners
 import { BasicCatalog, provideA2Ui, provideMarkdownRenderer } from '@a2ui/angular/v0_9';
 import { renderMarkdown } from '@a2ui/markdown-it';
 import { A2uiClientAction } from '@a2ui/web_core/v0_9';
-import { AgentClient } from './agent-client';
+import { AgentClient } from './agent/agent-client';
 import { createTicketCatalog } from './catalog/ticket-catalog';
 
 export const appConfig: ApplicationConfig = {

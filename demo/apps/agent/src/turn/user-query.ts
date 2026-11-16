@@ -18,7 +18,7 @@
  */
 
 import type {InboundMessage} from './a2a.js';
-import {executeGetTickets} from './tools.js';
+import {executeGetTickets} from '../model/tools.js';
 
 /** What the agent needs from one inbound A2A message. */
 export interface UserQuery {

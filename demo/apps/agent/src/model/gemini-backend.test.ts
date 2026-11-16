@@ -7,7 +7,7 @@ import {describe, it} from 'node:test';
 import type {Chat, GoogleGenAI} from '@google/genai';
 
 import {GeminiBackend, type TurnInput} from './model.js';
-import {V0_9} from './versions.js';
+import {V0_9} from '../turn/versions.js';
 
 type Step = 'tool' | 'text' | 'throw' | 'hang' | {tool: string};
 

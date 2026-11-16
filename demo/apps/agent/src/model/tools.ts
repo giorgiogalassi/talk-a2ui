@@ -22,18 +22,20 @@ import path from 'path';
 import {fileURLToPath} from 'url';
 import {FunctionDeclaration, Type} from '@google/genai';
 
-/** Resolves the package root directory across both tsx and compiled dist/src. */
+/** The agent package's root (apps/agent), from src/ or dist/src/, whatever folder this file is in. */
 export function getPackageRootDir(): string {
-  const dirname = fileURLToPath(new URL('.', import.meta.url));
-  if (fs.existsSync(path.join(dirname, '../package.json'))) {
-    return path.resolve(dirname, '..');
+  let dir = fileURLToPath(new URL('.', import.meta.url));
+  while (!fs.existsSync(path.join(dir, 'package.json'))) {
+    const up = path.dirname(dir);
+    if (up === dir) throw new Error('apps/agent/package.json not found above ' + fileURLToPath(import.meta.url));
+    dir = up;
   }
-  return path.resolve(dirname, '../..');
+  return dir;
 }
 
-/** Demo: the directory with the ticket data the get_tickets tool reads (assets/tickets.json). */
+/** Demo: the directory with the ticket data the get_tickets tool reads (data/tickets.json). */
 export function resolveAssetsDir(): string {
-  return path.join(getPackageRootDir(), 'assets');
+  return path.join(getPackageRootDir(), 'data');
 }
 
 /** Demo: fails at startup, not on the first tool call, if the ticket data is missing. */

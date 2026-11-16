@@ -29,13 +29,13 @@ import {
 } from '@a2ui/agent';
 
 import {readInboundMessage, TaskEvents, toA2aParts} from './a2a.js';
-import type {BasicCatalogs, TicketCatalogs} from './catalogs.js';
+import type {BasicCatalogs, TicketCatalogs} from '../catalog/catalogs.js';
 import {ClientRetries, describeClientError} from './client-retry.js';
-import {loadExamples} from './examples.js';
-import type {ModelBackend, TurnInput} from './model.js';
+import {loadExamples} from '../catalog/examples.js';
+import type {ModelBackend, TurnInput} from '../model/model.js';
 import {pickA2ui} from './pick-a2ui.js';
-import {enforcePolicy} from './policy.js';
-import {buildSystemPrompt, FALLBACK_TEXT, retryQuery} from './prompt.js';
+import {enforcePolicy} from '../policy/policy.js';
+import {buildSystemPrompt, FALLBACK_TEXT, retryQuery} from '../model/prompt.js';
 import {buildUserQuery} from './user-query.js';
 import {VERSIONS, type VersionProfile} from './versions.js';
 
@@ -238,7 +238,7 @@ export class TicketExecutor implements AgentExecutor {
       const stream = processor.openStream();
       const parts: Part[] = [];
       const send = (ready: ResponsePart[]) => {
-        // Demo: the server-side policy (src/policy.ts) checks every message before it is
+        // Demo: the server-side policy (src/policy/policy.ts) checks every message before it is
         // published, each re-send of a growing message included.
         const a2aParts = enforcePolicy(ready).flatMap(toA2aParts);
         if (a2aParts.length > 0) {

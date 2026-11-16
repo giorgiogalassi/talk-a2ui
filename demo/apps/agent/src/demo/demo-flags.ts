@@ -4,7 +4,7 @@
  * STUB_INVALID_FIRST, STUB_LEAKY, STUB_CLIENT_INVALID, GEMINI_THINKING_LEVEL), so a plain restart behaves as it
  * always did; the client's demo panel (Alt+Shift+D) flips them without one.
  */
-import {type ModelBackend, StubBackend, type TurnInput, thinkingConfig} from './model.js';
+import {type ModelBackend, StubBackend, type TurnInput, thinkingConfig} from '../model/model.js';
 
 export const THINKING_LEVELS = ['MINIMAL', 'LOW', 'MEDIUM', 'HIGH', 'DEFAULT'] as const;
 export type ThinkingLevelSetting = (typeof THINKING_LEVELS)[number];

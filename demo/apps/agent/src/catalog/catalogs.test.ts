@@ -19,8 +19,8 @@ import {TICKET_CATALOG_ID, ticketCatalogDocument} from '@demo/catalog';
 
 import {loadBasicCatalogs, loadTicketCatalogs} from './catalogs.js';
 import {readMessages, toResponseText} from './examples.js';
-import {getPackageRootDir} from './tools.js';
-import {V0_9} from './versions.js';
+import {getPackageRootDir} from '../model/tools.js';
+import {V0_9} from '../turn/versions.js';
 
 const ticketCatalog = loadTicketCatalogs().get('v0.9')!;
 const basicCatalog = loadBasicCatalogs().get('v0.9')!;
@@ -120,9 +120,9 @@ describe('the prompt examples and the stub notice', () => {
   const root = getPackageRootDir();
   const files = [
     ...fs
-      .readdirSync(path.join(root, 'examples', 'v0.9'))
-      .map(f => path.join(root, 'examples', 'v0.9', f)),
-    path.join(root, 'stub_notice', 'v0.9.json'),
+      .readdirSync(path.join(root, 'data', 'examples', 'v0.9'))
+      .map(f => path.join(root, 'data', 'examples', 'v0.9', f)),
+    path.join(root, 'data', 'stub_notice', 'v0.9.json'),
   ];
   for (const file of files) {
     it(`${path.basename(file)} is valid against the ticket catalog`, () => {
