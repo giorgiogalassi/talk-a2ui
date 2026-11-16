@@ -1562,8 +1562,6 @@ rule: ['Thank you', 'ggalassi.dev']
         <span class="tag">AI</span>
         <span class="tag">Generative UI</span>
         <span class="tag">A2UI</span>
-        <span class="tag">Signals</span>
-        <span class="tag">Zoneless</span>
       </div>
     </div>
     <div class="ta-qrs">
