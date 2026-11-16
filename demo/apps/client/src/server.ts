@@ -60,7 +60,7 @@ function getAgent(): Promise<A2AClient> {
   return agent;
 }
 
-app.post('/a2a', express.json(), async (req, res) => {
+app.post('/api/agent', express.json(), async (req, res) => {
   // The browser's session id is A2A's contextId: the one place the two names meet.
   const { query, event, sessionId: contextId } = req.body as {
     query?: string;

@@ -140,7 +140,7 @@ Why Cloud Run fits well, specifically:
   disabled actions on both the streamed and the final path, before anything
   goes out over A2A.
 - **The Angular SSR server** (`apps/client/src/server.ts`): serves the app and
-  `POST /a2a`, is the A2A client, and re-streams the A2UI messages to the
+  `POST /api/agent`, is the A2A client, and re-streams the A2UI messages to the
   browser as plain SSE. The browser's renderer checks every message again
   against the same Zod catalog on arrival. Sending a renderer-side failure
   back to the agent as `VALIDATION_FAILED` is phase 6 (PR #8), not on main yet.

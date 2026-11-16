@@ -522,7 +522,7 @@ flowchart TB
 
 </div>
 <div class="dg-wire">
-  <div class="arrow">POST /a2a</div>
+  <div class="arrow">POST /api/agent</div>
   <div class="arrow left">SSE</div>
   <div class="arrow dashed">VALIDATION_FAILED</div>
 </div>
@@ -532,7 +532,7 @@ flowchart TB
 ```mermaid {scale: 0.74}
 %%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "11px", "lineColor": "#9aa0a6", "edgeLabelBackground": "#262626"}, "flowchart": {"curve": "basis", "nodeSpacing": 24, "rankSpacing": 44, "padding": 10}}}%%
 flowchart TB
-  S1["<b>A2A client</b><br/>server.ts"] --> S2["supportedCatalogIds"]
+  S1["<b>A2A client</b><br/>(app-to-agent)<br/>server.ts"] --> S2["supportedCatalogIds"]
   classDef file fill:#2a2a2a,stroke:#454545,stroke-width:1px,color:#9cdcfe
   classDef step fill:#333333,stroke:#569cd6,stroke-width:2px,color:#f0ebe4
   class S1 step
@@ -541,8 +541,8 @@ flowchart TB
 
 </div>
 <div class="dg-wire">
-  <div class="arrow">A2A</div>
-  <div class="arrow left">A2A stream</div>
+  <div class="arrow">A2A (app-to-agent)</div>
+  <div class="arrow left">A2A stream (app-to-agent)</div>
 </div>
 <div class="dg-lane dg-wide">
 <div class="dg-label">// agent · @a2ui/agent</div>
@@ -563,6 +563,35 @@ flowchart TB
 
 </div>
 </div>
+
+<!--
+Speaker notes:
+Read it left to right, one lane at a time. Three boxes, two different wires.
+
+Browser to our own server: plain POST /api/agent, SSE (Server-Sent Events) back.
+That's our API (Application Programming Interface), not A2A (Agent2Agent
+protocol, used here app-to-agent: our server to the agent). The browser never
+sees an A2A (app-to-agent) type; it only gets A2UI (Agent-to-User Interface)
+messages.
+
+Server to agent: this is the only A2A (app-to-agent) hop. server.ts is the A2A
+(app-to-agent) client and the only file that knows A2A (app-to-agent) exists,
+so swapping the transport for AG-UI
+(Agent-User Interaction Protocol), MCP (Model Context Protocol) or plain REST
+(Representational State Transfer) means rewriting one file. Note: A2A here is app-to-agent, one agent. No
+agent-to-agent delegation in this demo; that's what A2A (agent-to-agent) would
+add later.
+
+Inside the agent: negotiate the catalog from supportedCatalogIds, put
+catalog.toJson() in the prompt, call Gemini, validate against the Zod catalog,
+retry once on failure, then applyPolicy on every streamed message, not just the
+last one. The orange box is the one validation can't replace.
+
+Back in the browser, web_core checks the same Zod catalog again on arrival.
+The dashed VALIDATION_FAILED arrow is the renderer reporting back to the agent:
+[check before Friday: that's phase 6, PR #8. If it isn't merged, say "the
+spec has this; the demo doesn't send it yet".]
+-->
 
 
 
