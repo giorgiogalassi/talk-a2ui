@@ -8,7 +8,7 @@
     "export": "slidev export"
   },
   "author": "Giorgio Galassi",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@slidev/cli": "^52.15.2",
     "@slidev/theme-default": "^0.25.0"

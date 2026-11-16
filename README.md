@@ -56,6 +56,20 @@ npm run dev
 
 Open [http://localhost:3030](http://localhost:3030) in your browser.
 
+## Run the demo
+
+The live demo is in [`demo/`](demo/): an Angular 22 app and an A2A agent sharing one Zod
+catalog. It needs Node 22.22+ or 24.15+ (`.nvmrc`: 24). The stub needs no API key:
+
+```bash
+cd demo
+npm install
+npm run demo          # stub agent on :10002 + app on http://localhost:4200
+```
+
+Live Gemini, the stage switches (Alt+Shift+D) and everything else: [`demo/README.md`](demo/README.md#run).
+How a turn moves through the system: [`demo/docs/data-flow/`](demo/docs/data-flow/README.md).
+
 ## Commands
 
 | Command           | Description                        |
@@ -68,6 +82,7 @@ Open [http://localhost:3030](http://localhost:3030) in your browser.
 
 ```
 slides.md               — all slide content and speaker notes
+demo/                   — the live demo: apps/agent, apps/client, packages/catalog, docs/data-flow
 QA.md                   — living Q&A prep doc: audience questions + architecture rationale
 IMPLEMENTATION-PLAN.md  — living build-tracking doc: scope, build order, risks, changelog
 src/                    — images used in slides
@@ -90,4 +105,12 @@ sync whenever a decision changes while building the demo.
 
 ## License
 
-ISC
+MIT, see [`LICENSE`](LICENSE).
+
+**Third-party code.** Parts of the demo are adapted from the official A2UI samples
+([a2ui-project/a2ui](https://github.com/a2ui-project/a2ui), Apache-2.0, Copyright Google LLC):
+the agent files in `demo/apps/agent/src/` that carry the Apache-2.0 header (from
+`samples/agent/node/restaurant_finder`), and the client's `demo/apps/client/src/server.ts` and
+`src/app/agent-client.ts` (from `samples/client/angular/projects/restaurant`). They keep that
+header and mark the demo's changes with `// Demo:`. The rest (policy, demo switches, client
+retry, catalog, tests) is the demo's own, under MIT.

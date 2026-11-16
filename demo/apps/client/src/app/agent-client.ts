@@ -1,3 +1,22 @@
+/*
+ * Copyright 2025 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Modified for the talk-a2ui demo (2026): changes are marked "Demo:".
+ * Original: a2ui-project/a2ui, samples/client/angular/projects/restaurant/src/app/client.ts
+ */
+
 import { ApplicationRef, Injectable, inject, signal } from '@angular/core';
 import { A2uiRendererService } from '@a2ui/angular/v0_9';
 import { A2uiClientAction, A2uiClientError, A2uiMessage, A2uiValidationError } from '@a2ui/web_core/v0_9';

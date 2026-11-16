@@ -14,9 +14,62 @@ The browser never speaks A2A: it calls the app's own server, which is the A2A cl
 **How data moves through the demo, step by step:** [`docs/data-flow/`](docs/data-flow/README.md)
 (diagrams and exact payloads; `index.html` there is the interactive map).
 
-## Status
+## Run
 
-One Mermaid diagram per phase, drawn as frames of the same graph: `FLOW.md`.
+Needs Node 22.22+ or 24.15+ (`.nvmrc` at the repo root: 24). Run everything from `demo/`.
+
+```bash
+npm install
+npm run demo          # builds the agent, then the stub agent (:10002) + the app (http://localhost:4200)
+npm run demo:live     # the same with Gemini: needs apps/agent/.env (below)
+npm test              # agent and client tests
+```
+
+Open **http://localhost:4200** (not `127.0.0.1`: the SSR server only accepts `localhost`).
+Ctrl+C stops both processes. The stub needs no key and no network: canned ticket replies, the
+same catalog, validation and policy as live.
+
+**Live mode.** Copy `apps/agent/.env.example` to `apps/agent/.env` (gitignored) and set
+`GEMINI_API_KEY`. Optional there: `GEMINI_THINKING_LEVEL` (`MINIMAL` default, `LOW`, `MEDIUM`,
+`HIGH`, `DEFAULT`), `GEMINI_CALL_TIMEOUT_MS` (30000), `MODEL_NAME`. A live turn depends on
+Gemini's load (503s seen on 2026-11-06), so keep the stub one switch away.
+
+**Demo controls (no restart).** In the browser, **Alt+Shift+D** (⌥⇧D) opens a presenter panel:
+Live / Stub, *First attempt invalid* (the agent's retry), *Leaky replies* (internal notes and a
+Delete button, for the policy to strip), *Renderer rejects first attempt* (VALIDATION_FAILED back to
+the agent) and the thinking level. A change applies from the next prompt or click. Behind it:
+`GET/PUT /demo/flags` on the agent (`apps/agent/src/demo-flags.ts`), forwarded by the client's
+`server.ts`; a change is accepted only from this machine. The same switches can start on with
+`STUB_INVALID_FIRST`, `STUB_LEAKY`, `STUB_CLIENT_INVALID` (`true`). `A2UI_FORMAT` and `MODEL_NAME`
+need a restart.
+
+**One app at a time**, if you prefer two terminals:
+
+```bash
+npm run build -w agent      # once, and after every agent change (builds packages/catalog too)
+npm run start:stub -w agent # terminal 1 (macOS/Linux; on Windows use npm run demo)
+npm run start -w agent      # ... or live
+npm run start:client        # terminal 2, http://localhost:4200
+```
+
+## Versions
+
+- Angular **22.2.3**. `@a2ui/angular@0.13.0` declares `@angular/*@^21.2.5` as peers, so the root
+  `package.json` overrides them to `^22.2.3`. Builds and renders with no console errors. Drop the
+  override once the package lists Angular 22.
+- `zod@3.25.76` in `packages/catalog`, deduped with `@a2ui/web_core`'s and `@a2ui/angular`'s
+  (Zod 3, not 4: `ComponentApi` is typed against Zod 3).
+- `@a2ui/web_core@0.14.0`, `@a2ui/markdown-it@0.2.2`, `@a2ui/agent@0.0.2` (pinned; was 0.0.1 until
+  2026-10-31, see incident 1. `src/agent.ts` must match the sample at the pinned release's commit).
+- `@a2a-js/sdk@^0.3.13` on both sides (A2A v0.3), like the official samples (decided 2026-10-22).
+
+## Build history
+
+How the demo was built, phase by phase, with what went wrong on the way. Phases 1–3 still use the
+restaurant sample the demo started from; the support tickets arrive in step 4. One Mermaid diagram
+per phase: [`FLOW.md`](FLOW.md).
+
+### Phases
 
 **Step 1, render without an agent — done (2026-10-22).** The client renders a hardcoded A2UI v0.9
 message (`apps/client/src/app/booking-form.json`, copied from the official Node agent sample) with the
@@ -174,9 +227,7 @@ in stub mode.** The renderer tells the agent what it could not show, and the age
 - One thing the plan didn't expect: incident 6 below. Not checked: the client's report after a live
   model's own bad value (a live model rarely produces one on cue), and Express format with the switch.
 
-**Next:** deck reconciliation (the transport swap, step 7, landed 2026-11-10: `FLOW.md`).
-
-## Incidents
+### Incidents
 
 **1 · Live list rendered empty: `@a2ui/agent` 0.0.1 dropped `path` from streamed data (2026-10-31, fixed).**
 - *Symptom:* live mode showed the list title and nothing else. Stub mode never hit it (4 big chunks).
@@ -264,7 +315,7 @@ in stub mode.** The renderer tells the agent what it could not show, and the age
 - *Fix:* `app.ts` tracks by the `SurfaceModel` object (`track entry[1]`). The client test fails with
   `track entry[0]` and passes with it.
 
-## Latency (2026-11-06)
+### Latency (2026-11-06)
 
 **What happened.** First live run on the ticket domain: every request waited 15-20 s before the
 first UI arrived, and one *Open* took about 50 s. Measured with per-call timing in the agent log
@@ -298,50 +349,3 @@ prompt.
 
 Tests: `latency.test.ts` (thinking default, prefetch) and a 503 case in `agent.test.ts`.
 Re-measure after these changes before the rehearsal.
-
-## Versions
-
-- Angular **22.2.3**. `@a2ui/angular@0.13.0` declares `@angular/*@^21.2.5` as peers, so the root
-  `package.json` overrides them to `^22.2.3`. Builds and renders with no console errors. Drop the
-  override once the package lists Angular 22.
-- `zod@3.25.76` in `packages/catalog`, deduped with `@a2ui/web_core`'s and `@a2ui/angular`'s
-  (Zod 3, not 4: `ComponentApi` is typed against Zod 3).
-- `@a2ui/web_core@0.14.0`, `@a2ui/markdown-it@0.2.2`, `@a2ui/agent@0.0.2` (pinned; was 0.0.1 until
-  2026-10-31, see incident 1. `src/agent.ts` must match the sample at the pinned release's commit).
-- `@a2a-js/sdk@^0.3.13` on both sides (A2A v0.3), like the official samples (decided 2026-10-22).
-
-## Run
-
-Run from `demo/`. `-w agent` / `-w client` picks the npm workspace (`apps/agent`, `apps/client`).
-
-```bash
-npm install
-npm run build -w agent                                     # once, and after every agent change (builds packages/catalog too)
-
-# terminal 1, the agent on :10002, one of:
-npm run start:stub -w agent                                # stub: canned ticket replies, no model, no key
-npm run start -w agent                                     # live: Gemini, reads GEMINI_API_KEY from apps/agent/.env
-STUB_INVALID_FIRST=true npm run start:stub -w agent        # stub whose first attempt fails validation (shows the retry)
-STUB_LEAKY=true npm run start:stub -w agent                # stub that leaks internal_notes (+ Delete), for the policy to strip
-STUB_CLIENT_INVALID=true npm run start:stub -w agent       # stub whose first attempt passes the agent and fails the renderer (VALIDATION_FAILED)
-GEMINI_THINKING_LEVEL=DEFAULT npm run start -w agent       # live with the model's own thinking (slower, see Latency)
-
-# terminal 2, the client
-npm run start:client                                       # http://localhost:4200
-
-npm test -w agent                                          # agent tests (catalog, validate-and-retry, latency, policy, client retry)
-npm test -w client -- --watch=false                        # client tests
-```
-
-Live mode needs `apps/agent/.env` (gitignored) with `GEMINI_API_KEY=...`; copy `apps/agent/.env.example`.
-Optional there: `GEMINI_THINKING_LEVEL` (`MINIMAL` default, `LOW`, `MEDIUM`, `HIGH`, `DEFAULT`), `MODEL_NAME`.
-On stage, keep stub mode ready: a live turn depends on Gemini's load (503s seen on 2026-11-06).
-
-**Demo controls (no restart).** In the browser, **Alt+Shift+D** (⌥⇧D) opens a presenter panel:
-Live / Stub, *First attempt invalid* (`STUB_INVALID_FIRST`), *Leaky replies* (`STUB_LEAKY`) and the
-thinking level (`GEMINI_THINKING_LEVEL`). The env variables above only set where the agent starts;
-a change applies from the next prompt or click. Live needs `GEMINI_API_KEY` in `apps/agent/.env`
-(`start:stub` reads it too, so you can start in stub and switch to live). Behind it: `GET/PUT
-/demo/flags` on the agent (`src/demo-flags.ts`), forwarded by the client's `server.ts`; a change
-is accepted only from this machine (the agent listens on `0.0.0.0`). `A2UI_FORMAT` and
-`MODEL_NAME` still need a restart.

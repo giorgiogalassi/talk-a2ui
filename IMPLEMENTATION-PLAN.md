@@ -435,7 +435,7 @@ to re-prove it works.
 5. **Bridge the stream into `@a2ui/angular`'s renderer — adapt, don't port
    (revised 2026-10-21).** An official Angular bridge now exists:
    `src/app/client.ts` in the same sample, an `@Injectable` `Client` that
-   POSTs to `/api/agent`, parses the SSE `data:` lines, unwraps each part's `data`
+   POSTs to `/a2a` (the sample's route; the demo's is `/api/agent`), parses the SSE `data:` lines, unwraps each part's `data`
    (array or single object, so it covers both the A2A v1.0 and v0.3
    `DataPart` shapes) and calls `A2uiRendererService.processMessages(...)`
    from `@a2ui/angular/v0_9`. `app.ts` renders with `SurfaceComponent`.
@@ -448,7 +448,7 @@ to re-prove it works.
 6. **Wire the `actionHandler`.** Configure `A2UI_RENDERER_CONFIG`'s
    `actionHandler` to take dispatched `action`/`event` payloads and send them
    back to the agent via the step 4 client. (2026-10-21: the Angular sample
-   does this as `Client.handleAction(userAction)` → `POST /api/agent` with
+   does this as `Client.handleAction(userAction)` → `POST /a2a` (the sample's route) with
    `{event}` → `processMessages` on the reply. Per the Actions docs, input
    changes stay in the local data model; "the data model is only sent to the
    agent when an event occurs", and `functionCall` actions never reach the

@@ -1,3 +1,22 @@
+/*
+ * Copyright 2025 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Modified for the talk-a2ui demo (2026): changes are marked "Demo:".
+ * Original: a2ui-project/a2ui, samples/client/angular/projects/restaurant/src/server.ts
+ */
+
 import {
   AngularNodeAppEngine,
   createNodeRequestHandler,
@@ -17,9 +36,9 @@ const angularApp = new AngularNodeAppEngine();
 
 /**
  * The bridge to the agent. The browser never speaks A2A: it POSTs its prompt, a UI action or
- * a renderer error (VALIDATION_FAILED) here, this server sends it to the agent as an A2A message, unwraps the A2UI messages from
- * the A2A parts, and streams plain A2UI messages back as server-sent events. Adapted from the
- * official A2UI Angular sample (Apache-2.0).
+ * a renderer error (VALIDATION_FAILED) here; this server sends it to the agent as an A2A
+ * message, unwraps the A2UI messages from the A2A parts, and streams them back as server-sent
+ * events. Adapted from the official A2UI Angular sample (Apache-2.0, header above).
  *
  * Demo: this is the only A2A-aware file. Swapping the transport (AG-UI, say) means rewriting
  * this bridge; the browser, the renderer and the catalog stay as they are.
