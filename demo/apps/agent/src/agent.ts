@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified for the talk-a2ui demo (2026): changes are marked "Demo:".
+ * Original: https://github.com/a2ui-project/a2ui/blob/9d2ec29ca1/samples/agent/node/restaurant_finder/src/agent.ts
  */
 
 import type {Part} from '@a2a-js/sdk';
@@ -22,14 +25,12 @@ import {
   CatalogConfig,
   A2uiError,
   DirectJsonFormatFactory,
-  ExpressFormatFactory,
   type ResponsePart,
 } from '@a2ui/agent';
 
 import {readInboundMessage, TaskEvents, toA2aParts} from './a2a.js';
 import type {BasicCatalogs, TicketCatalogs} from './catalogs.js';
 import {ClientRetries, describeClientError} from './client-retry.js';
-import type {A2uiFormat} from './config.js';
 import {loadExamples} from './examples.js';
 import type {ModelBackend, TurnInput} from './model.js';
 import {pickA2ui} from './pick-a2ui.js';
@@ -73,7 +74,6 @@ export class TicketExecutor implements AgentExecutor {
   private readonly clientRetries = new ClientRetries();
 
   constructor(
-    private readonly format: A2uiFormat,
     private readonly backend: ModelBackend,
     private readonly catalogs: BasicCatalogs,
     // Demo: the ticket catalog (packages/catalog), registered next to the basic one.
@@ -83,7 +83,7 @@ export class TicketExecutor implements AgentExecutor {
       const catalog = catalogs.get(profile.version)!;
       // Demo: the examples are ticket UIs, so they are the ticket catalog's.
       const ticketCatalog = ticketCatalogs.get(profile.version)!;
-      const examples = loadExamples(profile, ticketCatalog, format);
+      const examples = loadExamples(profile);
       this.generators.set(
         profile.version,
         new A2uiGenerator([new CatalogConfig(catalog), new CatalogConfig(ticketCatalog)], {
@@ -130,7 +130,7 @@ export class TicketExecutor implements AgentExecutor {
       // Demo: the renderer rejected part of the last reply (VALIDATION_FAILED). Redo that
       // turn once with the error in the query; a second report gets the text fallback.
       console.warn(`--- A2UI client reported ${describeClientError(inbound.clientError)} ---`);
-      const plan = this.clientRetries.plan(contextId, inbound.clientError, this.format);
+      const plan = this.clientRetries.plan(contextId, inbound.clientError);
       if (!plan.retry) {
         console.error(`--- ${plan.reason} Sending text-only error. ---`);
         events.status('input-required', true, [{kind: 'text', text: FALLBACK_TEXT}]);
@@ -166,7 +166,7 @@ export class TicketExecutor implements AgentExecutor {
   /** Builds the system prompt. Creating the processor also rejects unknown catalogs. */
   private buildSystemPrompt(profile: VersionProfile, catalogIds: string[]): string {
     const {promptSnippet} = this.createProcessor(profile, catalogIds);
-    return buildSystemPrompt(this.format, promptSnippet);
+    return buildSystemPrompt(promptSnippet);
   }
 
   /**
@@ -208,7 +208,7 @@ export class TicketExecutor implements AgentExecutor {
         // a correction prompt; it now has its own line and retries the original query.
         if (isInvalidA2ui(e)) {
           console.warn(`--- A2UI validation failed: ${error} (Attempt ${attempt + 1}) ---`);
-          query = retryQuery(this.format, error, turn.query);
+          query = retryQuery(error, turn.query);
         } else {
           console.warn(`--- Model call failed: ${shortError(error)} (Attempt ${attempt + 1}) ---`);
           query = turn.query;
@@ -225,9 +225,8 @@ export class TicketExecutor implements AgentExecutor {
    *
    * Each reply shows new UI, so it is checked on its own, against a new renderer state. When
    * the client streams a Direct JSON reply, `openStream` checks each message before it is
-   * published, and closing the stream checks the end of the reply. Otherwise, and for
-   * Express, which does not stream, `parseResponse` checks the whole reply, and its parts
-   * are published at once.
+   * published, and closing the stream checks the end of the reply. Otherwise (a client that
+   * doesn't stream), `parseResponse` checks the whole reply, and its parts are published at once.
    */
   private async answer(
     turn: TurnInput,
@@ -268,12 +267,9 @@ export class TicketExecutor implements AgentExecutor {
 
   /** Creates a processor negotiated for the request's catalogs. */
   private createProcessor(profile: VersionProfile, catalogIds: string[]): A2uiRequestProcessor {
-    const formatFactory =
-      this.format === 'express'
-        ? new ExpressFormatFactory({surfaceId: 'default'})
-        : new DirectJsonFormatFactory();
+    // Demo: Direct JSON only (the sample can also use the Express format).
     return this.generators
       .get(profile.version)!
-      .createProcessor({supportedCatalogIds: catalogIds}, formatFactory);
+      .createProcessor({supportedCatalogIds: catalogIds}, new DirectJsonFormatFactory());
   }
 }

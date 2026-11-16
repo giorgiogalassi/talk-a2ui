@@ -4,7 +4,6 @@
  */
 
 import type {ClientError} from './a2a.js';
-import type {A2uiFormat} from './config.js';
 import {LruCache} from './lru-cache.js';
 import {retryQuery} from './prompt.js';
 
@@ -41,7 +40,7 @@ export class ClientRetries {
   }
 
   /** Decides what to do with an error the renderer reported in this conversation. */
-  plan(contextId: string, error: ClientError, format: A2uiFormat): ClientRetryPlan {
+  plan(contextId: string, error: ClientError): ClientRetryPlan {
     if (error.code !== 'VALIDATION_FAILED') {
       return {retry: false, reason: `Client error ${error.code} is not a validation failure.`};
     }
@@ -57,7 +56,7 @@ export class ClientRetries {
       retry: true,
       query: last.query,
       actionName: last.actionName,
-      retryQuery: retryQuery(format, `the renderer reported ${describeClientError(error)}`, last.query),
+      retryQuery: retryQuery(`the renderer reported ${describeClientError(error)}`, last.query),
     };
   }
 }

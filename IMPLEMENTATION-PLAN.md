@@ -963,3 +963,10 @@ the Angular client.
   (surfaces inert while loading, 150 s reply timeout) and gets fixed error messages, details stay
   in the server log; the agent exits if its port is taken and logs the capabilities it received
   (stage 1). `RestaurantExecutor` is `TicketExecutor` (#17).
+- **2026-11-16** — Simpler, and clearer about what is Google's: the agent writes Direct JSON only
+  (the sample's Express format and `A2UI_FORMAT` removed) and serves only v0.9 (`pickA2ui` reads
+  that one entry); web_core's own schemas replace hand-written checks (`A2uiClientErrorSchema` in
+  the client's `server.ts` and the agent's `a2a.ts`, `A2uiVersionCapabilitiesSchema` in
+  `pickA2ui`). Every file adapted from the A2UI samples carries an `Original:` link to the
+  upstream file, and the data-flow page labels each code link: adapted from Google's sample,
+  library, or the demo's own.

@@ -40,8 +40,7 @@ Delete button, for the policy to strip), *Renderer rejects first attempt* (VALID
 the agent) and the thinking level. A change applies from the next prompt or click. Behind it:
 `GET/PUT /demo/flags` on the agent (`apps/agent/src/demo-flags.ts`), forwarded by the client's
 `server.ts`; a change is accepted only from this machine. The same switches can start on with
-`STUB_INVALID_FIRST`, `STUB_LEAKY`, `STUB_CLIENT_INVALID` (`true`). `A2UI_FORMAT` and `MODEL_NAME`
-need a restart.
+`STUB_INVALID_FIRST`, `STUB_LEAKY`, `STUB_CLIENT_INVALID` (`true`). `MODEL_NAME` needs a restart.
 
 **One app at a time**, if you prefer two terminals:
 

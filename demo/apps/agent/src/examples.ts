@@ -12,20 +12,21 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified for the talk-a2ui demo (2026): changes are marked "Demo:".
+ * Original: https://github.com/a2ui-project/a2ui/blob/3a64be7/samples/agent/node/restaurant_finder/src/examples.ts
  */
 
 import fs from 'fs';
 import path from 'path';
 
-import {type AgentToRendererMessage, ExpressDecompiler} from '@a2ui/agent';
-import {type CatalogApi} from '@a2ui/web_core/catalog';
+import {type AgentToRendererMessage} from '@a2ui/agent';
 
-import type {A2uiFormat} from './config.js';
 import {getPackageRootDir} from './tools.js';
 import type {VersionProfile} from './versions.js';
 
 export interface LoadedExamples {
-  /** Example text by file basename: raw JSON for Direct JSON, a wrapped block for Express. */
+  /** Example JSON text by file basename. */
   exampleBlocks: Record<string, string>;
   /** Every example, delimited, as the prompt generator expects them. */
   catalogExamplesString: string;
@@ -36,28 +37,14 @@ export function readMessages(filePath: string): AgentToRendererMessage[] {
   return JSON.parse(fs.readFileSync(filePath, 'utf-8')) as AgentToRendererMessage[];
 }
 
-/** Writes A2UI messages as a model would in the given format, wrapped in its tags. */
-export function toResponseText(
-  profile: VersionProfile,
-  catalog: CatalogApi,
-  format: A2uiFormat,
-  messages: AgentToRendererMessage[],
-): string {
-  if (format === 'direct_json') {
-    return `<a2ui-json>\n${JSON.stringify(messages, null, 2)}\n</a2ui-json>`;
-  }
-  const decompiler = new ExpressDecompiler(catalog, profile.version);
-  return decompiler.wrapDecompiledBlocks([decompiler.decompile(messages)]);
+/** Writes A2UI messages as a model would in Direct JSON, wrapped in its tags. */
+export function toResponseText(messages: AgentToRendererMessage[]): string {
+  return `<a2ui-json>\n${JSON.stringify(messages, null, 2)}\n</a2ui-json>`;
 }
 
-/**
- * Loads the examples in examples/<version>/, decompiled to Express when that is the
- * format. They are validated by the tests, not here.
- */
+/** Loads the examples in examples/<version>/. They are validated by the tests, not here. */
 export function loadExamples(
   profile: VersionProfile,
-  catalog: CatalogApi,
-  format: A2uiFormat,
   packageRoot: string = getPackageRootDir(),
 ): LoadedExamples {
   const examplesDir = path.join(packageRoot, 'examples', profile.version);
@@ -76,10 +63,7 @@ export function loadExamples(
   const exampleBlocks: Record<string, string> = {};
   for (const file of files) {
     const fullPath = path.join(examplesDir, file);
-    exampleBlocks[path.parse(file).name] =
-      format === 'direct_json'
-        ? fs.readFileSync(fullPath, 'utf-8')
-        : toResponseText(profile, catalog, format, readMessages(fullPath));
+    exampleBlocks[path.parse(file).name] = fs.readFileSync(fullPath, 'utf-8');
   }
 
   const catalogExamplesString = Object.entries(exampleBlocks)

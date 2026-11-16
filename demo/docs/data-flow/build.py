@@ -7,7 +7,12 @@ A node's `code` entries point at the code it describes: `path` (from the repo ro
 on the first line) and optionally `to` (text on the last line, searched after `from`). Without
 `to`, the block runs until its brackets close. Each entry becomes a GitHub link with line numbers,
 so a code change that moves the lines makes --check fail until the page is rebuilt.
+
+Each link also says where the file comes from, read from its header: an `Original: <url>` line
+means adapted from Google's A2UI samples (the link goes to that file upstream); no Apache header
+means the demo's own code.
 """
+import re
 import json
 import sys
 from pathlib import Path
@@ -47,7 +52,11 @@ def locate(entry: dict, where: str) -> dict:
     else:
         b = block(lines, a)
     anchor = f'#L{a + 1}' + (f'-L{b + 1}' if b > a else '')
-    return {'path': entry['path'], 'lines': f'{a + 1}' + (f'–{b + 1}' if b > a else ''), 'url': GITHUB + entry['path'] + anchor}
+    head = '\n'.join(lines[:30])
+    original = re.search(r'Original: (https://\S+)', head)
+    assert original or 'Google LLC' not in head, f'{where}: {entry["path"]} has a Google header but no "Original:" line'
+    origin = {'origin': 'sample', 'upstream': original.group(1)} if original else {'origin': 'demo'}
+    return {'path': entry['path'], 'lines': f'{a + 1}' + (f'–{b + 1}' if b > a else ''), 'url': GITHUB + entry['path'] + anchor, **origin}
 
 
 graphs = json.loads((here / 'graph.json').read_text())

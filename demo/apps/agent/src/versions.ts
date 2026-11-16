@@ -12,18 +12,21 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified for the talk-a2ui demo (2026): changes are marked "Demo:".
+ * Original: https://github.com/a2ui-project/a2ui/blob/3a64be7/samples/agent/node/restaurant_finder/src/versions.ts
  */
 
-// Everything that differs by A2UI protocol version lives here. No other file in the
-// sample branches on a version string: examples live in examples/<version>/ and the stub
-// notice in stub_notice/<version>.json.
+// Everything that differs by A2UI protocol version lives here, as in the sample: examples live
+// in examples/<version>/ and the stub notice in stub_notice/<version>.json. Demo: one version,
+// v0.9 (the sample also serves v1.0).
 
 /** One A2UI protocol version this agent can answer in. */
 export interface VersionProfile {
   /** The version the agent writes in its messages, and the key in the capabilities object. */
-  version: 'v0.9' | 'v1.0';
+  version: 'v0.9';
   /** The message metadata key under which a renderer lists its capabilities. */
-  capabilitiesKey: 'a2uiClientCapabilities' | 'a2uiRendererCapabilities';
+  capabilitiesKey: 'a2uiClientCapabilities';
   /** The id renderers use for the basic catalog of this version. */
   basicCatalogId: string;
 }
@@ -39,12 +42,5 @@ export const V0_9: VersionProfile = {
   basicCatalogId: 'https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json',
 };
 
-/** Every version this agent serves, oldest first. */
-// Demo: the Angular client renders v0.9 only, so only v0.9 is served.
+/** Every version this agent serves. */
 export const VERSIONS: readonly VersionProfile[] = [V0_9];
-
-/**
- * The version used when a request carries no renderer capabilities. The lit, angular and
- * react sample clients send none and render v0.9.
- */
-export const DEFAULT_VERSION = V0_9;

@@ -32,7 +32,7 @@ function ticketListText(priority?: unknown): string {
     const badge = update.updateComponents.components.find(c => c.component === 'PriorityBadge')!;
     badge.priority = priority;
   }
-  return toResponseText(V0_9, ticketCatalog, 'direct_json', messages);
+  return toResponseText(messages);
 }
 
 /** A model that answers attempt n with replies[n], in four chunks, and records each query. */
@@ -54,7 +54,6 @@ class ScriptedBackend implements ModelBackend {
 /** Runs one turn through the executor and returns the published status updates. */
 async function runTurn(backend: ModelBackend, useStreaming: boolean) {
   const executor = new TicketExecutor(
-    'direct_json',
     backend,
     loadBasicCatalogs(),
     loadTicketCatalogs(),
@@ -188,7 +187,7 @@ describe('the server-side policy', () => {
   function leakyText(name: string): string {
     const root = getPackageRootDir();
     const messages = leakInternalNotes(readMessages(path.join(root, 'examples', 'v0.9', `${name}.json`)), root);
-    return toResponseText(V0_9, ticketCatalog, 'direct_json', messages);
+    return toResponseText(messages);
   }
   const CHUNK = 80;
   const chunks = (text: string) => text.match(new RegExp(`[\\s\\S]{1,${CHUNK}}`, 'g'))!;

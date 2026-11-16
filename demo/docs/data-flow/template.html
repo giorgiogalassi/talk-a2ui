@@ -83,6 +83,9 @@ section.card { background: var(--surface); border: 1px solid var(--line); border
 .srclist { list-style: none; padding: 0; margin: 0 0 22px; display: flex; flex-direction: column; gap: 4px; font: 13px var(--font-mono); word-break: break-word; }
 .srclist a { color: var(--accent); display: inline-flex; flex-wrap: wrap; gap: 0 10px; }
 .srclist .lines { color: var(--muted); }
+.srclist li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; }
+.srclist .origin { font: 500 11px var(--font-body); color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; text-decoration: none; display: inline; }
+.srclist a.origin:hover { color: var(--accent); border-color: var(--accent); }
 .conn { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px 24px; margin: 0 0 22px; }
 .conn ul, .idx ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
 .conn li a, .idx li a { display: flex; align-items: baseline; gap: 8px; padding: 6px 8px; margin: 0 -8px; border-radius: 6px; color: var(--ink); text-decoration: none; cursor: pointer; }
@@ -147,7 +150,7 @@ kbd { font: 11px var(--font-mono); border: 1px solid var(--line); border-bottom-
 const GRAPHS = /*DATA*/[];
 // Per page: what the index explains, and where repo-relative `source` paths link to.
 const PAGE = {
-  note: 'Columns in the graph are where the code runs; top to bottom is the order things happen. Pick a node to read its file and the exact payload, or start a walk for one complete path.',
+  note: 'Columns in the graph are where the code runs; top to bottom is the order things happen. Pick a node to read its code (with the lines, and whether it is adapted from Google\'s A2UI samples, the library, or the demo\'s own) and the exact payload, or start a walk for one complete path.',
   sourceBase: 'https://github.com/giorgiogalassi/talk-a2ui/blob/main/',
 };
 const GCOL = ['--g1','--g2','--g3','--g4','--g5','--g6','--g7','--g8'];
@@ -205,15 +208,19 @@ function sourceEl(n) {
   const rest = (n.source || '').split(' · ').filter(s => s && !links.some(l => l.path === s));
   if (!links.length && !rest.length) return null;
   const box = el('ul', { className: 'srclist' });
-  links.forEach(l => box.append(el('li', {}, el('a', { href: l.url, target: '_blank', rel: 'noopener' },
-    el('span', { textContent: l.path }), el('span', { className: 'lines', textContent: 'L' + l.lines })))));
+  // Where each file comes from: adapted from Google's A2UI samples (with the original), or the demo's own.
+  links.forEach(l => box.append(el('li', {},
+    el('a', { href: l.url, target: '_blank', rel: 'noopener' }, el('span', { textContent: l.path }), el('span', { className: 'lines', textContent: 'L' + l.lines })),
+    l.origin === 'sample' ? el('a', { className: 'origin', href: l.upstream, target: '_blank', rel: 'noopener', textContent: "adapted from Google's sample ↗", title: l.upstream })
+      : l.origin === 'demo' ? el('span', { className: 'origin', textContent: "the demo's own" }) : null)));
   rest.forEach(s => {
     // A URL as is; a package (@scope/name) to npm; a path in this repo (demo/…) to GitHub.
     const pkg = /^(@[\w.-]+\/[\w.-]+)(\s|$)/.exec(s);
     const url = /^https?:\/\//.test(s) ? s
       : pkg ? 'https://www.npmjs.com/package/' + pkg[1]
       : PAGE.sourceBase && /^demo\/[\w./@-]+$/.test(s) ? PAGE.sourceBase + s.replace(/\/$/, '') : null;
-    box.append(el('li', {}, url ? el('a', { href: url, target: '_blank', rel: 'noopener', textContent: s }) : s));
+    box.append(el('li', {}, url ? el('a', { href: url, target: '_blank', rel: 'noopener', textContent: s }) : s,
+      pkg ? el('span', { className: 'origin', textContent: 'library' }) : null));
   });
   return box;
 }

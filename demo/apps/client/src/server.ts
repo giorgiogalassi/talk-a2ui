@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  * Modified for the talk-a2ui demo (2026): changes are marked "Demo:".
- * Original: a2ui-project/a2ui, samples/client/angular/projects/restaurant/src/server.ts
+ * Original: https://github.com/a2ui-project/a2ui/blob/0af1b1e7/samples/client/angular/projects/restaurant/src/server.ts
  */
 
 import {
@@ -28,6 +28,7 @@ import { join } from 'node:path';
 import { A2AClient } from '@a2a-js/sdk/client';
 import { MessageSendParams, Part } from '@a2a-js/sdk';
 import { TICKET_CATALOG_ID } from '@demo/catalog';
+import { A2uiClientErrorSchema } from '@a2ui/web_core/v0_9';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
@@ -73,15 +74,12 @@ function agentText(parts: Part[]): string {
     .join('\n');
 }
 
-/** Demo: the fields of a v0.9 client-to-server `error`, checked before it goes to the agent. */
+/**
+ * Demo: a v0.9 client-to-server `error`, checked before it goes to the agent with web_core's own
+ * schema: string code, surfaceId and message, and `path` too for VALIDATION_FAILED.
+ */
 function isClientError(error: Record<string, unknown>): boolean {
-  const { code, surfaceId, path, message } = error;
-  return (
-    typeof code === 'string' &&
-    typeof surfaceId === 'string' &&
-    typeof message === 'string' &&
-    (code !== 'VALIDATION_FAILED' || typeof path === 'string')
-  );
+  return A2uiClientErrorSchema.safeParse(error).success;
 }
 
 let agent: Promise<A2AClient> | undefined;
