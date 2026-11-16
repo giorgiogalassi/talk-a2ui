@@ -356,7 +356,7 @@
         "label": "Status lines",
         "group": "ui",
         "order": 2,
-        "detail": "Three signals from AgentClient drive what the user sees besides the UI: waitingForUi() shows \"Agent is working…\", agentText() shows the agent's text-only answer (the fallback), error() shows a failed request.",
+        "detail": "Three signals from AgentClient drive what the user sees besides the UI: waitingForUi() turns the Ask button into a pulsing \"Working…\" and dims the old view (both after 250 ms, so a stub reply doesn't flash), agentText() shows the agent's text-only answer (the fallback), error() shows a failed request. Nothing is added or removed above the surfaces, so nothing moves.",
         "source": "demo/apps/client/src/app/app.ts",
         "status": "done"
       },
@@ -365,10 +365,19 @@
         "label": "Surface list",
         "group": "ui",
         "order": 3,
-        "detail": "app.ts loops over renderer.surfaceGroup.surfacesMap and draws one <a2ui-v09-surface [surfaceId]> per surface. Tracked by the SurfaceModel object, not its id, so a surface deleted and re-created under the same id is drawn afresh (incident 6).",
+        "detail": "app.ts loops over renderer.surfaceGroup.surfacesMap inside a .surfaces wrapper (dimmed while waitingForUi) and draws one <a2ui-v09-surface [surfaceId]> per surface. Tracked by the SurfaceModel object, not its id, so a surface deleted and re-created under the same id is drawn afresh (incident 6).",
         "source": "demo/apps/client/src/app/app.ts",
         "status": "done",
         "payload": "@for (entry of renderer.surfaceGroup.surfacesMap; track entry[1]) {\n  <a2ui-v09-surface [surfaceId]=\"entry[0]\" />\n}"
+      },
+      {
+        "id": "f-panel",
+        "label": "Demo panel (⌥⇧D)",
+        "group": "ui",
+        "order": 4,
+        "detail": "Presenter-only, hidden by default; Alt+Shift+D shows it. Stub/Live, and in stub mode: first attempt invalid (the agent's retry), leaky replies (the policy), renderer rejects first attempt (VALIDATION_FAILED back to the agent); thinking level in live mode. GET/PUT /demo/flags through the app's own server; changes apply from the next prompt or click, no restart.",
+        "source": "demo/apps/client/src/app/demo-panel.ts",
+        "status": "done"
       },
       {
         "id": "f-ask",
@@ -381,10 +390,10 @@
       },
       {
         "id": "f-send-prep",
-        "label": "send(): clear, reset",
+        "label": "send(): mark stale, reset",
         "group": "client",
         "order": 2,
-        "detail": "Before the request: deletes every surface (each reply carries its whole UI, createSurface included), clears ValidationIssues, sets isLoading and waitingForUi, clears error and agentText. Exception: an error report keeps the old surfaces on screen until the corrected reply's first messages arrive.",
+        "detail": "Before the request: marks the old surfaces to go on the reply's first A2UI message (they stay on screen, dimmed, until then: no empty flash on a fast stub reply, the old view kept on a slow live one), clears ValidationIssues, sets isLoading and waitingForUi, clears error and agentText. An error report works the same way: the partly rejected surface stays until the corrected reply arrives, or under the agent's text fallback.",
         "source": "demo/apps/client/src/app/agent-client.ts",
         "status": "done"
       },
@@ -413,7 +422,7 @@
         "label": "handleEvent()",
         "group": "client",
         "order": 5,
-        "detail": "Per event: an error field throws; sessionId is stored for the next request; text goes to agentText; for each createSurface whose id already exists, that surface is deleted first (a retried reply starts over); then each message goes to process() one at a time, and waitingForUi turns off.",
+        "detail": "Per event: an error field throws; sessionId is stored for the next request; on the reply's first A2UI messages the old surfaces are deleted in one go; text goes to agentText (the old view stays); for each createSurface whose id already exists, that surface is deleted first (a retried reply starts over); then each message goes to process() one at a time, and waitingForUi turns off.",
         "source": "demo/apps/client/src/app/agent-client.ts",
         "status": "done"
       },
@@ -686,6 +695,11 @@
         "from": "f-report",
         "to": "f-send-prep",
         "label": "send({error})"
+      },
+      {
+        "from": "f-panel",
+        "to": "f-post",
+        "label": "GET/PUT /demo/flags (same origin)"
       }
     ],
     "paths": [
@@ -838,6 +852,15 @@
         "payload": "data: {\"messages\":[{ \"version\":\"v0.9\",\"createSurface\":{…} }, …],\"sessionId\":\"<contextId>\"}\n\ndata: {\"messages\":[],\"text\":\"I'm sorry, I'm having trouble…\",\"sessionId\":\"…\"}"
       },
       {
+        "id": "b-flagsproxy",
+        "label": "/demo/flags forward",
+        "group": "ssr",
+        "order": 7,
+        "detail": "GET and PUT /demo/flags are forwarded to the agent's own /demo/flags. PUT only from this machine (403 otherwise), so no one on the venue's network can flip the demo; an unreachable agent → 502.",
+        "source": "demo/apps/client/src/server.ts",
+        "status": "done"
+      },
+      {
         "id": "b-express",
         "label": "Agent HTTP server :10002",
         "group": "a2a",
@@ -862,6 +885,15 @@
         "order": 3,
         "detail": "@a2a-js/sdk 0.3.13 with an InMemoryTaskStore. Calls RestaurantExecutor.execute(requestContext, eventBus) once per incoming message and streams what the executor publishes on the event bus.",
         "source": "demo/apps/agent/src/index.ts",
+        "status": "done"
+      },
+      {
+        "id": "b-flags",
+        "label": "DemoFlagStore: /demo/flags",
+        "group": "a2a",
+        "order": 4,
+        "detail": "The stage switches: stub, invalidFirst, leaky, clientInvalid, thinkingLevel. Start from the env (STUB_LLM, STUB_INVALID_FIRST, STUB_LEAKY, STUB_CLIENT_INVALID, GEMINI_THINKING_LEVEL); GET reads them, PUT changes them (local only, unknown keys or bad values → 400, Live without GEMINI_API_KEY → 400). Every turn reads them, so a change applies from the next one.",
+        "source": "demo/apps/agent/src/demo-flags.ts · demo/apps/agent/src/index.ts",
         "status": "done"
       },
       {
@@ -939,11 +971,11 @@
       },
       {
         "id": "b-backend",
-        "label": "ModelBackend.streamTurn()",
+        "label": "SwitchableBackend.streamTurn()",
         "group": "model",
         "order": 1,
-        "detail": "Gemini in live mode, the stub with STUB_LLM=true. Yields the reply as text chunks.",
-        "source": "demo/apps/agent/src/model.ts",
+        "detail": "Routes each turn by the stage switches as they stand when the turn starts: Gemini in live mode, otherwise one StubBackend per switch combination (built on first use). Yields the reply as text chunks.",
+        "source": "demo/apps/agent/src/demo-flags.ts · demo/apps/agent/src/model.ts",
         "status": "done"
       },
       {
@@ -970,7 +1002,7 @@
         "label": "StubBackend",
         "group": "model",
         "order": 4,
-        "detail": "Canned replies: a stub-notice surface plus the example that matches the action (ticket_list, ticket_detail, ticket_resolved), cut into 4 chunks (80-character chunks when leaky). Switches: STUB_INVALID_FIRST, STUB_LEAKY, STUB_CLIENT_INVALID; a query starting \"Your previous response was invalid.\" always gets the valid reply.",
+        "detail": "Canned replies: a stub-notice surface plus the example that matches the action (ticket_list, ticket_detail, ticket_resolved), cut into 4 chunks (80-character chunks when leaky). Switches (startup values from STUB_INVALID_FIRST, STUB_LEAKY, STUB_CLIENT_INVALID; changeable at runtime from the demo panel); a query starting \"Your previous response was invalid.\" always gets the valid reply.",
         "source": "demo/apps/agent/src/model.ts",
         "status": "done"
       },
@@ -1101,7 +1133,7 @@
       {
         "from": "b-backend",
         "to": "b-stub",
-        "label": "STUB_LLM=true"
+        "label": "stub switch on"
       },
       {
         "from": "b-gemini",
@@ -1157,6 +1189,16 @@
         "from": "b-unwrap",
         "to": "b-sse",
         "label": "messages, text, contextId"
+      },
+      {
+        "from": "b-flagsproxy",
+        "to": "b-flags",
+        "label": "forward"
+      },
+      {
+        "from": "b-flags",
+        "to": "b-backend",
+        "label": "read per turn"
       }
     ],
     "paths": [
