@@ -718,7 +718,7 @@ contract is written in.
 
 The wire carries only the catalog id (`supportedCatalogIds`). Source:
 [components.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/packages/catalog/src/components.ts) ·
-[catalog/types.ts#L172-L183](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/web_core/src/v0_9/catalog/types.ts#L172-L183)
+[catalog/types.ts#L179-L196](https://github.com/a2ui-project/a2ui/blob/45633b9/typescript/core/web_core/src/catalog/types.ts#L179-L196)
 
 </div>
 
@@ -787,7 +787,7 @@ A denylist only blocks what you anticipated. In production: an allowlist per vie
 <div class="text-sm text-gray-400">
 
 Source: [policy.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/apps/agent/src/policy/policy.ts) ·
-[samples/client/angular/README.md#L54-L61](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/samples/client/angular/README.md#L54-L61)
+[samples/client/angular/README.md#L58-L64](https://github.com/a2ui-project/a2ui/blob/45633b9/samples/client/angular/README.md#L58-L64)
 
 </div>
 
@@ -1008,8 +1008,8 @@ It handles, internally:
 
 <div class="text-sm text-gray-400">
 
-Source: [surface.component.ts](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/angular/src/v0_9/core/surface.component.ts) ·
-[component-host.component.ts#L67-L100](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/angular/src/v0_9/core/component-host.component.ts#L67-L100)
+Source: [surface.component.ts#L43-L52](https://github.com/a2ui-project/a2ui/blob/45633b9/typescript/renderers/angular/src/core/surface.component.ts#L43-L52) ·
+[component-host.component.ts#L252](https://github.com/a2ui-project/a2ui/blob/45633b9/typescript/renderers/angular/src/core/component-host.component.ts#L252)
 
 </div>
 
@@ -1050,9 +1050,9 @@ export class PriorityBadgeComponent extends CatalogComponent<typeof PriorityBadg
 
 <div class="text-sm text-gray-400">
 
-Source: [signals.ts#L62-L119](https://github.com/a2ui-project/a2ui/blob/8cd8b269/typescript/core/web_core/src/reactivity/signals.ts#L62-L119) ·
-[reactivity.ts#L48-L103](https://github.com/a2ui-project/a2ui/blob/8cd8b269/typescript/renderers/angular/src/core/reactivity.ts#L48-L103) ·
-[component-binder.service.ts#L166](https://github.com/a2ui-project/a2ui/blob/8cd8b269/typescript/renderers/angular/src/core/component-binder.service.ts#L166) ·
+Source: [signals.ts#L62-L97](https://github.com/a2ui-project/a2ui/blob/45633b9/typescript/core/web_core/src/reactivity/signals.ts#L62-L97) ·
+[reactivity.ts#L48-L103](https://github.com/a2ui-project/a2ui/blob/45633b9/typescript/renderers/angular/src/core/reactivity.ts#L48-L103) ·
+[component-binder.service.ts#L45-L58](https://github.com/a2ui-project/a2ui/blob/45633b9/typescript/renderers/angular/src/core/component-binder.service.ts#L45-L58) ·
 [priority-badge.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/apps/client/src/app/catalog/priority-badge.ts)
 
 </div>
@@ -1101,8 +1101,8 @@ re-renders. The rest of the surface is untouched.
 
 <div class="text-sm text-gray-400">
 
-Source: [a2ui_protocol.md#L22-L29](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/specification/v0_9/docs/a2ui_protocol.md#L22-L29) ·
-[component-context.ts#L27-L38](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/web_core/src/v0_9/rendering/component-context.ts#L27-L38)
+Source: [a2ui_protocol.md#L21-L28](https://github.com/a2ui-project/a2ui/blob/45633b9/specification/v0_9/docs/a2ui_protocol.md#L21-L28) ·
+[data-model.ts#L84-L90](https://github.com/a2ui-project/a2ui/blob/45633b9/typescript/core/web_core/src/state/data-model.ts#L84-L90) (one signal per path)
 
 </div>
 
@@ -1325,7 +1325,7 @@ README names three threats to plan for:
 
 <div class="text-sm text-gray-400">
 
-Source: [samples/client/angular/README.md#L54-L61](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/samples/client/angular/README.md#L54-L61)
+Source: [samples/client/angular/README.md#L58-L64](https://github.com/a2ui-project/a2ui/blob/45633b9/samples/client/angular/README.md#L58-L64)
 
 </div>
 
