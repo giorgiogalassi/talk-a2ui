@@ -955,3 +955,11 @@ the Angular client.
   `agent-client.ts`, `server.ts`, docs, slide 16). What the browser sends there is the app's own
   JSON + SSE contract, not A2A; the old name contradicted "the browser never speaks A2A" on stage
   and in the article. The agent's own A2A endpoint (`/a2a/json-rpc`) is unchanged.
+- **2026-11-16** — Stage safety after a review of the whole demo: a Gemini turn that doesn't
+  finish drops its chat (a half-recorded tool call broke every later turn), each model call has a
+  30 s timeout (`GEMINI_CALL_TIMEOUT_MS`) and a turn at most 3 tool rounds; the policy also checks
+  text (`forbiddenText`: the tickets' notes, matched per sentence) in text parts, literal strings
+  and data model values, since the model is given the notes; the browser runs one turn at a time
+  (surfaces inert while loading, 150 s reply timeout) and gets fixed error messages, details stay
+  in the server log; the agent exits if its port is taken and logs the capabilities it received
+  (stage 1). `RestaurantExecutor` is `TicketExecutor` (#17).

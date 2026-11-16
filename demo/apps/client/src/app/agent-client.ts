@@ -13,6 +13,12 @@ type ValidationFailed = Extract<A2uiClientError, { code: 'VALIDATION_FAILED' }>;
  */
 const MAX_REPORTS = 2;
 
+/**
+ * Demo: how long the browser waits for a whole reply. The agent gives each model call 30 s and a
+ * turn up to two attempts of two calls, so this only fires when something is truly stuck.
+ */
+const REPLY_TIMEOUT_MS = 150_000;
+
 /** Demo: what a component web_core rejected becomes, so the rest of the surface still renders. */
 const PLACEHOLDER_TEXT = '⚠ This part of the answer could not be shown.';
 
@@ -46,12 +52,19 @@ export class AgentClient {
 
   /** A new prompt replaces whatever the agent rendered before. */
   ask(query: string): Promise<void> {
+    // Demo: one turn at a time. Two at once would write two replies into one renderer and one
+    // conversation (app.ts also makes the surfaces inert while a turn runs).
+    if (this.isLoading()) return Promise.resolve();
     this.reports = 0;
     return this.send({ query });
   }
 
   /** A button action goes back to the agent, which answers with more A2UI messages. */
   handleAction(event: A2uiClientAction): Promise<void> {
+    if (this.isLoading()) {
+      console.warn('[a2ui] action ignored while the agent is answering:', event.name);
+      return Promise.resolve();
+    }
     this.reports = 0;
     return this.send({ event });
   }
@@ -68,6 +81,7 @@ export class AgentClient {
     // Demo: only this reply's problems are reported.
     this.issues.clear();
     let complete = false;
+    let reader: ReadableStreamDefaultReader<string> | undefined;
     this.isLoading.set(true);
     this.waitingForUi.set(true);
     this.error.set(null);
@@ -77,12 +91,13 @@ export class AgentClient {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...body, sessionId: this.sessionId }),
+        signal: AbortSignal.timeout(REPLY_TIMEOUT_MS),
       });
       if (!response.ok || !response.body) {
-        throw new Error(((await response.json()) as { error: string }).error);
+        throw new Error(await errorMessage(response));
       }
 
-      const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+      reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
       let buffer = '';
       while (true) {
         const { done, value } = await reader.read();
@@ -96,7 +111,12 @@ export class AgentClient {
       }
       complete = true;
     } catch (error) {
-      this.error.set(error instanceof Error ? error.message : String(error));
+      this.error.set(
+        error instanceof DOMException && error.name === 'TimeoutError'
+          ? `No reply after ${REPLY_TIMEOUT_MS / 1000} s. Try again, or switch to the stub (Alt+Shift+D).`
+          : (error instanceof Error && error.message) || 'The request failed.',
+      );
+      void reader?.cancel().catch(() => undefined);
     } finally {
       // A reply without any A2UI (an error, a text-only answer) leaves the old view in place.
       this.clearOnFirstMessage = false;
@@ -201,6 +221,17 @@ export class AgentClient {
       }
     });
   }
+}
+
+/** Demo: the server's `{ error }` message, or a plain one when the body isn't that JSON. */
+async function errorMessage(response: Response): Promise<string> {
+  try {
+    const body = (await response.json()) as { error?: unknown };
+    if (typeof body.error === 'string' && body.error) return body.error;
+  } catch {
+    // Not JSON: a proxy page, or an empty body.
+  }
+  return `The server answered ${response.status}${response.statusText ? ` ${response.statusText}` : ''}.`;
 }
 
 function rejectedKey(surfaceId: string, componentId: unknown): string {

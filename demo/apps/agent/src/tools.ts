@@ -111,3 +111,12 @@ export function executeGetTickets(
 
   return JSON.stringify(items);
 }
+
+/**
+ * Demo: every ticket's internal notes, for the policy's text check (policy.ts). The model is
+ * given the notes on purpose, as a real backend would; this is what must never come back out.
+ */
+export function readInternalNotes(assetsDir: string = resolveAssetsDir()): string[] {
+  const all = JSON.parse(fs.readFileSync(path.join(assetsDir, 'tickets.json'), 'utf-8')) as Record<string, unknown>[];
+  return all.map(t => t.internal_notes).filter((n): n is string => typeof n === 'string' && n.trim() !== '');
+}

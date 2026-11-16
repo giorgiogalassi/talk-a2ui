@@ -15,6 +15,8 @@ import {basicCatalog} from '@a2ui/web_core/v0_9/basic_catalog';
 import {getComponentReferences, type ComponentRefMap} from '@a2ui/web_core/validating';
 import {ticketCatalog} from '@demo/catalog';
 
+import {readInternalNotes} from './tools.js';
+
 /**
  * Which props of each component hold other components' ids, read from the catalogs' own Zod
  * schemas by web_core (the same map its integrity checker uses): `child`, `children`, but
@@ -24,6 +26,8 @@ const REF_MAP: ComponentRefMap = {...basicCatalog.componentRefMap, ...ticketCata
 
 /** What a removed root is replaced with, so the surface still renders and says why. */
 export const UNAVAILABLE_TEXT = "This view isn't available to you.";
+/** Demo: what a text part becomes when it quotes restricted text. */
+export const WITHHELD_TEXT = 'Part of this answer was withheld: it quoted information you may not see.';
 
 /** What this deployment forbids, whatever the catalog allows. */
 export interface Policy {
@@ -34,6 +38,77 @@ export interface Policy {
   forbiddenDataPaths: string[];
   /** Action names whose components are removed. */
   disabledActions: string[];
+  /**
+   * Text that must never reach the browser, even when the model writes it out instead of
+   * binding it: a text part quoting it is replaced, a component with it in a literal string is
+   * removed, a data model string holding it is emptied. Matched case- and space-insensitively,
+   * on each whole entry and on each sentence of it (`textFragments`). A paraphrase is not caught:
+   * like the path list, this only covers what was anticipated.
+   */
+  forbiddenText?: string[];
+}
+
+/** The lowercase, space-collapsed pieces `forbiddenText` matches on: each entry and each sentence of 20+ characters. */
+export function textFragments(entries: readonly string[]): string[] {
+  const norm = (t: string) => t.toLowerCase().replace(/\s+/g, ' ').trim();
+  const out = new Set<string>();
+  for (const entry of entries) {
+    out.add(norm(entry));
+    for (const piece of entry.split(/[.;!?\n]+/)) {
+      const n = norm(piece);
+      if (n.length >= 20) out.add(n);
+    }
+  }
+  return [...out].filter(f => f.length > 0);
+}
+
+/** The first fragment `text` contains, if any. */
+function quotes(text: string, fragments: readonly string[]): string | undefined {
+  if (fragments.length === 0) return undefined;
+  const n = text.toLowerCase().replace(/\s+/g, ' ');
+  return fragments.find(f => n.includes(f));
+}
+
+/** The first fragment any string inside `value` contains, if any. */
+function quotesDeep(value: unknown, fragments: readonly string[]): string | undefined {
+  if (typeof value === 'string') return quotes(value, fragments);
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const hit = quotesDeep(item, fragments);
+      if (hit) return hit;
+    }
+    return undefined;
+  }
+  if (!isObject(value)) return undefined;
+  for (const item of Object.values(value)) {
+    const hit = quotesDeep(item, fragments);
+    if (hit) return hit;
+  }
+  return undefined;
+}
+
+/** Empties every string inside `value` that quotes a fragment; reports each one at its path. */
+function blankQuotes(value: unknown, fragments: readonly string[], base: string[], stripped: string[]): void {
+  const entries: [string, unknown][] = Array.isArray(value)
+    ? value.map((v, i) => [String(i), v])
+    : isObject(value)
+      ? Object.entries(value)
+      : [];
+  for (const [key, item] of entries) {
+    if (typeof item === 'string') {
+      if (quotes(item, fragments)) {
+        (value as Json)[key] = '';
+        stripped.push(`emptied /${[...base, key].join('/')} (restricted text)`);
+      }
+    } else {
+      blankQuotes(item, fragments, [...base, key], stripped);
+    }
+  }
+}
+
+/** A short, safe label for a matched fragment in the log. */
+function clip(fragment: string): string {
+  return fragment.length > 24 ? `"${fragment.slice(0, 24)}…"` : `"${fragment}"`;
 }
 
 /**
@@ -44,6 +119,8 @@ export interface Policy {
 export const DEMO_POLICY: Policy = {
   forbiddenDataPaths: ['/tickets/*/internal_notes', '/ticket/internal_notes'],
   disabledActions: ['delete_ticket'],
+  // Demo: the notes themselves, in case the model writes them out instead of binding them.
+  forbiddenText: readInternalNotes(),
 };
 
 /** The messages after the policy, and one line per thing it stripped. */
@@ -150,7 +227,12 @@ function stripValue(value: unknown, pattern: string[], base: string[], stripped:
 }
 
 /** An `updateDataModel` with forbidden data removed from its value, or undefined to drop it. */
-function policeDataModel(message: Json, patterns: string[][], stripped: string[]): Json | undefined {
+function policeDataModel(
+  message: Json,
+  patterns: string[][],
+  fragments: readonly string[],
+  stripped: string[],
+): Json | undefined {
   const body = message.updateDataModel as Json;
   const path = typeof body.path === 'string' ? body.path : '/';
   const at = segments(path);
@@ -165,6 +247,14 @@ function policeDataModel(message: Json, patterns: string[][], stripped: string[]
     if (pattern.length > at.length && prefixMatches(pattern, at)) {
       stripValue(body.value, pattern.slice(at.length), at, stripped);
     }
+  }
+  if (typeof body.value === 'string') {
+    if (quotes(body.value, fragments)) {
+      body.value = '';
+      stripped.push(`emptied ${path} (restricted text)`);
+    }
+  } else {
+    blankQuotes(body.value, fragments, at, stripped);
   }
   return message;
 }
@@ -227,6 +317,7 @@ function policeComponents(
   message: Json,
   patterns: string[][],
   disabledActions: Set<string>,
+  fragments: readonly string[],
   stripped: string[],
 ): Json | undefined {
   const body = message.updateComponents as Json;
@@ -246,6 +337,12 @@ function policeComponents(
     if (binding) {
       removed.add(String(c.id));
       stripped.push(`removed ${describe(c)} (binds ${binding})`);
+      continue;
+    }
+    const quoted = quotesDeep(c, fragments);
+    if (quoted) {
+      removed.add(String(c.id));
+      stripped.push(`removed ${describe(c)} (quotes restricted text ${clip(quoted)})`);
     }
   }
   if (removed.size === 0) return message;
@@ -346,6 +443,7 @@ function mendRefs(component: Json, removed: Set<string>): Json {
 export function applyPolicy(messages: readonly unknown[], policy: Policy): PolicyResult {
   const patterns = policy.forbiddenDataPaths.map(segments);
   const disabled = new Set(policy.disabledActions);
+  const fragments = textFragments(policy.forbiddenText ?? []);
   const stripped: string[] = [];
   const out: unknown[] = [];
   for (const original of messages) {
@@ -355,9 +453,9 @@ export function applyPolicy(messages: readonly unknown[], policy: Policy): Polic
     }
     let message: Json | undefined = original;
     if (isObject(original.updateDataModel)) {
-      message = policeDataModel(structuredClone(original), patterns, stripped);
+      message = policeDataModel(structuredClone(original), patterns, fragments, stripped);
     } else if (isObject(original.updateComponents)) {
-      message = policeComponents(original, patterns, disabled, stripped);
+      message = policeComponents(original, patterns, disabled, fragments, stripped);
     }
     if (message) out.push(message);
   }
@@ -366,11 +464,18 @@ export function applyPolicy(messages: readonly unknown[], policy: Policy): Polic
 
 /**
  * Applies the policy to the A2UI in parsed response parts, as `answer()` gets them, and logs
- * one line per strip. Text parts pass unchanged; a part left with no message is dropped.
+ * one line per strip. A text part that quotes `forbiddenText` is replaced by WITHHELD_TEXT;
+ * a part left with no message is dropped.
  */
 export function enforcePolicy(parts: ResponsePart[], policy: Policy = DEMO_POLICY): ResponsePart[] {
+  const fragments = textFragments(policy.forbiddenText ?? []);
   return parts.flatMap((part): ResponsePart[] => {
-    if (part.type !== 'a2ui') return [part];
+    if (part.type !== 'a2ui') {
+      const quoted = part.type === 'text' ? quotes(part.text, fragments) : undefined;
+      if (!quoted) return [part];
+      console.log(`--- policy: withheld a text part (quotes restricted text ${clip(quoted)}) ---`);
+      return [{...part, text: WITHHELD_TEXT}];
+    }
     const {messages, stripped} = applyPolicy(part.a2ui, policy);
     for (const line of stripped) console.log(`--- policy: ${line} ---`);
     return messages.length > 0 ? [{...part, a2ui: messages as typeof part.a2ui}] : [];

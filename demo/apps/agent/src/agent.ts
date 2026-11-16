@@ -113,6 +113,12 @@ export class TicketExecutor implements AgentExecutor {
 
     // 1. Pick the version and catalogs from the renderer's capabilities.
     const {profile, catalogIds} = pickA2ui(userMessage);
+    // Demo: stage 1 on stage. The browser never sends this: the app's server adds it to the A2A
+    // message (client server.ts), so the agent's log is where the negotiation shows.
+    console.log(
+      `--- capabilities: ${JSON.stringify(userMessage.metadata?.[profile.capabilitiesKey] ?? null)} -> ` +
+        `${profile.version}, catalogs ${JSON.stringify(catalogIds)} ---`,
+    );
     // 2. Turn the message, or the UI action it carries, into a query.
     const inbound = readInboundMessage(userMessage, profile.version);
     const systemPrompt = this.buildSystemPrompt(profile, catalogIds);

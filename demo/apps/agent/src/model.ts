@@ -52,9 +52,14 @@ export function thinkingConfig(raw: string | undefined): {thinkingConfig?: {thin
   return {thinkingConfig: {thinkingLevel: level as ThinkingLevel}};
 }
 
+/** Demo: a model call that takes longer than this fails the attempt (GEMINI_CALL_TIMEOUT_MS). */
+const DEFAULT_CALL_TIMEOUT_MS = 30_000;
+/** Demo: tool rounds per turn. The ticket flow needs one; more means the model is looping. */
+const MAX_TOOL_ROUNDS = 3;
+
 /** Calls Gemini, keeping one chat per conversation and answering its tool calls. */
 export class GeminiBackend implements ModelBackend {
-  private readonly client: GoogleGenAI;
+  private readonly client: Pick<GoogleGenAI, 'chats'>;
   private readonly chats = new LruCache<Chat>(1000);
 
   constructor(
@@ -65,9 +70,18 @@ export class GeminiBackend implements ModelBackend {
       assetsDir: string;
       /** Demo: the thinking level, read per turn (the demo panel can change it). Default: the env. */
       thinkingLevel?: () => string | undefined;
+      /** Demo: per model call; default GEMINI_CALL_TIMEOUT_MS, or 30 s. */
+      callTimeoutMs?: number;
+      /** For tests: a stand-in for the Gemini client. */
+      client?: Pick<GoogleGenAI, 'chats'>;
     },
   ) {
-    this.client = new GoogleGenAI({apiKey: options.apiKey});
+    this.client = options.client ?? new GoogleGenAI({apiKey: options.apiKey});
+  }
+
+  private callTimeoutMs(): number {
+    const fromEnv = Number(process.env.GEMINI_CALL_TIMEOUT_MS);
+    return this.options.callTimeoutMs ?? (fromEnv > 0 ? fromEnv : DEFAULT_CALL_TIMEOUT_MS);
   }
 
   async *streamTurn({contextId, query, profile, systemPrompt}: TurnInput): AsyncIterable<string> {
@@ -75,7 +89,8 @@ export class GeminiBackend implements ModelBackend {
     // Demo: and per thinking level, which is fixed when a chat is created; changing the level
     // mid-conversation starts a fresh chat.
     const level = this.options.thinkingLevel?.() ?? process.env.GEMINI_THINKING_LEVEL;
-    const chat = this.chats.getOrCreate(`${contextId}:${profile.version}:${level ?? ''}`, () =>
+    const chatKey = `${contextId}:${profile.version}:${level ?? ''}`;
+    const chat = this.chats.getOrCreate(chatKey, () =>
       this.client.chats.create({
         model: this.options.modelName,
         config: {
@@ -93,37 +108,62 @@ export class GeminiBackend implements ModelBackend {
     // Demo: timing per model call, to see where the wait before the first stream goes.
     const turnStart = Date.now();
     let call = 0;
-    while (true) {
-      call++;
-      const callStart = Date.now();
-      let first = 0;
-      const responseStream = await chat.sendMessageStream({message: input});
-      const toolCalls: FunctionCall[] = [];
-      for await (const chunk of responseStream) {
-        if (!first) first = Date.now();
-        if (chunk.text) {
-          yield chunk.text;
+    // Demo: the chat records a call only once its stream is read to the end. A call that fails
+    // or is abandoned halfway (timeout, 503, a stream the agent stopped reading) can leave the
+    // history ending in a tool call with no answer, which Gemini refuses on every later turn.
+    // So a turn that doesn't finish drops its chat: the next attempt starts a fresh one.
+    let finished = false;
+    try {
+      while (true) {
+        call++;
+        if (call > MAX_TOOL_ROUNDS + 1) {
+          throw new Error(`The model asked for tools ${MAX_TOOL_ROUNDS} times in one turn; stopping.`);
         }
-        toolCalls.push(...(chunk.functionCalls ?? []));
-      }
-      console.log(
-        `--- timing: call ${call} first chunk ${first ? first - callStart : -1} ms, done ${Date.now() - callStart} ms ` +
-          `(turn ${Date.now() - turnStart} ms)${toolCalls.length ? ', then tool call' : ''} ---`,
-      );
-      if (toolCalls.length === 0) {
-        return;
-      }
-      input = toolCalls.map(fc => ({
-        functionResponse: {
-          name: fc.name ?? 'get_tickets',
-          response: {
-            result: executeGetTickets(
-              (fc.args ?? {}) as Record<string, unknown>,
-              this.options.assetsDir,
-            ),
+        const callStart = Date.now();
+        let first = 0;
+        const timeoutMs = this.callTimeoutMs();
+        const abort = new AbortController();
+        const timer = setTimeout(() => abort.abort(), timeoutMs);
+        const toolCalls: FunctionCall[] = [];
+        try {
+          const responseStream = await chat.sendMessageStream({message: input, config: {abortSignal: abort.signal}});
+          for await (const chunk of responseStream) {
+            if (!first) first = Date.now();
+            if (chunk.text) {
+              yield chunk.text;
+            }
+            toolCalls.push(...(chunk.functionCalls ?? []));
+          }
+        } catch (error) {
+          if (abort.signal.aborted) throw new Error(`Gemini call ${call} timed out after ${timeoutMs} ms.`);
+          throw error;
+        } finally {
+          clearTimeout(timer);
+        }
+        console.log(
+          `--- timing: call ${call} first chunk ${first ? first - callStart : -1} ms, done ${Date.now() - callStart} ms ` +
+            `(turn ${Date.now() - turnStart} ms)${toolCalls.length ? ', then tool call' : ''} ---`,
+        );
+        if (toolCalls.length === 0) {
+          finished = true;
+          return;
+        }
+        input = toolCalls.map(fc => ({
+          functionResponse: {
+            name: fc.name ?? 'unknown',
+            // Demo: get_tickets is the only tool; anything else gets an error, not ticket data.
+            response:
+              fc.name === getTicketsDeclaration.name
+                ? {result: executeGetTickets((fc.args ?? {}) as Record<string, unknown>, this.options.assetsDir)}
+                : {error: `Unknown tool "${fc.name}". The only tool is ${getTicketsDeclaration.name}.`},
           },
-        },
-      }));
+        }));
+      }
+    } finally {
+      if (!finished) {
+        this.chats.delete(chatKey);
+        console.log(`--- chat ${contextId} reset: the turn did not finish ---`);
+      }
     }
   }
 }

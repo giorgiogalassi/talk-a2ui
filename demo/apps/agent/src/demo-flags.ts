@@ -2,7 +2,7 @@
  * Demo: the agent's stage switches, changeable while it runs (GET/PUT /demo/flags, see
  * index.ts). They start from the same environment variables as before (STUB_LLM,
  * STUB_INVALID_FIRST, STUB_LEAKY, STUB_CLIENT_INVALID, GEMINI_THINKING_LEVEL), so a plain restart behaves as it
- * always did; the client's demo panel (Shift+D) flips them between turns without one.
+ * always did; the client's demo panel (Alt+Shift+D) flips them without one.
  */
 import {type ModelBackend, StubBackend, type TurnInput, thinkingConfig} from './model.js';
 
@@ -95,8 +95,9 @@ export class DemoFlagStore {
 }
 
 /**
- * Routes each turn to the stub or the model, as the switches stand when the turn starts.
- * One StubBackend per stub-switch combination, built on first use.
+ * Routes each model call to the stub or the model, as the switches stand when it starts: a
+ * switch flipped mid-turn applies from the turn's next attempt. One StubBackend per
+ * stub-switch combination, built on first use.
  */
 export class SwitchableBackend implements ModelBackend {
   private readonly stubs = new Map<string, StubBackend>();

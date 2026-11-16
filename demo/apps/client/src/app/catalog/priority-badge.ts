@@ -16,7 +16,7 @@ import { resolvedValueProblem } from './resolved-value';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (problem(); as p) {
-      <span class="priority-badge invalid" [attr.title]="p.message">?</span>
+      <span class="priority-badge invalid" [attr.title]="p.message" aria-label="Priority not shown: the value is not allowed">?</span>
     } @else {
       <span class="priority-badge" [attr.data-priority]="priority()">{{ priority() }}</span>
     }

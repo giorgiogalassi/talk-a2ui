@@ -10,7 +10,7 @@ import {type AgentToRendererMessage, validatePayload} from '@a2ui/agent';
 import {loadBasicCatalogs, loadTicketCatalogs} from './catalogs.js';
 import {readMessages} from './examples.js';
 import {leakInternalNotes} from './model.js';
-import {applyPolicy, DEMO_POLICY, enforcePolicy, UNAVAILABLE_TEXT} from './policy.js';
+import {applyPolicy, DEMO_POLICY, enforcePolicy, textFragments, UNAVAILABLE_TEXT, WITHHELD_TEXT} from './policy.js';
 import {getPackageRootDir} from './tools.js';
 
 const root = getPackageRootDir();
@@ -218,5 +218,54 @@ describe('enforcePolicy', () => {
     ]);
     assert.deepEqual(parts, [{type: 'text', text: 'hi'}]);
     assert.deepEqual(lines, ['--- policy: dropped updateDataModel at /ticket/internal_notes ---']);
+  });
+});
+
+describe('forbiddenText (notes the model writes out instead of binding)', () => {
+  const note = DEMO_POLICY.forbiddenText![0];
+  const sentence = note.split('.')[0];
+
+  it('loads every ticket note and splits it into sentences', () => {
+    assert.ok(DEMO_POLICY.forbiddenText!.length >= 4);
+    assert.ok(textFragments([note]).includes(sentence.toLowerCase().replace(/\s+/g, ' ').trim()));
+  });
+
+  it('replaces a text part that quotes a note, in any case and spacing', () => {
+    const quoting = `Heads up:   ${sentence.toUpperCase()}. Anything else?`;
+    const parts = enforcePolicy([{type: 'text', text: quoting} as any, {type: 'text', text: 'Here are your tickets.'} as any]);
+    assert.deepEqual(parts.map((p: any) => p.text), [WITHHELD_TEXT, 'Here are your tickets.']);
+  });
+
+  it('removes a component that has a note as a literal string, and keeps its siblings', () => {
+    const msg = {
+      version: 'v0.9',
+      updateComponents: {
+        surfaceId: 's',
+        components: [
+          {id: 'root', component: 'Column', children: ['title', 'leak']},
+          {id: 'title', component: 'Text', text: 'Ticket TCK-1042'},
+          {id: 'leak', component: 'Text', text: `Note: ${sentence}`},
+        ],
+      },
+    };
+    const {messages, stripped} = applyPolicy([msg], DEMO_POLICY);
+    const comps = (messages[0] as any).updateComponents.components;
+    assert.deepEqual(comps.map((c: any) => c.id), ['root', 'title']);
+    assert.deepEqual(comps[0].children, ['title']);
+    assert.match(stripped[0], /removed Text leak \(quotes restricted text/);
+    assert.doesNotMatch(stripped.join(' '), new RegExp(sentence.slice(30)));
+  });
+
+  it('empties a data model string that quotes a note, wherever it sits', () => {
+    const msg = {version: 'v0.9', updateDataModel: {surfaceId: 's', path: '/', value: {summary: sentence, tags: ['ok', note]}}};
+    const {messages} = applyPolicy([msg], DEMO_POLICY);
+    assert.deepEqual((messages[0] as any).updateDataModel.value, {summary: '', tags: ['ok', '']});
+  });
+
+  it('leaves ordinary ticket text alone', () => {
+    const input = readMessages(path.join(root, 'examples', 'v0.9', 'ticket_list.json'));
+    const {messages, stripped} = applyPolicy(input, DEMO_POLICY);
+    assert.deepEqual(stripped, []);
+    assert.equal(json(messages), json(input));
   });
 });
