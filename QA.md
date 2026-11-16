@@ -227,6 +227,49 @@ to `ClientFactory` is planned for the move to A2A v1.0, or sooner if the sample
 moves first. Nothing about A2UI changes either way: the client only carries the
 messages.
 
+
+### "Where does CopilotKit sit in this? Didn't you just rebuild it?" *(added 2026-11-16)*
+**On stage, short:** "Different layer. CopilotKit is the app-to-agent plumbing, built on AG-UI:
+its runtime carries the agent's events to the browser and the user's actions back. A2UI is what
+travels inside: the description of the UI. CopilotKit renders A2UI too, in React and Angular. In
+the demo, that plumbing is about 300 lines from Google's own A2UI sample, over A2A. Swap it for
+CopilotKit and the catalog, the validation and the policy stay exactly the same."
+
+**The four layers** (the same split as post 01): MCP is agent ↔ tools and data; A2A is agent ↔
+agent; AG-UI is agent ↔ app (events, state, user input); A2UI is *what appears on screen*. The
+first three move messages; only A2UI describes an interface. CopilotKit is a framework built on
+AG-UI (where AG-UI started), not a fifth protocol.
+
+**What in the demo CopilotKit would replace:** the transport only. The client's `server.ts` (the A2A
+client, ~200 lines) and the transport core of `agent-client.ts` (send, read the stream, keep the
+session, send actions back, ~100 lines), both adapted from Google's sample. That is the "swap A2A
+for AG-UI and steps 1, 2 and 4 change" line of the deck and the article.
+
+**What it wouldn't replace:** everything the talk is about. The Zod catalog shared by agent and
+Angular, the agent's validation and retry, the server-side policy, rendering with `@a2ui/angular`,
+and the VALIDATION_FAILED loop (CopilotKit lists "A2UI Error Recovery" for Angular; not compared
+with ours).
+
+**Why the demo doesn't use it:** it follows Google's official A2UI sample (A2A, client on the server),
+so that is what is reused; the transport stays one visible file, which is the point being made; and
+A2A leaves room for agent-to-agent delegation later. Not a judgment on CopilotKit: for a product
+that wants chat UI, shared state and frontend tools out of the box, it is the shorter path.
+
+**Facts, checked 2026-11-16** (re-check before quoting numbers):
+- `@copilotkit/angular` exists, built on AG-UI; its docs target Angular 22 (an older July 2026
+  launch post said 19–21) — docs.copilotkit.ai/angular, docs.copilotkit.ai/reference/angular,
+  copilotkit.ai/blog/copilotkit-for-angular.
+- Angular A2UI is listed as supported (Dynamic / Fixed A2UI, A2UI Error Recovery) —
+  docs.copilotkit.ai/angular/features; the Angular renderer is a Lit custom element
+  (`cpk-a2ui-surface`), configured through `provideCopilotKit({ a2ui: ... })`.
+- A2UI version: CopilotKit's A2A + A2UI starter documents v0.8, with v0.9 in other guides
+  (docs.copilotkit.ai/a2a/generative-ui/declarative-a2ui); CopilotKit says its new Generative UI
+  is built on A2UI 1.0 (blog, Nov 2026). The demo is v0.9.
+- Google's own post presents CopilotKit + A2UI "across React and Angular" — Google Developers Blog,
+  "Build Generative UI Apps with A2UI & CopilotKit Agents", 29 Oct 2026.
+
+**Not to be confused with** GitHub Copilot or Microsoft Copilot: assistants, not part of this stack.
+
 ---
 
 ## See also
