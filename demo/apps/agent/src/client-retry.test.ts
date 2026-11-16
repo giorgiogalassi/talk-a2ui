@@ -10,7 +10,7 @@ import type {ExecutionEventBus, RequestContext} from '@a2a-js/sdk/server';
 import {TICKET_CATALOG_ID} from '@demo/catalog';
 
 import {readInboundMessage} from './a2a.js';
-import {RestaurantExecutor} from './agent.js';
+import {TicketExecutor} from './agent.js';
 import {loadBasicCatalogs, loadTicketCatalogs} from './catalogs.js';
 import {ClientRetries} from './client-retry.js';
 import {StubBackend, type TurnInput} from './model.js';
@@ -129,7 +129,7 @@ function recordConsole(t: TestContext, method: 'warn' | 'error'): string[] {
 }
 
 describe('the executor with STUB_CLIENT_INVALID', () => {
-  async function turn(executor: RestaurantExecutor, parts: Part[]) {
+  async function turn(executor: TicketExecutor, parts: Part[]) {
     const events: TaskStatusUpdateEvent[] = [];
     const bus = {publish: (e: TaskStatusUpdateEvent) => events.push(e)} as unknown as ExecutionEventBus;
     const context = {taskId: crypto.randomUUID(), contextId: 'c1', userMessage: message(parts)} as unknown as RequestContext;
@@ -147,7 +147,7 @@ describe('the executor with STUB_CLIENT_INVALID', () => {
     const warnings = recordConsole(t, 'warn');
     const errors = recordConsole(t, 'error');
     const stub = new RecordingStub();
-    const executor = new RestaurantExecutor('direct_json', stub, loadBasicCatalogs(), loadTicketCatalogs());
+    const executor = new TicketExecutor('direct_json', stub, loadBasicCatalogs(), loadTicketCatalogs());
 
     // Turn 1: the agent's validation passes the reply; the data model carries `critical`.
     const first = await turn(executor, [{kind: 'text', text: 'Show me the open tickets'}]);
@@ -181,7 +181,7 @@ describe('the executor with STUB_CLIENT_INVALID', () => {
 
   it('keeps the action name, so the detail view is the one retried', async () => {
     const stub = new RecordingStub();
-    const executor = new RestaurantExecutor('direct_json', stub, loadBasicCatalogs(), loadTicketCatalogs());
+    const executor = new TicketExecutor('direct_json', stub, loadBasicCatalogs(), loadTicketCatalogs());
     const open = {version: 'v0.9', action: {name: 'open_ticket', context: {ticketId: 'TCK-1042'}}};
     const first = await turn(executor, [{kind: 'data', data: open}]);
     assert.ok(first.data.includes('"priority":"critical"'));

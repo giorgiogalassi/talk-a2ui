@@ -15,7 +15,6 @@
  */
 
 import fs from 'fs';
-import path from 'path';
 import {pathToFileURL} from 'url';
 
 import type {AgentCard} from '@a2a-js/sdk';
@@ -23,12 +22,12 @@ import {DefaultRequestHandler, InMemoryTaskStore} from '@a2a-js/sdk/server';
 import {agentCardHandler, jsonRpcHandler, UserBuilder} from '@a2a-js/sdk/server/express';
 import express from 'express';
 
-import {RestaurantExecutor} from './agent.js';
+import {TicketExecutor} from './agent.js';
 import {DemoFlagStore, flagsFromEnv, SwitchableBackend} from './demo-flags.js';
 import {loadBasicCatalogs, loadTicketCatalogs} from './catalogs.js';
 import {resolveLlmMode, resolveModelName, resolveSampleConfig} from './config.js';
 import {GeminiBackend, type ModelBackend, StubBackend} from './model.js';
-import {resolvePythonSampleDir, verifyPythonSampleAssets} from './tools.js';
+import {resolveAssetsDir, verifyTicketData} from './tools.js';
 
 const DEFAULT_PORT = 10002;
 
@@ -61,7 +60,7 @@ function buildAgentCard(port: number, stub: boolean): AgentCard {
  * configuration or a catalog that fails to load.
  *
  * @param options.env Environment to read the configuration from (default `process.env`).
- * @param options.port Port the agent card and restaurant image URLs point at (default
+ * @param options.port Port the agent card's URL points at (default
  *     `PORT`, or 10002).
  */
 export async function createApp(options: {env?: NodeJS.ProcessEnv; port?: number} = {}): Promise<{
@@ -72,8 +71,8 @@ export async function createApp(options: {env?: NodeJS.ProcessEnv; port?: number
   const port = options.port ?? (env.PORT ? parseInt(env.PORT, 10) : DEFAULT_PORT);
   const {format} = resolveSampleConfig(env);
   const mode = resolveLlmMode(env);
-  const pythonDir = resolvePythonSampleDir();
-  verifyPythonSampleAssets(pythonDir);
+  const assetsDir = resolveAssetsDir();
+  verifyTicketData(assetsDir);
   const catalogs = loadBasicCatalogs();
   // Demo: the ticket catalog from packages/catalog.
   const ticketCatalogs = loadTicketCatalogs();
@@ -92,8 +91,7 @@ export async function createApp(options: {env?: NodeJS.ProcessEnv; port?: number
       ? new GeminiBackend({
           apiKey: env.GEMINI_API_KEY!,
           modelName: resolveModelName(env),
-          baseUrl: `http://localhost:${port}`,
-          pythonSampleDir: pythonDir,
+          assetsDir,
           thinkingLevel: () => flags.get().thinkingLevel,
         })
       : undefined,
@@ -102,7 +100,7 @@ export async function createApp(options: {env?: NodeJS.ProcessEnv; port?: number
   const requestHandler = new DefaultRequestHandler(
     agentCard,
     new InMemoryTaskStore(),
-    new RestaurantExecutor(format, backend, catalogs, ticketCatalogs),
+    new TicketExecutor(format, backend, catalogs, ticketCatalogs),
   );
 
   const app = express();
@@ -124,9 +122,6 @@ export async function createApp(options: {env?: NodeJS.ProcessEnv; port?: number
     }
     next();
   });
-
-  // Static images served from the shared Python sample
-  app.use('/static', express.static(path.join(pythonDir, 'images')));
 
   app.use(express.json());
 

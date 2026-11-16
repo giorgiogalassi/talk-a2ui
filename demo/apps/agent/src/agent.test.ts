@@ -1,6 +1,6 @@
 // Demo: proves that a prop outside the ticket catalog fails @a2ui/agent's validation and
 // triggers the executor's one retry (MAX_ATTEMPTS = 2), on both the streamed and the
-// non-streamed path. Runs the real RestaurantExecutor with the real catalogs; only the model
+// non-streamed path. Runs the real TicketExecutor with the real catalogs; only the model
 // is replaced, by a backend that answers each attempt with a scripted text.
 
 import assert from 'node:assert/strict';
@@ -12,7 +12,7 @@ import type {ExecutionEventBus, RequestContext} from '@a2a-js/sdk/server';
 import {A2uiGenerator, CatalogConfig, DirectJsonFormatFactory} from '@a2ui/agent';
 import {TICKET_CATALOG_ID} from '@demo/catalog';
 
-import {RestaurantExecutor} from './agent.js';
+import {TicketExecutor} from './agent.js';
 import {loadBasicCatalogs, loadTicketCatalogs} from './catalogs.js';
 import {readMessages, toResponseText} from './examples.js';
 import {leakInternalNotes, type ModelBackend, type TurnInput} from './model.js';
@@ -53,7 +53,7 @@ class ScriptedBackend implements ModelBackend {
 
 /** Runs one turn through the executor and returns the published status updates. */
 async function runTurn(backend: ModelBackend, useStreaming: boolean) {
-  const executor = new RestaurantExecutor(
+  const executor = new TicketExecutor(
     'direct_json',
     backend,
     loadBasicCatalogs(),

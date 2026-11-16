@@ -66,7 +66,7 @@ function shortError(message: string): string {
  * The A2A SDK calls `execute` once per incoming message. `run` holds the steps of one
  * turn, so start reading there; the private methods after it do the work of each step.
  */
-export class RestaurantExecutor implements AgentExecutor {
+export class TicketExecutor implements AgentExecutor {
   /** One generator per served version, holding its basic catalog and examples. */
   private readonly generators = new Map<string, A2uiGenerator>();
   /** Demo: each conversation's last turn, for a retry the renderer asks for. */
@@ -178,7 +178,7 @@ export class RestaurantExecutor implements AgentExecutor {
   ): Promise<{parts: Part[]; published: boolean}> {
     let query = firstQuery ?? turn.query;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-      console.log(`--- RestaurantExecutor: Attempt ${attempt + 1}/${MAX_ATTEMPTS} ---`);
+      console.log(`--- TicketExecutor: Attempt ${attempt + 1}/${MAX_ATTEMPTS} ---`);
       // Tracked per attempt: the final status must carry the parts of the attempt that
       // succeeded unless that attempt published them itself.
       let published = false;
