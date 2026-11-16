@@ -568,12 +568,15 @@ flowchart TB
 Speaker notes:
 Read it left to right, one lane at a time. Three boxes, two different wires.
 
-Browser to our own server: plain POST /api/agent, SSE back. That's our API, not
-A2A. The browser never sees an A2A type; it only gets A2UI messages.
+Browser to our own server: plain POST /api/agent, SSE (Server-Sent Events) back.
+That's our API (Application Programming Interface), not A2A (Agent2Agent
+protocol). The browser never sees an A2A type; it only gets A2UI (Agent-to-User
+Interface) messages.
 
 Server to agent: this is the only A2A hop. server.ts is the A2A client and the
-only file that knows A2A exists, so swapping the transport (AG-UI, MCP, plain
-REST) means rewriting one file. Note: A2A here is app-to-agent, one agent. No
+only file that knows A2A exists, so swapping the transport for AG-UI
+(Agent-User Interaction Protocol), MCP (Model Context Protocol) or plain REST
+(Representational State Transfer) means rewriting one file. Note: A2A here is app-to-agent, one agent. No
 agent-to-agent delegation in this demo; that's what A2A would add later.
 
 Inside the agent: negotiate the catalog from supportedCatalogIds, put
