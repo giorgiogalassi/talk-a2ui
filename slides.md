@@ -230,6 +230,7 @@ Ground the shift immediately in reality, don't let it float as a concept.
 This is a real, actively maintained standard with real adoption signal, not
 a one-off research idea. That's worth saying explicitly for a room of engineers
 who are going to ask "is this vaporware."
+Check the star count on the day: the number moves.
 -->
 
 ---
@@ -332,7 +333,31 @@ rule: ['Part 3', 'Where This Actually Makes Sense']
 <!--
 ~5 minutes. Needs a dedicated slide per use case, plus a "when NOT to use this"
 closing slide — do not skip it. The audience will ask "when would I actually
-build this?" before buying into the architecture in section 4 and 5.
+build this?" before buying into the architecture in Parts 4 to 6.
+-->
+
+---
+rule: ['Where This Actually Makes Sense', 'Part 3']
+---
+
+# Why the standard approach breaks down
+
+Hardcoded components with conditional rendering work well when the number of
+possible UI states is enumerable and stable. They break down when:
+
+- **The combinations explode** — 50 data dimensions × 10 roles is not 500 templates,
+  it's a composition system you're building anyway
+- **The interface responds to data you don't control** — enterprise customers bring
+  their own schemas, clinical data varies per patient
+- **Maintenance cost compounds** — every new template is a liability
+
+<!--
+Speaker notes:
+Teams that build large configuration-driven UI systems eventually reinvent
+something close to what A2UI formalizes — without the protocol, without the
+validation layer, and without the capability negotiation. That's the honest
+pitch: you're already halfway to building this. A2UI just names the pattern
+and gives it a validation boundary.
 -->
 
 ---
@@ -439,30 +464,6 @@ ever have been rendered, for any payload, at any time.
 This is the multi-agent case, and it's worth calling out separately because it's
 the one that generalizes furthest. The parent doesn't need to know anything about
 the sub-agent's internals — the shared catalog is the entire interface between them.
--->
-
----
-rule: ['Where This Actually Makes Sense', 'Part 3']
----
-
-# Why the standard approach breaks down
-
-Hardcoded components with conditional rendering work well when the number of
-possible UI states is enumerable and stable. They break down when:
-
-- **The combinations explode** — 50 data dimensions × 10 roles is not 500 templates,
-  it's a composition system you're building anyway
-- **The interface responds to data you don't control** — enterprise customers bring
-  their own schemas, clinical data varies per patient
-- **Maintenance cost compounds** — every new template is a liability
-
-<!--
-Speaker notes:
-Teams that build large configuration-driven UI systems eventually reinvent
-something close to what A2UI formalizes — without the protocol, without the
-validation layer, and without the capability negotiation. That's the honest
-pitch: you're already halfway to building this. A2UI just names the pattern
-and gives it a validation boundary.
 -->
 
 ---
@@ -646,7 +647,7 @@ The ◆ marks are where Zod checks the agent's output. That's the next section.
 -->
 
 ---
-rule: ['Anatomy of an A2UI System', 'Part 4']
+rule: ['Part 5', 'The Trust Boundary']
 ---
 
 <div class="ta">
@@ -659,140 +660,217 @@ rule: ['Anatomy of an A2UI System', 'Part 4']
 Speaker notes:
 The ◆ in the pipeline: one Zod catalog, checked three times. In the prompt (the
 model only sees what the catalog allows), on the agent (before anything leaves),
-and in the browser (before anything renders). The next slides are about that
-catalog: what it is, who checks what, and what it can't do on its own.
+and in the browser (before anything renders). The next three slides: that catalog, the
+policy that comes after it, and what the two can't do on their own.
+~6 minutes.
 -->
 
 ---
-rule: ['Anatomy of an A2UI System', 'Part 4']
+rule: ['The Trust Boundary', 'Part 5']
 ---
 
-# Zod is not your addition — it's built into A2UI
+# One catalog, checked three times
 
-Every catalog component is a Zod schema (`ComponentApi`): its allowed properties
-and types. One definition, shared by both ends.
+<div class="ta-cols" style="grid-template-columns: 1.15fr 1fr">
+<div>
 
-**Agent** — writes the catalog into the prompt as JSON Schema (`catalog.toJson()`)
-and validates every reply against the same Zod, before anything is sent.
+```ts
+// packages/catalog: one ComponentApi per component
+export const PriorityBadgeApi = {
+  name: 'PriorityBadge',
+  schema: z
+    .object({
+      priority: z
+        .union([z.enum(PRIORITIES), DataBindingSchema])
+        .describe("The ticket's priority, or a binding to it."),
+    })
+    .strict()
+    .describe("A coloured badge showing a ticket's priority."),
+} satisfies ComponentApi;
+```
 
-**Renderer** — registers its Angular components with the same objects and checks
-every message again on arrival.
+</div>
+<div>
 
-**The wire** — carries only catalog IDs (`supportedCatalogIds`). The protocol
-can also send a catalog inline; the demo doesn't need to.
+◆ **In the prompt.** `@a2ui/agent` writes it as JSON Schema (`catalog.toJson()`):
+the model only sees what the catalog allows.
+
+◆ **On the agent.** Every streamed message is checked against the same Zod
+before it leaves; a failure goes back to the model once.
+
+◆ **In the browser.** `web_core` checks it again on arrival; the Angular
+component is typed from the same object.
+
+</div>
+</div>
+
+<div v-click class="callout">
+
+Zod isn't the validation you bolt on. It's the language the whole agent–client
+contract is written in.
+
+</div>
 
 <div class="text-sm text-gray-400">
 
-Source: [catalog/types.ts#L172-L183](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/web_core/src/v0_9/catalog/types.ts#L172-L183) ·
-[client-capabilities.ts#L15-L30](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/web_core/src/v0_9/schema/client-capabilities.ts#L15-L30) ·
-demo: `packages/catalog`
+The wire carries only the catalog id (`supportedCatalogIds`). Source:
+[components.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/packages/catalog/src/components.ts) ·
+[catalog/types.ts#L172-L183](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/web_core/src/v0_9/catalog/types.ts#L172-L183)
 
 </div>
 
 <!--
 Speaker notes:
-This is the point that connects directly back to the "Kneel Before Zod" material
-for anyone who's seen that talk — Zod shows up here in a completely different
-role than runtime validation of form input.
-In the demo, packages/catalog is imported by both the agent and the Angular app:
-the same ComponentApi objects. The browser (through our server) only says which
-catalog it speaks; the agent already holds the schema.
-The agent is constrained upfront: it cannot even attempt to use components or
-property values outside the schema, because it never sees them as options in
-the first place. And if the model drifts anyway, the agent's own validation
-catches it before the user does.
+This is the point that connects back to the "Kneel Before Zod" material for anyone
+who's seen that talk: Zod shows up here in a completely different role than
+validating form input.
+
+Point at the code: z.enum limits priority to four strings, DataBindingSchema lets
+the agent bind it to the data instead of hardcoding a value, .strict() rejects any
+prop the schema doesn't name. The .describe() strings end up in the prompt: they're
+the only documentation the model gets.
+
+Then the three ◆, the same marks as in the pipeline. In the prompt, the model is
+constrained upfront: it never sees components or values outside the schema as
+options. On the agent, if the model drifts anyway, the check catches it before the
+user does. In the browser, the same object again: packages/catalog is imported by
+both the agent and the Angular app. Add a fifth priority to the enum and the prompt,
+both checks and the component's types all change together.
+
+[click: callout] For an audience that knows Zod from runtime validation, this is
+the reframe, and the sentence people should be quoting after the talk. Let it
+breathe.
 -->
 
 ---
-rule: ['Anatomy of an A2UI System', 'Part 4']
+rule: ['The Trust Boundary', 'Part 5']
 ---
 
-# Zod defines what the agent is allowed to think
+# Valid isn't allowed
 
-For an audience that already knows Zod from runtime validation, this is the
-reframe:
+The catalog answers one question: *is this a valid UI?* It can't answer the next one:
+*may this user see it?*
 
-<div class="callout">
+<div class="ta-cols" style="grid-template-columns: 1.6fr 1fr">
+<div>
 
-Here, Zod isn't the validation layer you bolt on. It's the schema language
-the entire agent-client contract is written in.
+```ts
+// apps/agent/src/policy/policy.ts
+export const DEMO_POLICY: Policy = {
+  forbiddenDataPaths: ['/tickets/*/internal_notes', '/ticket/internal_notes'],
+  disabledActions: ['delete_ticket'],
+  // the notes themselves, if the model writes them out
+  forbiddenText: readInternalNotes(),
+};
+```
 
 </div>
+<div>
 
-<!--
-Speaker notes:
-Let this slide breathe — it's a short, dense idea and it lands better slow.
-This is the sentence people should be quoting after the talk.
--->
+A `Text` bound to internal notes is **valid**. So is *Delete* for someone who may
+not delete.
 
----
-rule: ['Anatomy of an A2UI System', 'Part 4']
----
+Yours, **server-side**, after validation, on **every streamed message**.
 
-# Validation ownership — who checks what, where
+</div>
+</div>
 
-**Client-side** (`web_core`): capability negotiation and catalog schema validation.
+<div v-click class="callout">
 
-**Your application policy layer** — forbidden fields, forbidden actions,
-role restrictions — is what *you* add, and it belongs **server-side**,
-before the payload reaches the client.
+A denylist only blocks what you anticipated. In production: an allowlist per view.
+
+</div>
 
 <div class="text-sm text-gray-400">
 
-Source: [samples/client/angular/README.md#L54-L61](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/samples/client/angular/README.md#L54-L61)
+Source: [policy.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/apps/agent/src/policy/policy.ts) ·
+[samples/client/angular/README.md#L54-L61](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/samples/client/angular/README.md#L54-L61)
 
 </div>
 
 <!--
 Speaker notes:
-This is a distinction people will ask about in Q&A if you don't make it explicit
-now: A2UI's own validation checks structure and type against the catalog. It has
-no idea about your business rules — which role can see which field, which action
-is disabled for which customer tier. That's a layer you build, and it has to sit
-server-side, before the payload ever reaches the browser, or a client-side bypass
-defeats the whole point.
+This is the distinction people ask about in Q&A if you don't make it now. A2UI's
+own validation checks structure and types against the catalog. It has no idea about
+your business rules: which role can see which field, which action is disabled for
+whom. That layer is yours, and it sits server-side, before the payload reaches the
+browser, or a client-side bypass defeats the point.
+
+What it does in the demo: deletes the forbidden paths from every data update,
+removes components that bind them or carry a disabled action (and mends the tree so
+it stays valid), and withholds any text that quotes the notes, because the model is
+given them on purpose, as a real backend would.
+
+Why every message: the agent streams, and each re-send reaches the browser right
+away. In the tests the raw stream carried internal_notes in re-sends well before
+the last one. Filtering only the final answer comes too late.
+
+[click: callout] The honest limit, from building it: the first policy listed
+/tickets/*/internal_notes and missed the detail view's /ticket/internal_notes. The
+same data under another name walks through a denylist. That's why production wants
+an allowlist per view. You'll see this policy at work in the demo, stage 3.
 -->
 
 ---
-rule: ['Anatomy of an A2UI System', 'Part 4']
+rule: ['The Trust Boundary', 'Part 5']
 ---
 
-# The component registry is the trust boundary
+# What the boundary guarantees, and what it doesn't
 
-The agent can only compose from what exists in the catalog.
+<div class="ta-cols c2">
+<div>
 
-It cannot invent. It cannot escape.
+## Guaranteed
 
-Unknown component types are rejected before reaching the renderer.
+The agent composes only from the catalog. It cannot invent a component, a prop or
+a value the schema doesn't name; unknown types are rejected before rendering.
 
+The renderer is **structurally deterministic**: the same payload and state give the
+same tree, which components, in which order, with which inputs.
+
+</div>
 <div v-click>
 
-## A2UI is not AI magic
+## Not guaranteed
 
-<div class="callout">
+**Valid components in a harmful combination**: a "Confirm" button next to text that
+misleads. Each piece passes; the whole is wrong.
 
-It's a controlled rendering contract — and Zod is the language that contract
-is written in.
+**What the policy didn't anticipate**: a paraphrase of the notes, a field under a
+new name.
 
 </div>
+</div>
+
+<div v-click class="callout">
+
+A2UI is not AI magic. It's a controlled rendering contract: it fixes what can
+appear, not whether it makes sense.
 
 </div>
 
 <!--
 Speaker notes:
+Say the first column plainly. If anyone asks "what if the agent tries something
+malicious": it structurally cannot reference anything outside the catalog, full stop.
 
-Say this plainly, it's the summary of everything in this section.
-This is the sentence to return to if anyone in Q&A asks "but what if the agent
-tries something malicious" — the answer is always the same: it structurally
-cannot reference anything outside the catalog, full stop.
+On "deterministic", be precise, an advanced audience pushes back on an overclaim:
+not pixel-identical output forever. The tree shape and the component boundary are
+fixed by the payload, not by anything the model does at render time. Components can
+still vary inside: internal state, async data, user context.
 
-[click: A2UI is not AI magic]
-Close of section 4. Let this sit for a beat before moving into section 5,
-which is where Angular specifically enters the picture.
+[click: Not guaranteed] The honesty slide. Valid components can still be combined
+into something misleading; the schema checks pieces, not intent. Narrowing that is
+work in the spec too: A2UI 1.0 catalogs can declare allowedParents and
+allowedChildren, so a component in the wrong place is rejected. And the policy only
+covers what you wrote down.
+
+[click: callout] Close of the section. Let it sit, then into Angular: where the
+catalog becomes components.
 -->
 
 ---
-rule: ['Part 5', 'Angular as the Rendering Engine']
+rule: ['Part 6', 'Angular as the Rendering Engine']
 ---
 
 <div class="ta">
@@ -807,7 +885,7 @@ rule: ['Part 5', 'Angular as the Rendering Engine']
 -->
 
 ---
-rule: ['Angular as the Rendering Engine', 'Part 5']
+rule: ['Angular as the Rendering Engine', 'Part 6']
 ---
 
 # A2UI is framework-agnostic
@@ -827,41 +905,7 @@ asserting.
 -->
 
 ---
-rule: ['Angular as the Rendering Engine', 'Part 5']
----
-
-# 5a. You write a catalog, not a renderer
-
-`@a2ui/angular/v0_9` ships a `SurfaceComponent` (`<a2ui-v09-surface>`) you drop into your app.
-
-It handles, internally:
-- receiving A2UI messages: `A2uiRendererService.processMessages()` feeds the `MessageProcessor` from `web_core`
-- resolving component types from your catalog
-- dynamically instantiating Angular components via `ComponentHostComponent`
-- wiring up reactive property bindings via `ComponentBinder`
-
-<div class="text-sm text-gray-400">
-
-Source: [surface.component.ts](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/angular/src/v0_9/core/surface.component.ts) ·
-[component-host.component.ts#L67-L100](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/angular/src/v0_9/core/component-host.component.ts#L67-L100)
-
-</div>
-
-<!--
-Speaker notes:
-Start the section here — this reframes everything correctly before diving into
-mechanism. What you write is a catalog. What the library gives you is a renderer.
-Your custom components extend `CatalogComponent<typeof XApi>`, which types
-`props()` straight from the Zod `ComponentApi`; each prop is a bound property
-whose `value()` is an Angular signal bridged from the underlying Preact signal
-in `web_core`. (`BasicCatalogComponent` is the subclass the library's own basic
-components use; the demo's custom ones don't need it.)
-The example to pull up live if time allows: the demo's PriorityBadge,
-demo/apps/client/src/app/catalog/priority-badge.ts.
--->
-
----
-rule: ['Angular as the Rendering Engine', 'Part 5']
+rule: ['Angular as the Rendering Engine', 'Part 6']
 ---
 
 # Your entire rendering integration
@@ -915,7 +959,7 @@ Everything else lives in the catalog you write next.
 -->
 
 ---
-rule: ['Angular as the Rendering Engine', 'Part 5']
+rule: ['Angular as the Rendering Engine', 'Part 6']
 ---
 
 # What your catalog looks like
@@ -939,17 +983,51 @@ Source: [ticket-catalog.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/mai
 <!--
 Speaker notes:
 This is the artifact your team actually maintains: a list of API/implementation
-pairs. Each `Api` is the Zod schema from section 4, imported from the same
+pairs. Each `Api` is the Zod schema from Part 5, imported from the same
 `packages/catalog` the agent validates with. Each implementation is a normal
 Angular component. The basic components (Text, Row, Card…) are the library's
 own, filtered to the ones the catalog lists. No special DSL beyond this.
 -->
 
 ---
-rule: ['Angular as the Rendering Engine', 'Part 5']
+rule: ['Angular as the Rendering Engine', 'Part 6']
 ---
 
-# 5b. Reactivity — Preact signals meet Angular signals
+# What the renderer does for you
+
+`@a2ui/angular/v0_9` ships a `SurfaceComponent` (`<a2ui-v09-surface>`) you drop into your app.
+
+It handles, internally:
+- receiving A2UI messages: `A2uiRendererService.processMessages()` feeds the `MessageProcessor` from `web_core`
+- resolving component types from your catalog
+- dynamically instantiating Angular components via `ComponentHostComponent`
+- wiring up reactive property bindings via `ComponentBinder`
+
+<div class="text-sm text-gray-400">
+
+Source: [surface.component.ts](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/angular/src/v0_9/core/surface.component.ts) ·
+[component-host.component.ts#L67-L100](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/angular/src/v0_9/core/component-host.component.ts#L67-L100)
+
+</div>
+
+<!--
+Speaker notes:
+Start the section here — this reframes everything correctly before diving into
+mechanism. What you write is a catalog. What the library gives you is a renderer.
+Your custom components extend `CatalogComponent<typeof XApi>`, which types
+`props()` straight from the Zod `ComponentApi`; each prop is a bound property
+whose `value()` is an Angular signal bridged from the underlying Preact signal
+in `web_core`. (`BasicCatalogComponent` is the subclass the library's own basic
+components use; the demo's custom ones don't need it.)
+The example to pull up live if time allows: the demo's PriorityBadge,
+demo/apps/client/src/app/catalog/priority-badge.ts.
+-->
+
+---
+rule: ['Angular as the Rendering Engine', 'Part 6']
+---
+
+# Reactivity — Preact signals meet Angular signals
 
 The reactive layer, `@preact/signals-core`, lives inside `web_core` —
 framework-agnostic by design.
@@ -992,7 +1070,7 @@ your component code — the bridge absorbs it entirely.
 -->
 
 ---
-rule: ['Angular as the Rendering Engine', 'Part 5']
+rule: ['Angular as the Rendering Engine', 'Part 6']
 ---
 
 # Why the message split matters
@@ -1026,10 +1104,10 @@ makes fine-grained reactivity possible at all downstream.
 -->
 
 ---
-rule: ['Angular as the Rendering Engine', 'Part 5']
+rule: ['Angular as the Rendering Engine', 'Part 6']
 ---
 
-# 5c. Zoneless and streaming — the specific argument
+# Zoneless and streaming
 
 A2UI streams many small `updateDataModel` messages, each targeting one
 JSON Pointer path.
@@ -1061,7 +1139,8 @@ a performant and a sluggish surface.
 
 <div class="text-sm text-gray-400">
 
-Zoneless is stable since Angular 20.2 and the default since 21. The demo runs
+In the demo there's nothing to add: zoneless is the default since Angular 21, so
+`app.config.ts` has no provider for it. Zoneless is stable since Angular 20.2. The demo runs
 on Angular 22 with no Zone.js at all.
 
 </div>
@@ -1083,42 +1162,10 @@ coarse-grained triggering on top of that.
 -->
 
 ---
-rule: ['Angular as the Rendering Engine', 'Part 5']
+rule: ['Angular as the Rendering Engine', 'Part 6']
 ---
 
-# 5d. The "deterministic renderer" claim — stated precisely
-
-The renderer is **structurally deterministic**: given the same A2UI payload
-and the same application state, it produces the same component tree.
-
-<div class="text-sm text-gray-400">
-
-Individual components may still vary visually — internal state, async data,
-user context. What's deterministic is the *structure*: which components
-render, in which order, with which inputs.
-
-</div>
-
-<div class="callout">
-
-The AI cannot affect anything outside that contract.
-
-</div>
-
-<!--
-Speaker notes:
-Say this precisely, not loosely — advanced audiences will push back hard on
-an overclaimed "deterministic" if you don't scope it correctly. You're not
-claiming pixel-identical output forever. You're claiming the tree shape and
-the component boundary are fixed by the payload, not by anything the model
-does at render time.
--->
-
----
-rule: ['Angular as the Rendering Engine', 'Part 5']
----
-
-# 5e. Standalone components and the registry pattern
+# Standalone components and the registry pattern
 
 Each registered component is:
 
@@ -1135,83 +1182,108 @@ here — the dynamic-instantiation model in `ComponentHostComponent` needs
 components that can be loaded in isolation, without a module graph to resolve
 first. That's precisely what standalone gives you.
 
-DEMO RUN-SHEET (was the Demo section slides; the screen stays on this slide during the demo)
-
-Notes: ~10 minutes. Scenario: Enterprise Support Dashboard.
-
-# The prompt
-
-> "Show me unresolved enterprise tickets with priority and assignee."
-
-## Stage by stage
-
-1. Network tab: `a2uiClientCapabilities` goes to the agent **before** any UI is
-   generated. It carries only the catalog IDs; the agent already holds the schema
-2. Agent produces an A2UI JSON payload — show the actual JSON, it's readable
-3. Server-side policy strips `internal_notes` and removes the `delete` action:
-   the button never reaches the browser
-4. Payload reaches the client, `web_core` validates against the catalog schema
-
-Notes: 
-Set the scene, then walk each stage explicitly on the following slides.
-Run the live agent (Gemini), as the abstract promises. If the model is slow or
-down, switch to the stub agent (same catalog, policy and validation, canned
-replies) or the recording, and say so openly.
-
-[Stage by stage]
-Narrate each numbered step as you show it on screen. Don't rush stage 1 —
-it's the one that visually proves the capability negotiation happened before
-generation, which is the whole argument from section 4.
-
-# Stage by stage, continued
-
-5. A deliberately malformed payload fails the agent's Zod check — **show the
-   agent log**: the error goes back to the model and the retry is generated
-6. The retry replaces the surface. If it fails too, the user gets a plain text
-   answer, never a broken screen
-7. The streamed `updateDataModel` messages fill the list in — show only the
-   ticket rows re-evaluating in Angular DevTools profiler
-
-Notes: Stage 5 is the moment that proves the reliability story from section 7 —
-don't let it pass as a throwaway line, it's evidence, not decoration.
-Trigger it with the stub agent (STUB_INVALID_FIRST=true): a live model rarely
-fails on cue.
-What's real, client side (built 2026-11-12): with STUB_CLIENT_INVALID=true the
-agent's check passes a ticket whose data says priority "critical" (the badge
-binds to it, which the schema allows). The renderer resolves the binding, shows
-a "?" badge, keeps the rest of the list, and POSTs VALIDATION_FAILED with path
-/tickets/0/priority. The agent logs "A2UI client reported VALIDATION_FAILED",
-retries once with that error, and the corrected list replaces the surface; a
-second report for the same turn gets the text answer. web_core does not send
-this by itself: the demo's AgentClient catches and reports it.
-Stage 7 is where the Zoneless/signals argument from 5c becomes visible —
-open the profiler and let the room see exactly one component highlighted.
-
-# The moment to land
-
-The agent never touched the DOM.
-
-A malformed payload was caught, sent back to the model and retried — not a
-crash, not a silent failure.
-
-The system controlled the model. Not the other way around.
-
-**On model choice** · Gemini through `@google/genai`, with one tool (`get_tickets`) and thinking set
-to `MINIMAL` for latency. No `response_schema`: the catalog in the prompt and
-the Zod check after it do that job.
-
-Notes: 
-Deliver slowly. This is the payoff of the entire demo and arguably the entire
-talk. Let it sit before moving to the model-choice footnote.
-
-[On model choice]
-Quick, factual footnote for anyone asking "what LLM did you actually use."
-Not the focus of the talk — the architecture is model-agnostic, this is just
-transparency about the demo setup.
+Then: "Let's see it." Switch to the demo section.
 -->
 
 ---
-rule: ['Part 6', 'Production Reality']
+rule: ['Part 7', 'Demo']
+---
+
+<div class="ta">
+  <div class="ta-hero">
+    <FitText>Live Demo.</FitText>
+  </div>
+</div>
+
+<!--
+~10 minutes. Next slide: tell the room what to watch for, then switch the second
+screen to the app, full screen. Your run-sheet is in the next slide's notes.
+-->
+
+---
+rule: ['Demo', 'Part 7']
+---
+
+# What to watch for
+
+A support desk. One prompt: *"Show me the open tickets"*. Then seven moments.
+
+1. **Negotiation**: the agent learns which catalog the app speaks, before any UI exists ◆
+2. **The answer is JSON**: readable, and made only of the catalog's components
+3. **The policy**: internal notes and the *Delete* button never reach the browser
+4. **The agent rejects its own answer**: a value outside the catalog, caught and retried ◆
+5. **The browser rejects a value**: `VALIDATION_FAILED` goes back, the turn is redone ◆
+6. **Never a broken screen**: a placeholder for the bad part, or a plain text answer
+7. **Streaming**: the list fills in, and only the rows that changed re-render
+
+<!--
+Speaker notes:
+Read the list once, quickly, then switch the second screen to the app, full screen.
+This slide is the room's map; they won't see it again until you come back.
+
+RUN-SHEET (you see this in /presenter while the app is on the other screen)
+Before: npm run demo:live (or npm run demo for the stub), open http://localhost:4200
+(localhost, not 127.0.0.1). Panel: Alt+Shift+D. Agent terminal visible on your
+screen.
+
+1. Negotiation. Ask "Show me the open tickets". Show the agent terminal:
+   "--- capabilities: {"v0.9":{"supportedCatalogIds":[...]}} -> v0.9 ---". The
+   browser never sends this; our server adds it. Only catalog ids travel.
+2. JSON. Network tab: the SSE response of POST /api/agent, data: {messages:[...]}.
+   createSurface, updateComponents, updateDataModel. Readable.
+3. Policy. Panel: Stub + "Leaky replies" on. Ask again, open a ticket. Agent log:
+   "--- policy: stripped /tickets/0/internal_notes ---", "removed Button delete".
+   The detail view has no Delete and no notes. Live, the model rarely gives the
+   policy anything to strip: that's why the stub switch exists.
+4. Agent rejects. Panel: "First attempt invalid" on (Leaky off). Agent log:
+   "A2UI validation failed ... received 'critical' (Attempt 1)", then Attempt 2/2.
+   The list arrives valid.
+5. Browser rejects. Panel: "Renderer rejects first attempt" on. The list shows a
+   "?" badge for a moment; agent log: "A2UI client reported VALIDATION_FAILED ...
+   /tickets/0/priority", "Retrying the last turn", corrected list.
+6. Never broken: the "?" placeholder was it; a second failure gets text
+   (FALLBACK_TEXT), never a broken surface.
+7. Streaming: Live mode. Angular DevTools profiler while the list fills: only the
+   ticket rows re-evaluate. Check at rehearsal; if it shows one burst, show the
+   re-sends in the network tab instead and say so.
+
+If the model is slow or down: switch to Stub in the panel and say so openly. The
+recording is the last resort.
+-->
+
+---
+rule: ['Demo', 'Part 7']
+---
+
+# What you just saw
+
+| | Moment | What it proved |
+|---|---|---|
+| 1 | Negotiation | Only a catalog id travels; the agent already holds the schema ◆ |
+| 2–3 | JSON, then the policy | Data, not code; and *valid* is not *allowed* |
+| 4–5 | Two rejections | The same Zod, on the agent and in the browser, with a way back ◆ |
+| 6–7 | No broken screen, streaming | Failures degrade; signals re-render only what changed |
+
+<div class="callout">
+
+The agent never touched the DOM. The system controlled the model, not the other way
+around.
+
+</div>
+
+<!--
+Speaker notes:
+Back from full screen. Re-anchor the room: point at each row, one sentence each.
+Then the line in the callout. Deliver slowly: the payoff of the demo and arguably
+the talk.
+
+On model choice, if asked: Gemini through @google/genai, one tool (get_tickets),
+thinking MINIMAL for latency. No response_schema: the catalog in the prompt and the
+Zod check after it do that job. The architecture is model-agnostic.
+-->
+
+---
+rule: ['Part 8', 'Production Reality']
 ---
 
 <div class="ta">
@@ -1225,19 +1297,17 @@ rule: ['Part 6', 'Production Reality']
 -->
 
 ---
-rule: ['Production Reality', 'Part 6']
+rule: ['Production Reality', 'Part 8']
 ---
 
 # Security
 
-The component catalog is the primary trust boundary, enforced **before
-generation** via capability negotiation.
+The catalog and the policy are the boundary (Part 5). Around them, the Angular
+README names three threats to plan for:
 
-Your application policy layer — forbidden fields, forbidden actions, role
-restrictions — is what you add server-side.
-
-The Angular README documents three threat categories: **UI spoofing**,
-**property injection (XSS)**, and **denial of service** via layout complexity.
+- **UI spoofing**: a valid component made to look like something it isn't
+- **Property injection (XSS)**: strings that reach the DOM
+- **Denial of service** via layout complexity: deep or wide trees
 
 <div class="text-sm text-gray-400">
 
@@ -1247,6 +1317,7 @@ Source: [samples/client/angular/README.md#L54-L61](https://github.com/a2ui-proje
 
 <!--
 Speaker notes:
+Don't repeat the catalog and the policy: point back to Part 5 in one sentence.
 Angular's native property binding sanitization handles the XSS case directly —
 no extra library needed, it's the same sanitizer Angular already runs for
 every binding. The flat adjacency list format used for the component tree
@@ -1255,7 +1326,7 @@ tree would be, since depth and fan-out are cheap to bound-check.
 -->
 
 ---
-rule: ['Production Reality', 'Part 6']
+rule: ['Production Reality', 'Part 8']
 ---
 
 <div class="ta-cols c3">
@@ -1263,8 +1334,8 @@ rule: ['Production Reality', 'Part 6']
 
 ## Reliability
 
-The agent checks every payload against the Zod catalog before it ships. A
-failure goes back to the model with the error, for one retry.
+Two loops, both with one retry: the agent checks every message before it ships,
+and the renderer reports what it rejects (`VALIDATION_FAILED`).
 
 <div class="callout">
 
@@ -1272,7 +1343,8 @@ This is not a silent drop. It's a feedback loop.
 
 </div>
 
-Define fallback surfaces for each failure level before you need them.
+Define fallback surfaces for each failure level before you need them. Budget for
+latency: 4–7 s to the first UI live (Gemini, 12 Nov).
 
 </div>
 <div v-click>
@@ -1314,7 +1386,7 @@ These compose into a genuinely efficient streaming surface.
 Speaker notes:
 
 [Reliability]
-Tie this directly back to demo stage 5 — the room just saw this happen.
+Tie this back to demo stages 4 and 5: the room just saw both loops.
 On the client, the protocol defines the same signal: a `VALIDATION_FAILED`
 error message from renderer to agent. The demo sends it (app code, not web_core)
 and the agent retries once on it. The point: failure is communicated back to the agent,
@@ -1328,12 +1400,12 @@ HTML generation you can log the string, but you have no structured way to ask
 payload itself is the audit trail.
 
 [click: Performance]
-This is the summary slide tying together 5b and 5c — don't re-explain the
+This is the summary slide tying together the reactivity and zoneless slides — don't re-explain the
 mechanism, just name the pieces and let the room recall what they already saw.
 
 [Say last, after the Performance click: was the "Production-ready Generative UI" slide]
 "Production-ready Generative UI is an architecture problem. Not a prompt engineering problem."
-Close of section 7. Let this land, then transition into the future section —
+Close of the talk, before Q&A. Let this land —
 this line is a good one to repeat verbatim if asked to summarize the talk
 in one sentence afterward.
 -->
@@ -1368,14 +1440,14 @@ how long. When time is up, move to the Thank you slide and land the close.
 Q&A prep — likely questions:
 - "Is A2UI production-ready?" → The spec is v1.0 and stable since 6 Nov; the
   libraries are still 0.x and the demo pins v0.9. The pattern is what to adopt now;
-  the specific library will stabilize. See section 2 maturity slide.
-- "What about React/Vue teams?" → A2UI is framework-agnostic (section 5 opener).
+  the specific library will stabilize. See the Part 2 maturity slide.
+- "What about React/Vue teams?" → A2UI is framework-agnostic (Part 6 opener).
   The Angular-specific argument is about fit, not exclusivity.
 - "Doesn't the agent still need to know the catalog?" → Yes — that's the point.
   Capability negotiation sends the catalog to the agent before generation
-  (section 4). It's a closed, known vocabulary, not an open one.
+  (Part 5). It's a closed, known vocabulary, not an open one.
 - "What stops a compromised agent from requesting a valid-looking but malicious
-  combination of valid components?" → Server-side policy enforcement (section 4
+  combination of valid components?" → Server-side policy enforcement (Part 5
   validation ownership slide) is the layer for this — catalog validation checks
   shape, not business rules.
 
@@ -1395,7 +1467,7 @@ The component advertises itself. The agent operates within what it's been shown.
 
 Notes: Ground the future section with this one concrete example before going broad —
 don't jump straight to the abstract vision. This is a natural extension of
-the capability manifest mechanism from section 4, just pushed further: instead
+the capability manifest mechanism from Part 4, just pushed further: instead
 of a fixed catalog manifest, individual components self-describe.
 
 # The broader vision
@@ -1461,7 +1533,7 @@ rule: ['Thank you', 'ggalassi.dev']
 Speaker notes:
 [Was the Close slide]
 Land this slowly, mirroring the close of the context-engineering talk structure.
-The room should leave with the reframe from section 2, not a list of APIs:
+The room should leave with the reframe from Part 2, not a list of APIs:
 AI-native Angular is not a new framework. It's the one you already know,
 used correctly. Thank the room (questions already happened on the previous slide).
 
