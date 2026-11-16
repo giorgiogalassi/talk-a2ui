@@ -6,7 +6,8 @@ Read this before the code: every step names the file it lives in.
 There are two ways to read it:
 
 - **This page.** Three diagrams (end to end, frontend, backend), then the payloads.
-- **The interactive map:** [`index.html`](index.html). Open it in a browser, from a clone or with any static
+- **The interactive map:** [`index.html`](index.html): pick a node to read it (file, payload,
+  what leads to it and from it); the graph beside it shows where you are. Open it in a browser, from a clone or with any static
   server (`python3 -m http.server` in this folder). It has the same three views as tabs, with guided
   walks, and each node shows its file and the exact payload. It needs the cytoscape CDN.
 
@@ -139,9 +140,16 @@ flowchart TD
 - **Validation while streaming.** `@a2ui/agent`'s Direct JSON stream re-sends a message whole each
   time it grows, and only when a fresh renderer state accepts it.
 - **Policy.** `DEMO_POLICY` forbids `/tickets/*/internal_notes` and `/ticket/internal_notes` and
-  disables `delete_ticket`. It runs on every re-send, because each one reaches the browser.
+  disables `delete_ticket`. It runs on every re-send, because each one reaches the browser. Since
+  the model is given the notes, it also checks text (`forbiddenText`, per sentence): a text part,
+  a literal string or a data model value quoting a note is withheld. A paraphrase isn't caught.
 - **Errors.** A model or network error (e.g. a Gemini 503) retries the original query; an A2UI error
   retries with the error. Any exception ends the task with a `failed` status and a text part.
+  Each model call times out after 30 s (`GEMINI_CALL_TIMEOUT_MS`), a turn gets at most 3 tool
+  rounds, and a turn that doesn't finish drops its Gemini chat so the retry starts clean.
+- **Errors to the browser.** Fixed messages only ("The agent is not reachable…", "…could not
+  answer…"); details stay in the server log. The browser runs one turn at a time and gives up
+  after 150 s.
 - **Stage switches.** `stub`, `invalidFirst`, `leaky`, `clientInvalid` and `thinkingLevel` start from
   the env (`STUB_LLM`, `STUB_INVALID_FIRST`, `STUB_LEAKY`, `STUB_CLIENT_INVALID`,
   `GEMINI_THINKING_LEVEL`) and change at runtime from the demo panel (⌥⇧D): `GET/PUT /demo/flags`

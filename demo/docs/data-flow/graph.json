@@ -57,7 +57,7 @@
         "label": "4 Negotiate + read",
         "group": "agent",
         "order": 4,
-        "detail": "pickA2ui picks v0.9 and the ticket catalog from the metadata; readInboundMessage gets text, action or client error; the system prompt is built from that catalog's toJson() and examples.",
+        "detail": "pickA2ui picks v0.9 and the ticket catalog from the metadata, and the agent logs what it received (\"--- capabilities: … ---\", stage 1: the browser never sends them, the app's server adds them); readInboundMessage gets text, action or client error; the system prompt is built from that catalog's toJson() and examples.",
         "source": "demo/apps/agent/src/agent.ts",
         "status": "done"
       },
@@ -75,7 +75,7 @@
         "label": "6 Model writes A2UI",
         "group": "llm",
         "order": 6,
-        "detail": "Live: Gemini call 1 asks for get_tickets, the agent runs it (assets/tickets.json, internal_notes included), call 2 streams A2UI v0.9 JSON in <a2ui-json> blocks. Stub: a canned reply in chunks.",
+        "detail": "Live: Gemini call 1 asks for get_tickets, the agent runs it (assets/tickets.json, internal_notes included), call 2 streams A2UI v0.9 JSON in <a2ui-json> blocks. Each call times out after 30 s (GEMINI_CALL_TIMEOUT_MS), at most 3 tool rounds; a turn that doesn't finish drops its chat. Stub: a canned reply in chunks.",
         "source": "demo/apps/agent/src/model.ts · demo/apps/agent/src/tools.ts",
         "status": "done"
       },
@@ -93,7 +93,7 @@
         "label": "8 Policy on every message",
         "group": "agent",
         "order": 8,
-        "detail": "enforcePolicy strips internal_notes and removes Delete (and anything bound to the notes) from every batch, each re-send included, before publishing.",
+        "detail": "enforcePolicy strips internal_notes and removes Delete (and anything bound to the notes) from every batch, each re-send included, before publishing. It also checks text: a text part, a literal string or a data model value that quotes a ticket's notes is withheld, since the model is given the notes.",
         "source": "demo/apps/agent/src/policy.ts",
         "status": "done"
       },
@@ -347,7 +347,7 @@
         "label": "Prompt form",
         "group": "ui",
         "order": 1,
-        "detail": "The user types a request (default \"Show me the open tickets\") and submits. app.ts calls AgentClient.ask(prompt). The input and button are disabled while isLoading() is true.",
+        "detail": "The user types a request (default \"Show me the open tickets\") and submits. app.ts calls AgentClient.ask(prompt). The input and button are disabled, and the surfaces inert, while isLoading() is true: one turn at a time.",
         "source": "demo/apps/client/src/app/app.ts",
         "status": "done"
       },
@@ -384,7 +384,7 @@
         "label": "ask(query) / handleAction(event)",
         "group": "client",
         "order": 1,
-        "detail": "The two ways a turn starts: a prompt, or a button action (the renderer calls handleAction through the actionHandler in app.config.ts). Both reset the report counter and call send().",
+        "detail": "The two ways a turn starts: a prompt, or a button action (the renderer calls handleAction through the actionHandler in app.config.ts). Both are ignored while a turn is still running; otherwise they reset the report counter and call send().",
         "source": "demo/apps/client/src/app/agent-client.ts",
         "status": "done"
       },
@@ -412,7 +412,7 @@
         "label": "Read the SSE stream",
         "group": "client",
         "order": 4,
-        "detail": "The response body is read as text, split on blank lines; each \"data: \" line is parsed as JSON and passed to handleEvent. A non-200 response throws its { error } into the error signal.",
+        "detail": "The response body is read as text, split on blank lines; each \"data: \" line is parsed as JSON and passed to handleEvent. A non-200 response shows the server's { error } message, or \"The server answered <status>\" when the body isn't that JSON. The browser gives up after 150 s.",
         "source": "demo/apps/client/src/app/agent-client.ts",
         "status": "done",
         "payload": "data: {\"messages\":[…A2UI v0.9 messages…],\"text\":\"…\",\"sessionId\":\"<contextId>\"}\n\ndata: {\"error\":\"…\"}   (only if the stream fails after it started)"
@@ -800,7 +800,7 @@
         "label": "POST /api/agent",
         "group": "ssr",
         "order": 1,
-        "detail": "The Express route the browser calls. Reads { query, event, error, sessionId }. A malformed error (missing string code, surfaceId, message, or path for VALIDATION_FAILED) gets 400 and goes no further.",
+        "detail": "The Express route the browser calls. Reads { query, event, error, sessionId } and checks their types (400 otherwise; a body that isn't JSON gets a JSON 400, not Express's HTML page). A malformed error (missing string code, surfaceId, message, or path for VALIDATION_FAILED) gets 400 and goes no further.",
         "source": "demo/apps/client/src/server.ts",
         "status": "done"
       },
@@ -846,7 +846,7 @@
         "label": "Write SSE to the browser",
         "group": "ssr",
         "order": 6,
-        "detail": "Headers text/event-stream, no-cache, keep-alive, X-Accel-Buffering: no. One line per A2A event that has messages, text or a contextId (in practice every event). Errors: before the first byte → 502 { error }; after → data: { error } and end.",
+        "detail": "Headers text/event-stream, no-cache, keep-alive, X-Accel-Buffering: no. One line per A2A event that has messages, text or a contextId (in practice every event). Errors: the details go to this server's log; the browser gets a fixed message (\"The agent is not reachable…\" / \"…could not answer…\"): before the first byte as 502 { error }, after as data: { error }. If the browser disconnects, the server stops reading the agent's stream.",
         "source": "demo/apps/client/src/server.ts",
         "status": "done",
         "payload": "data: {\"messages\":[{ \"version\":\"v0.9\",\"createSurface\":{…} }, …],\"sessionId\":\"<contextId>\"}\n\ndata: {\"messages\":[],\"text\":\"I'm sorry, I'm having trouble…\",\"sessionId\":\"…\"}"
@@ -865,7 +865,7 @@
         "label": "Agent HTTP server :10002",
         "group": "a2a",
         "order": 1,
-        "detail": "Express app: CORS for http://localhost:* (left from the sample's browser client), GET /.well-known/agent-card.json, POST /a2a/json-rpc. No authentication (UserBuilder.noAuthentication).",
+        "detail": "Express app: GET /.well-known/agent-card.json, POST /a2a/json-rpc, GET/PUT /demo/flags. No CORS: only the app's server calls it. No authentication (UserBuilder.noAuthentication). Exits with a message if its port is already taken.",
         "source": "demo/apps/agent/src/index.ts",
         "status": "done"
       },
@@ -983,7 +983,7 @@
         "label": "Gemini chat",
         "group": "model",
         "order": 2,
-        "detail": "One chat per contextId + version (LRU of 1,000), model gemini-3.6-flash by default, system instruction = the system prompt, one tool (get_tickets), thinking MINIMAL by default. Call 1 usually returns a function call; the tool runs; call 2 streams the A2UI text.",
+        "detail": "One chat per contextId + version + thinking level (LRU of 1,000), model gemini-3.6-flash by default, system instruction = the system prompt, one tool (get_tickets), thinking MINIMAL by default. Call 1 usually returns a function call; the tool runs; call 2 streams the A2UI text. Each call times out after 30 s (GEMINI_CALL_TIMEOUT_MS); at most 3 tool rounds; an unknown tool gets an error. A turn that doesn't finish drops its chat, so the retry starts clean.",
         "source": "demo/apps/agent/src/model.ts",
         "status": "done"
       },
@@ -1020,7 +1020,7 @@
         "label": "enforcePolicy()",
         "group": "guard",
         "order": 2,
-        "detail": "Runs on every emitted batch, each re-send included. DEMO_POLICY: forbiddenDataPaths /tickets/*/internal_notes and /ticket/internal_notes, disabledActions delete_ticket. Deletes forbidden data from updateDataModel values; removes components that bind forbidden data or carry a disabled action, mending the tree. Logs one line per strip.",
+        "detail": "Runs on every emitted batch, each re-send included. DEMO_POLICY: forbiddenDataPaths /tickets/*/internal_notes and /ticket/internal_notes, disabledActions delete_ticket, forbiddenText = every ticket's notes, matched per sentence. Deletes forbidden data from updateDataModel values and empties strings that quote a note; removes components that bind forbidden data, carry a disabled action or quote a note, mending the tree; replaces a text part that quotes a note. A paraphrase is not caught. Logs one line per strip.",
         "source": "demo/apps/agent/src/policy.ts",
         "status": "done"
       },
