@@ -795,35 +795,54 @@ demo/apps/client/src/app/catalog/priority-badge.ts.
 rule: ['Angular as the Rendering Engine', 'Part 5']
 ---
 
-# Your entire Angular integration
+# Your entire rendering integration
 
-```ts {1-4|6-9}
+```ts {1-4|6-10|12-13}
 // app.config.ts
 provideA2Ui(() => ({
   catalogs: [createTicketCatalog(), new BasicCatalog()],
 }))
 
-// app.ts template
-@for (entry of renderer.surfaceGroup.surfacesMap; track entry[0]) {
+// app.ts template: one element per surface, tracked by the surface object
+// (a corrected reply re-creates a surface under the same id)
+@for (entry of renderer.surfaceGroup.surfacesMap; track entry[1]) {
   <a2ui-v09-surface [surfaceId]="entry[0]" />
 }
+
+// agent-client.ts: every A2UI message the agent streams
+renderer.processMessages([message]);
 ```
 
 <div class="text-sm text-gray-400">
 
+Around it: the client that brings the messages in and sends actions back (adapted from Google's
+Angular sample, ~100 lines), and the error reporting of stages 5–6 (ours: web_core doesn't send
+`VALIDATION_FAILED` yet).
+
 Source: [app.config.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/apps/client/src/app/app.config.ts) ·
-[app.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/apps/client/src/app/app.ts) (trimmed)
+[app.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/apps/client/src/app/app.ts) ·
+[agent-client.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/apps/client/src/app/agent-client.ts) (trimmed)
 
 </div>
 
 <!--
 Speaker notes:
 Let this sit on screen for a second — it's deliberately anticlimactic.
-One provider, one element per surface. That's the whole integration surface
-at the app-shell level. Messages go in with one call,
-`renderer.processMessages(messages)` (agent-client.ts). The real config also
-passes an `actionHandler` that sends button actions back to the agent; trimmed
-here. Everything else lives in the catalog you write next.
+Rendering A2UI in Angular is one provider, one element per surface, and one
+call per message. That's all the library asks of the app.
+
+Be precise about the word "rendering": the app also needs a client that talks
+to its agent (A2UI doesn't fix a transport, so the library ships none; ours is
+adapted from Google's Angular sample, about a hundred lines), and the demo adds
+its own error reporting for stages 5–6, because web_core doesn't send
+VALIDATION_FAILED yet. The real config also passes an `actionHandler` that sends
+button actions back to the agent; trimmed here.
+
+On `track entry[1]`: track the surface object, not its id. A corrected reply
+re-creates a surface under the same id; tracked by id, Angular keeps the old
+drawing (incident 6 in the demo README).
+
+Everything else lives in the catalog you write next.
 -->
 
 ---
