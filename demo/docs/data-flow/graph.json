@@ -31,7 +31,18 @@
         "order": 1,
         "detail": "The user asks, or clicks a button on a surface. A click is turned into an A2uiClientAction locally; nothing executes.",
         "source": "demo/apps/client/src/app/app.ts · demo/apps/client/src/app/agent-client.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/app.ts",
+            "from": "<form (submit)",
+            "to": "</form>"
+          },
+          {
+            "path": "demo/apps/client/src/app/agent-client.ts",
+            "from": "  ask(query: string)"
+          }
+        ]
       },
       {
         "id": "e-post",
@@ -41,7 +52,13 @@
         "detail": "Same-origin JSON: { query | event | error, sessionId }. The browser never talks to the agent and holds no A2A types or keys.",
         "source": "demo/apps/client/src/app/agent-client.ts",
         "status": "done",
-        "payload": "{ \"query\": \"Show me the open tickets\", \"sessionId\": \"<from the last reply>\" }"
+        "payload": "{ \"query\": \"Show me the open tickets\", \"sessionId\": \"<from the last reply>\" }",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/agent-client.ts",
+            "from": "const response = await fetch('/api/agent', {"
+          }
+        ]
       },
       {
         "id": "e-a2a-out",
@@ -50,7 +67,13 @@
         "order": 3,
         "detail": "The server wraps the request in one A2A message (text part, or data part { version, action | error }), sets contextId = sessionId and metadata.a2uiClientCapabilities with the ticket catalog id, and calls the agent over JSON-RPC.",
         "source": "demo/apps/client/src/server.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/server.ts",
+            "from": "const params: MessageSendParams = {"
+          }
+        ]
       },
       {
         "id": "e-negotiate",
@@ -59,7 +82,14 @@
         "order": 4,
         "detail": "pickA2ui picks v0.9 and the ticket catalog from the metadata, and the agent logs what it received (\"--- capabilities: … ---\", stage 1: the browser never sends them, the app's server adds them); readInboundMessage gets text, action or client error; the system prompt is built from that catalog's toJson() and examples.",
         "source": "demo/apps/agent/src/agent.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/agent.ts",
+            "from": "const {profile, catalogIds} = pickA2ui(userMessage);",
+            "to": "const systemPrompt = this.buildSystemPrompt(profile, catalogIds);"
+          }
+        ]
       },
       {
         "id": "e-query",
@@ -68,7 +98,17 @@
         "order": 5,
         "detail": "Text as is; open_ticket prefetches the ticket; a VALIDATION_FAILED redoes the last turn with the error first (once).",
         "source": "demo/apps/agent/src/user-query.ts · demo/apps/agent/src/client-retry.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/user-query.ts",
+            "from": "export function buildUserQuery("
+          },
+          {
+            "path": "demo/apps/agent/src/client-retry.ts",
+            "from": "  plan(contextId: string"
+          }
+        ]
       },
       {
         "id": "e-model",
@@ -77,7 +117,17 @@
         "order": 6,
         "detail": "Live: Gemini call 1 asks for get_tickets, the agent runs it (assets/tickets.json, internal_notes included), call 2 streams A2UI v0.9 JSON in <a2ui-json> blocks. Each call times out after 30 s (GEMINI_CALL_TIMEOUT_MS), at most 3 tool rounds; a turn that doesn't finish drops its chat. Stub: a canned reply in chunks.",
         "source": "demo/apps/agent/src/model.ts · demo/apps/agent/src/tools.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/model.ts",
+            "from": "  async *streamTurn({contextId, query, profile, systemPrompt}"
+          },
+          {
+            "path": "demo/apps/agent/src/tools.ts",
+            "from": "export function executeGetTickets("
+          }
+        ]
       },
       {
         "id": "e-validate",
@@ -86,7 +136,13 @@
         "order": 7,
         "detail": "Each growing message is checked against the catalog's Zod in a fresh renderer state before it may leave; partial messages wait. A rejected message → retry once with the error, then a text apology.",
         "source": "@a2ui/agent · demo/apps/agent/src/agent.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/agent.ts",
+            "from": "  private async answer("
+          }
+        ]
       },
       {
         "id": "e-police",
@@ -95,7 +151,13 @@
         "order": 8,
         "detail": "enforcePolicy strips internal_notes and removes Delete (and anything bound to the notes) from every batch, each re-send included, before publishing. It also checks text: a text part, a literal string or a data model value that quotes a ticket's notes is withheld, since the model is given the notes.",
         "source": "demo/apps/agent/src/policy.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/policy.ts",
+            "from": "export function enforcePolicy("
+          }
+        ]
       },
       {
         "id": "e-events",
@@ -104,7 +166,13 @@
         "order": 9,
         "detail": "working → working + data parts (one A2UI message each, application/a2ui+json) → final input-required (or completed). Text parts carry the fallback.",
         "source": "demo/apps/agent/src/a2a.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/a2a.ts",
+            "from": "export class TaskEvents {"
+          }
+        ]
       },
       {
         "id": "e-unwrap",
@@ -114,7 +182,13 @@
         "detail": "Takes the A2UI messages out of the A2A parts and writes data: { messages, text?, sessionId } per event. No A2A reaches the browser.",
         "source": "demo/apps/client/src/server.ts",
         "status": "done",
-        "payload": "data: {\"messages\":[…],\"sessionId\":\"<contextId>\"}"
+        "payload": "data: {\"messages\":[…],\"sessionId\":\"<contextId>\"}",
+        "code": [
+          {
+            "path": "demo/apps/client/src/server.ts",
+            "from": "    for await (const evt of stream) {"
+          }
+        ]
       },
       {
         "id": "e-render",
@@ -123,7 +197,13 @@
         "order": 11,
         "detail": "handleEvent stores the sessionId, applies each message: createSurface → updateComponents (validated again, same Zod objects) → updateDataModel; bindings resolve; the Angular catalog components draw the tickets.",
         "source": "demo/apps/client/src/app/agent-client.ts · demo/apps/client/src/app/catalog/",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/agent-client.ts",
+            "from": "  private handleEvent("
+          }
+        ]
       },
       {
         "id": "e-check",
@@ -132,7 +212,13 @@
         "order": 12,
         "detail": "Phase 6: what web_core can't see, a bound value outside the schema (priority \"critical\" in the data model), PriorityBadge catches after resolving it; rejected components become placeholders.",
         "source": "demo/apps/client/src/app/catalog/priority-badge.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/catalog/priority-badge.ts",
+            "from": "export class PriorityBadgeComponent"
+          }
+        ]
       },
       {
         "id": "e-report",
@@ -141,7 +227,13 @@
         "order": 13,
         "detail": "After the reply has rendered, at most 2 reports per user turn go back through the same POST /api/agent as { error }. The agent redoes the turn once; a second report gets the text fallback.",
         "source": "demo/apps/client/src/app/agent-client.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/agent-client.ts",
+            "from": "  private async reportIssues()"
+          }
+        ]
       },
       {
         "id": "e-session",
@@ -150,7 +242,13 @@
         "order": 4,
         "detail": "The one place the two names meet: the browser keeps an opaque sessionId, the server passes it as A2A contextId, the agent keys its Gemini chat and its client-retry memory by it.",
         "source": "demo/apps/client/src/server.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/server.ts",
+            "from": "const { query, event, error, sessionId: contextId } = body;"
+          }
+        ]
       }
     ],
     "edges": [
@@ -349,7 +447,18 @@
         "order": 1,
         "detail": "The user types a request (default \"Show me the open tickets\") and submits. app.ts calls AgentClient.ask(prompt). The input and button are disabled, and the surfaces inert, while isLoading() is true: one turn at a time.",
         "source": "demo/apps/client/src/app/app.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/app.ts",
+            "from": "<form (submit)",
+            "to": "</form>"
+          },
+          {
+            "path": "demo/apps/client/src/app/app.ts",
+            "from": "  protected submit("
+          }
+        ]
       },
       {
         "id": "f-status",
@@ -358,7 +467,14 @@
         "order": 2,
         "detail": "Three signals from AgentClient drive what the user sees besides the UI: waitingForUi() turns the Ask button into a pulsing \"Working…\" and dims the old view (both after 250 ms, so a stub reply doesn't flash), agentText() shows the agent's text-only answer (the fallback), error() shows a failed request. Nothing is added or removed above the surfaces, so nothing moves.",
         "source": "demo/apps/client/src/app/app.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/app.ts",
+            "from": "<!-- Demo: the agent's text-only answer",
+            "to": "<p class=\"error\" role=\"alert\">"
+          }
+        ]
       },
       {
         "id": "f-surfaces",
@@ -368,7 +484,14 @@
         "detail": "app.ts loops over renderer.surfaceGroup.surfacesMap inside a .surfaces wrapper (dimmed while waitingForUi) and draws one <a2ui-v09-surface [surfaceId]> per surface. Tracked by the SurfaceModel object, not its id, so a surface deleted and re-created under the same id is drawn afresh (incident 6).",
         "source": "demo/apps/client/src/app/app.ts",
         "status": "done",
-        "payload": "@for (entry of renderer.surfaceGroup.surfacesMap; track entry[1]) {\n  <a2ui-v09-surface [surfaceId]=\"entry[0]\" />\n}"
+        "payload": "@for (entry of renderer.surfaceGroup.surfacesMap; track entry[1]) {\n  <a2ui-v09-surface [surfaceId]=\"entry[0]\" />\n}",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/app.ts",
+            "from": "<div class=\"surfaces\"",
+            "to": "</div>"
+          }
+        ]
       },
       {
         "id": "f-panel",
@@ -377,7 +500,13 @@
         "order": 4,
         "detail": "Presenter-only, hidden by default; Alt+Shift+D shows it. Stub/Live, and in stub mode: first attempt invalid (the agent's retry), leaky replies (the policy), renderer rejects first attempt (VALIDATION_FAILED back to the agent); thinking level in live mode. GET/PUT /demo/flags through the app's own server; changes apply from the next prompt or click, no restart.",
         "source": "demo/apps/client/src/app/demo-panel.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/demo-panel.ts",
+            "from": "export class DemoPanel {"
+          }
+        ]
       },
       {
         "id": "f-ask",
@@ -386,7 +515,17 @@
         "order": 1,
         "detail": "The two ways a turn starts: a prompt, or a button action (the renderer calls handleAction through the actionHandler in app.config.ts). Both are ignored while a turn is still running; otherwise they reset the report counter and call send().",
         "source": "demo/apps/client/src/app/agent-client.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/agent-client.ts",
+            "from": "  ask(query: string)"
+          },
+          {
+            "path": "demo/apps/client/src/app/agent-client.ts",
+            "from": "  handleAction(event: A2uiClientAction)"
+          }
+        ]
       },
       {
         "id": "f-send-prep",
@@ -395,7 +534,14 @@
         "order": 2,
         "detail": "Before the request: marks the old surfaces to go on the reply's first A2UI message (they stay on screen, dimmed, until then: no empty flash on a fast stub reply, the old view kept on a slow live one), clears ValidationIssues, sets isLoading and waitingForUi, clears error and agentText. An error report works the same way: the partly rejected surface stays until the corrected reply arrives, or under the agent's text fallback.",
         "source": "demo/apps/client/src/app/agent-client.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/agent-client.ts",
+            "from": "  private async send(",
+            "to": "this.agentText.set(null);"
+          }
+        ]
       },
       {
         "id": "f-post",
@@ -405,7 +551,13 @@
         "detail": "One fetch to the app's own server, same origin. The body carries exactly one of query, event or error, plus the session id from the previous reply (absent on the first turn).",
         "source": "demo/apps/client/src/app/agent-client.ts",
         "status": "done",
-        "payload": "POST /api/agent  Content-Type: application/json\n{ \"query\": \"Show me the open tickets\", \"sessionId\": \"…\" }\n{ \"event\": { \"name\": \"open_ticket\", \"surfaceId\": \"tickets\",\n             \"sourceComponentId\": \"open_button\", \"timestamp\": \"…\",\n             \"context\": { \"ticketId\": \"TCK-1042\" } }, \"sessionId\": \"…\" }\n{ \"error\": { \"code\": \"VALIDATION_FAILED\", \"surfaceId\": \"tickets\",\n             \"path\": \"/tickets/0/priority\", \"message\": \"…\" }, \"sessionId\": \"…\" }"
+        "payload": "POST /api/agent  Content-Type: application/json\n{ \"query\": \"Show me the open tickets\", \"sessionId\": \"…\" }\n{ \"event\": { \"name\": \"open_ticket\", \"surfaceId\": \"tickets\",\n             \"sourceComponentId\": \"open_button\", \"timestamp\": \"…\",\n             \"context\": { \"ticketId\": \"TCK-1042\" } }, \"sessionId\": \"…\" }\n{ \"error\": { \"code\": \"VALIDATION_FAILED\", \"surfaceId\": \"tickets\",\n             \"path\": \"/tickets/0/priority\", \"message\": \"…\" }, \"sessionId\": \"…\" }",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/agent-client.ts",
+            "from": "const response = await fetch('/api/agent', {"
+          }
+        ]
       },
       {
         "id": "f-sse",
@@ -415,7 +567,14 @@
         "detail": "The response body is read as text, split on blank lines; each \"data: \" line is parsed as JSON and passed to handleEvent. A non-200 response shows the server's { error } message, or \"The server answered <status>\" when the body isn't that JSON. The browser gives up after 150 s.",
         "source": "demo/apps/client/src/app/agent-client.ts",
         "status": "done",
-        "payload": "data: {\"messages\":[…A2UI v0.9 messages…],\"text\":\"…\",\"sessionId\":\"<contextId>\"}\n\ndata: {\"error\":\"…\"}   (only if the stream fails after it started)"
+        "payload": "data: {\"messages\":[…A2UI v0.9 messages…],\"text\":\"…\",\"sessionId\":\"<contextId>\"}\n\ndata: {\"error\":\"…\"}   (only if the stream fails after it started)",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/agent-client.ts",
+            "from": "reader = response.body.pipeThrough(",
+            "to": "complete = true;"
+          }
+        ]
       },
       {
         "id": "f-handle",
@@ -424,7 +583,13 @@
         "order": 5,
         "detail": "Per event: an error field throws; sessionId is stored for the next request; on the reply's first A2UI messages the old surfaces are deleted in one go; text goes to agentText (the old view stays); for each createSurface whose id already exists, that surface is deleted first (a retried reply starts over); then each message goes to process() one at a time, and waitingForUi turns off.",
         "source": "demo/apps/client/src/app/agent-client.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/agent-client.ts",
+            "from": "  private handleEvent("
+          }
+        ]
       },
       {
         "id": "f-process",
@@ -433,7 +598,13 @@
         "order": 6,
         "detail": "Everything except updateComponents goes straight to the renderer. An updateComponents is tried whole; if web_core throws A2uiValidationError, each component is applied on its own and every rejected one is replaced by a placeholder Text with the same id (\"⚠ This part of the answer could not be shown.\"), and filed in ValidationIssues with path /components/<index>/<prop>.",
         "source": "demo/apps/client/src/app/agent-client.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/agent-client.ts",
+            "from": "  private process(message: A2uiMessage)"
+          }
+        ]
       },
       {
         "id": "f-report",
@@ -443,7 +614,13 @@
         "detail": "After the stream ends: waits for appRef.whenStable() (components have resolved their bindings), takes the first open issue, and if fewer than 2 reports were sent since the user's last prompt or action, calls send({ error }) with a v0.9 VALIDATION_FAILED. The message counts any other issues (\"and N more like it\").",
         "source": "demo/apps/client/src/app/agent-client.ts",
         "status": "done",
-        "payload": "{ \"code\": \"VALIDATION_FAILED\", \"surfaceId\": \"tickets\",\n  \"path\": \"/tickets/0/priority\",\n  \"message\": \"PriorityBadge (ticket_priority): priority resolved to \\\"critical\\\" from /tickets/0/priority, which the PriorityBadge schema does not allow (…)\" }"
+        "payload": "{ \"code\": \"VALIDATION_FAILED\", \"surfaceId\": \"tickets\",\n  \"path\": \"/tickets/0/priority\",\n  \"message\": \"PriorityBadge (ticket_priority): priority resolved to \\\"critical\\\" from /tickets/0/priority, which the PriorityBadge schema does not allow (…)\" }",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/agent-client.ts",
+            "from": "  private async reportIssues()"
+          }
+        ]
       },
       {
         "id": "f-service",
@@ -452,7 +629,13 @@
         "order": 1,
         "detail": "The library's entry point. Applies A2UI v0.9 messages to its SurfaceGroup. Registered in app.config.ts with provideA2Ui({ catalogs: [ticket catalog, BasicCatalog], actionHandler }).",
         "source": "demo/apps/client/src/app/app.config.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/app.config.ts",
+            "from": "provideA2Ui(() => {"
+          }
+        ]
       },
       {
         "id": "f-create",
@@ -501,7 +684,13 @@
         "detail": "A Button's action.event.context paths are resolved against the data model at click time, and the renderer calls the actionHandler with an A2uiClientAction. Nothing runs locally: the action only goes back to the agent.",
         "source": "demo/apps/client/src/app/app.config.ts",
         "status": "done",
-        "payload": "{ \"name\": \"open_ticket\", \"surfaceId\": \"tickets\", \"sourceComponentId\": \"open_button\",\n  \"timestamp\": \"2026-…Z\", \"context\": { \"ticketId\": \"TCK-1042\" } }"
+        "payload": "{ \"name\": \"open_ticket\", \"surfaceId\": \"tickets\", \"sourceComponentId\": \"open_button\",\n  \"timestamp\": \"2026-…Z\", \"context\": { \"ticketId\": \"TCK-1042\" } }",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/app.config.ts",
+            "from": "actionHandler:"
+          }
+        ]
       },
       {
         "id": "f-ticketlist",
@@ -510,7 +699,13 @@
         "order": 1,
         "detail": "Draws the title and one row per child; the children come from the template over /tickets, each row a component host with its own data context.",
         "source": "demo/apps/client/src/app/catalog/ticket-list.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/catalog/ticket-list.ts",
+            "from": "export class TicketListComponent"
+          }
+        ]
       },
       {
         "id": "f-badge",
@@ -519,7 +714,13 @@
         "order": 2,
         "detail": "Typed from PriorityBadgeApi (priority: low | medium | high | urgent). After resolving a bound priority it checks the value with resolvedValueProblem(); a value outside the enum shows a dashed \"?\" and files an issue under surface#component@dataContextPath; a valid value withdraws it.",
         "source": "demo/apps/client/src/app/catalog/priority-badge.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/catalog/priority-badge.ts",
+            "from": "export class PriorityBadgeComponent"
+          }
+        ]
       },
       {
         "id": "f-resolved",
@@ -528,7 +729,13 @@
         "order": 3,
         "detail": "Phase 6: checks a resolved bound value against the catalog's own Zod for that prop (the value branch of the union only). Returns the absolute data-model path and a message, or null.",
         "source": "demo/apps/client/src/app/catalog/resolved-value.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/catalog/resolved-value.ts",
+            "from": "export function resolvedValueProblem("
+          }
+        ]
       },
       {
         "id": "f-chip",
@@ -537,7 +744,13 @@
         "order": 4,
         "detail": "AssigneeChip draws initials + name (\"Unassigned\" when empty). Text, Row, Column, Card, Divider and Button are the library's own Angular components, limited to the ones the ticket catalog lists.",
         "source": "demo/apps/client/src/app/catalog/ticket-catalog.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/catalog/ticket-catalog.ts",
+            "from": "export function createTicketCatalog()"
+          }
+        ]
       },
       {
         "id": "f-issues",
@@ -547,7 +760,13 @@
         "detail": "A map of open problems for the current reply, keyed by whoever found them (AgentClient for a rejected component, PriorityBadge for a bad bound value). Cleared at every send(); read by reportIssues().",
         "source": "demo/apps/client/src/app/validation-issues.ts",
         "status": "done",
-        "payload": "{ surfaceId: string, path: string /* JSON pointer */, message: string }"
+        "payload": "{ surfaceId: string, path: string /* JSON pointer */, message: string }",
+        "code": [
+          {
+            "path": "demo/apps/client/src/app/validation-issues.ts",
+            "from": "export class ValidationIssues {"
+          }
+        ]
       }
     ],
     "edges": [
@@ -802,7 +1021,13 @@
         "order": 1,
         "detail": "The Express route the browser calls. Reads { query, event, error, sessionId } and checks their types (400 otherwise; a body that isn't JSON gets a JSON 400, not Express's HTML page). A malformed error (missing string code, surfaceId, message, or path for VALIDATION_FAILED) gets 400 and goes no further.",
         "source": "demo/apps/client/src/server.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/server.ts",
+            "from": "app.post('/api/agent'"
+          }
+        ]
       },
       {
         "id": "b-part",
@@ -812,7 +1037,14 @@
         "detail": "Exactly one part: event → data part { version, action }; error → data part { version, error }; otherwise a text part with the query. The browser's sessionId becomes A2A contextId. The catalogs the app can draw go in metadata: capability negotiation, ids only.",
         "source": "demo/apps/client/src/server.ts",
         "status": "done",
-        "payload": "{ \"message\": { \"kind\": \"message\", \"messageId\": \"<uuid>\", \"role\": \"user\",\n  \"contextId\": \"<sessionId>\",\n  \"parts\": [ { \"kind\": \"text\", \"text\": \"Show me the open tickets\" } ],\n  \"metadata\": { \"a2uiClientCapabilities\": { \"v0.9\": {\n    \"supportedCatalogIds\": [ \"https://github.com/giorgiogalassi/talk-a2ui/demo/catalogs/tickets/v0_9/catalog.json\" ] } } } } }\n\naction: { \"kind\": \"data\", \"data\": { \"version\": \"v0.9\", \"action\": {…} },\n          \"metadata\": { \"mimeType\": \"application/a2ui+json\" } }\nerror:  { \"kind\": \"data\", \"data\": { \"version\": \"v0.9\", \"error\": {…} }, … }"
+        "payload": "{ \"message\": { \"kind\": \"message\", \"messageId\": \"<uuid>\", \"role\": \"user\",\n  \"contextId\": \"<sessionId>\",\n  \"parts\": [ { \"kind\": \"text\", \"text\": \"Show me the open tickets\" } ],\n  \"metadata\": { \"a2uiClientCapabilities\": { \"v0.9\": {\n    \"supportedCatalogIds\": [ \"https://github.com/giorgiogalassi/talk-a2ui/demo/catalogs/tickets/v0_9/catalog.json\" ] } } } } }\n\naction: { \"kind\": \"data\", \"data\": { \"version\": \"v0.9\", \"action\": {…} },\n          \"metadata\": { \"mimeType\": \"application/a2ui+json\" } }\nerror:  { \"kind\": \"data\", \"data\": { \"version\": \"v0.9\", \"error\": {…} }, … }",
+        "code": [
+          {
+            "path": "demo/apps/client/src/server.ts",
+            "from": "const part: Part = event",
+            "to": "metadata: { a2uiClientCapabilities"
+          }
+        ]
       },
       {
         "id": "b-card",
@@ -821,7 +1053,13 @@
         "order": 3,
         "detail": "On first use: GET <AGENT_URL>/.well-known/agent-card.json (AGENT_URL defaults to http://localhost:10002). The A2AClient is cached; a failed lookup is not (PR #9), so the next request tries again. Every request to the agent carries the header X-A2A-Extensions: https://a2ui.org/a2a-extension/a2ui/v0.9.",
         "source": "demo/apps/client/src/server.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/server.ts",
+            "from": "function getAgent(): Promise<A2AClient> {"
+          }
+        ]
       },
       {
         "id": "b-stream",
@@ -830,7 +1068,13 @@
         "order": 4,
         "detail": "A2A JSON-RPC message/stream to the URL in the agent card (http://localhost:10002/a2a/json-rpc). The answer is a stream of A2A events.",
         "source": "demo/apps/client/src/server.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/server.ts",
+            "from": "const stream = client.sendMessageStream(params);"
+          }
+        ]
       },
       {
         "id": "b-unwrap",
@@ -839,7 +1083,13 @@
         "order": 5,
         "detail": "For each event: task and status-update → status.message.parts; artifact-update → artifact.parts. Data parts are the A2UI messages; text parts are joined into text. The only file that knows A2A: swapping the transport means rewriting this one.",
         "source": "demo/apps/client/src/server.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/server.ts",
+            "from": "    for await (const evt of stream) {"
+          }
+        ]
       },
       {
         "id": "b-sse",
@@ -849,7 +1099,18 @@
         "detail": "Headers text/event-stream, no-cache, keep-alive, X-Accel-Buffering: no. One line per A2A event that has messages, text or a contextId (in practice every event). Errors: the details go to this server's log; the browser gets a fixed message (\"The agent is not reachable…\" / \"…could not answer…\"): before the first byte as 502 { error }, after as data: { error }. If the browser disconnects, the server stops reading the agent's stream.",
         "source": "demo/apps/client/src/server.ts",
         "status": "done",
-        "payload": "data: {\"messages\":[{ \"version\":\"v0.9\",\"createSurface\":{…} }, …],\"sessionId\":\"<contextId>\"}\n\ndata: {\"messages\":[],\"text\":\"I'm sorry, I'm having trouble…\",\"sessionId\":\"…\"}"
+        "payload": "data: {\"messages\":[{ \"version\":\"v0.9\",\"createSurface\":{…} }, …],\"sessionId\":\"<contextId>\"}\n\ndata: {\"messages\":[],\"text\":\"I'm sorry, I'm having trouble…\",\"sessionId\":\"…\"}",
+        "code": [
+          {
+            "path": "demo/apps/client/src/server.ts",
+            "from": "res.writeHead(200, {"
+          },
+          {
+            "path": "demo/apps/client/src/server.ts",
+            "from": "console.error('[a2a bridge]', error instanceof Error",
+            "to": "res.end();"
+          }
+        ]
       },
       {
         "id": "b-flagsproxy",
@@ -858,7 +1119,17 @@
         "order": 7,
         "detail": "GET and PUT /demo/flags are forwarded to the agent's own /demo/flags. PUT only from this machine (403 otherwise), so no one on the venue's network can flip the demo; an unreachable agent → 502.",
         "source": "demo/apps/client/src/server.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/client/src/server.ts",
+            "from": "app.put('/demo/flags'"
+          },
+          {
+            "path": "demo/apps/client/src/server.ts",
+            "from": "async function forwardFlags("
+          }
+        ]
       },
       {
         "id": "b-express",
@@ -867,7 +1138,14 @@
         "order": 1,
         "detail": "Express app: GET /.well-known/agent-card.json, POST /a2a/json-rpc, GET/PUT /demo/flags. No CORS: only the app's server calls it. No authentication (UserBuilder.noAuthentication). Exits with a message if its port is already taken.",
         "source": "demo/apps/agent/src/index.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/index.ts",
+            "from": "  const app = express();",
+            "to": "return {app, agentCard};"
+          }
+        ]
       },
       {
         "id": "b-cardjson",
@@ -876,7 +1154,13 @@
         "order": 2,
         "detail": "name \"Support Ticket Agent\" (\"(stub)\" in stub mode), protocolVersion 0.3.0, url http://localhost:<port>/a2a/json-rpc, capabilities.streaming true, one skill show_tickets.",
         "source": "demo/apps/agent/src/index.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/index.ts",
+            "from": "function buildAgentCard("
+          }
+        ]
       },
       {
         "id": "b-handler",
@@ -885,7 +1169,13 @@
         "order": 3,
         "detail": "@a2a-js/sdk 0.3.13 with an InMemoryTaskStore. Calls TicketExecutor.execute(requestContext, eventBus) once per incoming message and streams what the executor publishes on the event bus.",
         "source": "demo/apps/agent/src/index.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/index.ts",
+            "from": "const requestHandler = new DefaultRequestHandler("
+          }
+        ]
       },
       {
         "id": "b-flags",
@@ -894,7 +1184,17 @@
         "order": 4,
         "detail": "The stage switches: stub, invalidFirst, leaky, clientInvalid, thinkingLevel. Start from the env (STUB_LLM, STUB_INVALID_FIRST, STUB_LEAKY, STUB_CLIENT_INVALID, GEMINI_THINKING_LEVEL); GET reads them, PUT changes them (local only, unknown keys or bad values → 400, Live without GEMINI_API_KEY → 400). Every turn reads them, so a change applies from the next one.",
         "source": "demo/apps/agent/src/demo-flags.ts · demo/apps/agent/src/index.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/demo-flags.ts",
+            "from": "export class DemoFlagStore {"
+          },
+          {
+            "path": "demo/apps/agent/src/index.ts",
+            "from": "app.put('/demo/flags', (req, res) => {"
+          }
+        ]
       },
       {
         "id": "b-run",
@@ -903,7 +1203,13 @@
         "order": 1,
         "detail": "One turn. Publishes the Task (state submitted) if this is a new task; any exception becomes a final failed status with a text part (\"The agent could not answer this request: …\").",
         "source": "demo/apps/agent/src/agent.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/agent.ts",
+            "from": "  private async run("
+          }
+        ]
       },
       {
         "id": "b-pick",
@@ -912,7 +1218,13 @@
         "order": 2,
         "detail": "Reads metadata.a2uiClientCapabilities[\"v0.9\"].supportedCatalogIds (or a2uiRendererCapabilities for v1.0; the newest named wins). Unknown versions throw. Result: version profile v0.9 + the ticket catalog id.",
         "source": "demo/apps/agent/src/pick-a2ui.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/pick-a2ui.ts",
+            "from": "export function pickA2ui("
+          }
+        ]
       },
       {
         "id": "b-inbound",
@@ -921,7 +1233,13 @@
         "order": 3,
         "detail": "Splits the message into text, action ({ name, context } from data.action with the matching version, or a legacy userAction) and clientError (data.error with string code, surfaceId, message, and path for VALIDATION_FAILED).",
         "source": "demo/apps/agent/src/a2a.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/a2a.ts",
+            "from": "export function readInboundMessage("
+          }
+        ]
       },
       {
         "id": "b-prompt",
@@ -930,7 +1248,17 @@
         "order": 4,
         "detail": "createProcessor(profile, catalogIds) builds the processor for the negotiated catalogs (and rejects unknown ones); its promptSnippet holds the catalog document from toJson() and the ticket examples. buildSystemPrompt adds the role and the A2UI format rules.",
         "source": "demo/apps/agent/src/agent.ts · demo/apps/agent/src/prompt.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/agent.ts",
+            "from": "  private buildSystemPrompt("
+          },
+          {
+            "path": "demo/apps/agent/src/prompt.ts",
+            "from": "export function buildSystemPrompt("
+          }
+        ]
       },
       {
         "id": "b-query",
@@ -939,7 +1267,13 @@
         "order": 5,
         "detail": "Text → the query as is (\"Hello!\" if empty). open_ticket → fetches the ticket itself with get_tickets and puts it in the query (USER_WANTS_TICKET_DETAILS + TICKET_DATA), saving a model call. resolve_ticket → \"User resolved ticket …\". Any other action → \"User submitted an event: …\". The turn is remembered for a possible client retry.",
         "source": "demo/apps/agent/src/user-query.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/user-query.ts",
+            "from": "export function buildUserQuery("
+          }
+        ]
       },
       {
         "id": "b-clientretry",
@@ -948,7 +1282,13 @@
         "order": 6,
         "detail": "Phase 6, when the message carries a client error. VALIDATION_FAILED with a remembered turn not yet retried → redo that turn once, the first attempt's query starting with the error (\"Your previous response was invalid. Validation failed: the renderer reported …\"). Otherwise → final input-required status with FALLBACK_TEXT, no model call.",
         "source": "demo/apps/agent/src/client-retry.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/client-retry.ts",
+            "from": "export class ClientRetries {"
+          }
+        ]
       },
       {
         "id": "b-generate",
@@ -957,7 +1297,13 @@
         "order": 7,
         "detail": "MAX_ATTEMPTS = 2. An A2UI problem (A2uiError, or a reply with no A2UI) retries with retryQuery(error); a model or network error (e.g. Gemini 503) retries the original query. Both failing → one text part, FALLBACK_TEXT.",
         "source": "demo/apps/agent/src/agent.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/agent.ts",
+            "from": "  private async generateUi("
+          }
+        ]
       },
       {
         "id": "b-publish",
@@ -967,7 +1313,13 @@
         "detail": "status working (no message) when the turn starts; then status working with the A2A parts of each validated, policed batch as it arrives; then the final status: input-required (completed after resolve_ticket), carrying no parts if they were already published.",
         "source": "demo/apps/agent/src/a2a.ts · demo/apps/agent/src/agent.ts",
         "status": "done",
-        "payload": "{ \"kind\": \"status-update\", \"taskId\": \"…\", \"contextId\": \"…\", \"final\": false,\n  \"status\": { \"state\": \"working\", \"timestamp\": \"…\",\n    \"message\": { \"kind\": \"message\", \"role\": \"agent\", \"parts\": [\n      { \"kind\": \"data\", \"data\": { \"version\": \"v0.9\", \"updateComponents\": {…} },\n        \"metadata\": { \"mimeType\": \"application/a2ui+json\" } } ] } } }"
+        "payload": "{ \"kind\": \"status-update\", \"taskId\": \"…\", \"contextId\": \"…\", \"final\": false,\n  \"status\": { \"state\": \"working\", \"timestamp\": \"…\",\n    \"message\": { \"kind\": \"message\", \"role\": \"agent\", \"parts\": [\n      { \"kind\": \"data\", \"data\": { \"version\": \"v0.9\", \"updateComponents\": {…} },\n        \"metadata\": { \"mimeType\": \"application/a2ui+json\" } } ] } } }",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/a2a.ts",
+            "from": "  status("
+          }
+        ]
       },
       {
         "id": "b-backend",
@@ -976,7 +1328,13 @@
         "order": 1,
         "detail": "Routes each turn by the stage switches as they stand when the turn starts: Gemini in live mode, otherwise one StubBackend per switch combination (built on first use). Yields the reply as text chunks.",
         "source": "demo/apps/agent/src/demo-flags.ts · demo/apps/agent/src/model.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/demo-flags.ts",
+            "from": "export class SwitchableBackend"
+          }
+        ]
       },
       {
         "id": "b-gemini",
@@ -985,7 +1343,13 @@
         "order": 2,
         "detail": "One chat per contextId + version + thinking level (LRU of 1,000), model gemini-3.6-flash by default, system instruction = the system prompt, one tool (get_tickets), thinking MINIMAL by default. Call 1 usually returns a function call; the tool runs; call 2 streams the A2UI text. Each call times out after 30 s (GEMINI_CALL_TIMEOUT_MS); at most 3 tool rounds; an unknown tool gets an error. A turn that doesn't finish drops its chat, so the retry starts clean.",
         "source": "demo/apps/agent/src/model.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/model.ts",
+            "from": "export class GeminiBackend"
+          }
+        ]
       },
       {
         "id": "b-tool",
@@ -995,7 +1359,17 @@
         "detail": "Filters assets/tickets.json by ticketId, status, priority; count defaults to 8. Returns whole tickets, internal_notes included: keeping them from the browser is the policy's job.",
         "source": "demo/apps/agent/src/tools.ts",
         "status": "done",
-        "payload": "[ { \"id\": \"TCK-1042\", \"title\": \"Checkout fails with a 502 on card payments\", \"status\": \"open\",\n    \"priority\": \"urgent\", \"assignee\": \"Giulia Rossi\", \"internal_notes\": \"…\", … } ]"
+        "payload": "[ { \"id\": \"TCK-1042\", \"title\": \"Checkout fails with a 502 on card payments\", \"status\": \"open\",\n    \"priority\": \"urgent\", \"assignee\": \"Giulia Rossi\", \"internal_notes\": \"…\", … } ]",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/tools.ts",
+            "from": "export const getTicketsDeclaration"
+          },
+          {
+            "path": "demo/apps/agent/src/tools.ts",
+            "from": "export function executeGetTickets("
+          }
+        ]
       },
       {
         "id": "b-stub",
@@ -1004,7 +1378,13 @@
         "order": 4,
         "detail": "Canned replies: a stub-notice surface plus the example that matches the action (ticket_list, ticket_detail, ticket_resolved), cut into 4 chunks (80-character chunks when leaky). Switches (startup values from STUB_INVALID_FIRST, STUB_LEAKY, STUB_CLIENT_INVALID; changeable at runtime from the demo panel); a query starting \"Your previous response was invalid.\" always gets the valid reply.",
         "source": "demo/apps/agent/src/model.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/model.ts",
+            "from": "export class StubBackend"
+          }
+        ]
       },
       {
         "id": "b-feed",
@@ -1013,7 +1393,14 @@
         "order": 1,
         "detail": "@a2ui/agent 0.0.2 Direct JSON stream. Reads <a2ui-json> blocks as they grow and emits a message (again each time it grows) only when a fresh renderer state, built from the negotiated catalogs' Zod, accepts it; a partial one is held back and checked again. A rejected complete message throws A2uiError and ends the attempt.",
         "source": "@a2ui/agent · demo/apps/agent/src/agent.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/agent.ts",
+            "from": "const stream = processor.openStream();",
+            "to": "send(stream.close());"
+          }
+        ]
       },
       {
         "id": "b-policy",
@@ -1022,7 +1409,17 @@
         "order": 2,
         "detail": "Runs on every emitted batch, each re-send included. DEMO_POLICY: forbiddenDataPaths /tickets/*/internal_notes and /ticket/internal_notes, disabledActions delete_ticket, forbiddenText = every ticket's notes, matched per sentence. Deletes forbidden data from updateDataModel values and empties strings that quote a note; removes components that bind forbidden data, carry a disabled action or quote a note, mending the tree; replaces a text part that quotes a note. A paraphrase is not caught. Logs one line per strip.",
         "source": "demo/apps/agent/src/policy.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/policy.ts",
+            "from": "export function enforcePolicy("
+          },
+          {
+            "path": "demo/apps/agent/src/policy.ts",
+            "from": "export function applyPolicy("
+          }
+        ]
       },
       {
         "id": "b-toparts",
@@ -1031,7 +1428,13 @@
         "order": 3,
         "detail": "One A2A data part per A2UI message, metadata.mimeType application/a2ui+json; text stays a text part.",
         "source": "demo/apps/agent/src/a2a.ts",
-        "status": "done"
+        "status": "done",
+        "code": [
+          {
+            "path": "demo/apps/agent/src/a2a.ts",
+            "from": "export function toA2aParts("
+          }
+        ]
       }
     ],
     "edges": [

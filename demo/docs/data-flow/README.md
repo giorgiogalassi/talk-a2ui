@@ -233,3 +233,10 @@ after it started, `data: {"error":"…"}` and the stream ends.
 `graph.json` is the source of the interactive map. After changing it, run `python3 build.py` here:
 it checks every edge and walk, then writes `index.html` from `template.html`. Update this page in the
 same change.
+
+Each node's `code` entries say which code it describes: `path` from the repo root, `from` (text on
+the first line) and optionally `to` (text on the last line; without it the block runs until its
+brackets close). `build.py` turns them into GitHub links with line numbers on `main`. When code
+moves, those lines go stale, so `npm test` (from `demo/`) runs `npm run test:docs`, which fails until
+`python3 docs/data-flow/build.py` has been run again; if an anchor's text is gone, the build says
+which node to fix.

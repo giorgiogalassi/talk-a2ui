@@ -80,8 +80,9 @@ section.card { background: var(--surface); border: 1px solid var(--line); border
 .detail { font-size: 17px; line-height: 1.62; max-width: 70ch; margin: 0 0 18px; white-space: pre-line; }
 .payload { margin: 0 0 18px; padding: 12px 14px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; font: 12.5px/1.5 var(--font-mono); white-space: pre-wrap; word-break: break-word; max-width: 90ch; }
 .label-row { font: 500 11px var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; }
-.src { font: 13px var(--font-mono); word-break: break-word; margin: 0 0 22px; }
-.src a { color: var(--accent); }
+.srclist { list-style: none; padding: 0; margin: 0 0 22px; display: flex; flex-direction: column; gap: 4px; font: 13px var(--font-mono); word-break: break-word; }
+.srclist a { color: var(--accent); display: inline-flex; flex-wrap: wrap; gap: 0 10px; }
+.srclist .lines { color: var(--muted); }
 .conn { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px 24px; margin: 0 0 22px; }
 .conn ul, .idx ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
 .conn li a, .idx li a { display: flex; align-items: baseline; gap: 8px; padding: 6px 8px; margin: 0 -8px; border-radius: 6px; color: var(--ink); text-decoration: none; cursor: pointer; }
@@ -197,16 +198,20 @@ function inGroup(gid) {
 function dot(gid) { const d = el('span', { className: 'dot' }); d.style.background = color(gid); return d; }
 function statusPill(s) { return s ? el('span', { className: 'pill ' + (DASHED.has(s) ? 'st-dashed' : 'st-done'), textContent: s }) : null; }
 function link(id, ...kids) { const a = el('a', { href: '#' + G.key + '/' + encodeURIComponent(id) }, ...kids); return a; }
-function sourceEl(src) {
-  if (!src) return null;
-  const parts = src.split(' · ');
-  const p = el('p', { className: 'src' });
-  parts.forEach((s, i) => {
-    if (i) p.append(' · ');
+// The code behind a node: `links` (file + lines, written by build.py) first, then whatever else
+// `source` names (a package, a folder, a URL).
+function sourceEl(n) {
+  const links = n.links || [];
+  const rest = (n.source || '').split(' · ').filter(s => s && !links.some(l => l.path === s));
+  if (!links.length && !rest.length) return null;
+  const box = el('ul', { className: 'srclist' });
+  links.forEach(l => box.append(el('li', {}, el('a', { href: l.url, target: '_blank', rel: 'noopener' },
+    el('span', { textContent: l.path }), el('span', { className: 'lines', textContent: 'L' + l.lines })))));
+  rest.forEach(s => {
     const url = /^https?:\/\//.test(s) ? s : (PAGE.sourceBase && /^[\w@.-]+\/[\w./@-]+$/.test(s) && !s.includes(' ') ? PAGE.sourceBase + s.replace(/\/$/, '') : null);
-    p.append(url ? el('a', { href: url, target: '_blank', rel: 'noopener', textContent: s }) : s);
+    box.append(el('li', {}, url ? el('a', { href: url, target: '_blank', rel: 'noopener', textContent: s }) : s));
   });
-  return p;
+  return box;
 }
 
 // ---- Reader: one node, or the index
@@ -266,7 +271,8 @@ function renderNode(id) {
     n.date ? el('span', { className: 'pill', textContent: fmtDate(n.date) }) : null);
   parts.push(el('h2', { className: 'node-title', textContent: n.label }), meta, el('p', { className: 'detail', textContent: n.detail || '' }));
   if (n.payload) parts.push(el('p', { className: 'label-row', textContent: 'Payload' }), el('pre', { className: 'payload', textContent: n.payload }));
-  if (n.source) parts.push(el('p', { className: 'label-row', textContent: 'Source' }), sourceEl(n.source));
+  const src = sourceEl(n);
+  if (src) parts.push(el('p', { className: 'label-row', textContent: n.links && n.links.length ? 'Code' : 'Source' }), src);
   const out = G.edges.filter(e => e.from === id), inc = G.edges.filter(e => e.to === id);
   parts.push(el('div', { className: 'conn' }, connList('Leads to', out, 'to'), connList('Comes from', inc, 'from')));
   // Previous / next inside the same group, in the group's order.
