@@ -1,7 +1,7 @@
 /**
  * Demo: the agent's stage switches, changeable while it runs (GET/PUT /demo/flags, see
  * index.ts). They start from the same environment variables as before (STUB_LLM,
- * STUB_INVALID_FIRST, STUB_LEAKY, GEMINI_THINKING_LEVEL), so a plain restart behaves as it
+ * STUB_INVALID_FIRST, STUB_LEAKY, STUB_CLIENT_INVALID, GEMINI_THINKING_LEVEL), so a plain restart behaves as it
  * always did; the client's demo panel (Shift+D) flips them between turns without one.
  */
 import {type ModelBackend, StubBackend, type TurnInput, thinkingConfig} from './model.js';
@@ -16,6 +16,11 @@ export interface DemoFlags {
   invalidFirst: boolean;
   /** Stub only: replies carry internal notes and a Delete button for the policy to strip (STUB_LEAKY). */
   leaky: boolean;
+  /**
+   * Stub only: each turn's first attempt passes the agent but carries a value only the renderer
+   * can refuse, to show VALIDATION_FAILED going back to the agent (STUB_CLIENT_INVALID).
+   */
+  clientInvalid: boolean;
   /** Live only: Gemini's thinking level (GEMINI_THINKING_LEVEL). */
   thinkingLevel: ThinkingLevelSetting;
 }
@@ -35,6 +40,7 @@ export function flagsFromEnv(env: NodeJS.ProcessEnv, stub: boolean): DemoFlags {
     stub,
     invalidFirst: env.STUB_INVALID_FIRST === 'true',
     leaky: env.STUB_LEAKY === 'true',
+    clientInvalid: env.STUB_CLIENT_INVALID === 'true',
     thinkingLevel: level as ThinkingLevelSetting,
   };
 }
@@ -66,6 +72,7 @@ export class DemoFlagStore {
         case 'stub':
         case 'invalidFirst':
         case 'leaky':
+        case 'clientInvalid':
           if (typeof value !== 'boolean') throw new Error(`"${key}" must be true or false.`);
           next[key] = value;
           break;
@@ -96,17 +103,17 @@ export class SwitchableBackend implements ModelBackend {
 
   constructor(
     private readonly flags: DemoFlagStore,
-    private readonly makeStub: (invalidFirst: boolean, leaky: boolean) => StubBackend,
+    private readonly makeStub: (invalidFirst: boolean, leaky: boolean, clientInvalid: boolean) => StubBackend,
     private readonly live?: ModelBackend,
   ) {}
 
   streamTurn(input: TurnInput): AsyncIterable<string> {
-    const {stub, invalidFirst, leaky} = this.flags.get();
+    const {stub, invalidFirst, leaky, clientInvalid} = this.flags.get();
     if (!stub && this.live) return this.live.streamTurn(input);
-    const key = `${invalidFirst}:${leaky}`;
+    const key = `${invalidFirst}:${leaky}:${clientInvalid}`;
     let backend = this.stubs.get(key);
     if (!backend) {
-      backend = this.makeStub(invalidFirst, leaky);
+      backend = this.makeStub(invalidFirst, leaky, clientInvalid);
       this.stubs.set(key, backend);
     }
     return backend.streamTurn(input);

@@ -40,6 +40,17 @@ export class LruCache<V> {
     return created;
   }
 
+  /** Demo: the entry for `key`, if any, without building one. */
+  get(key: string): V | undefined {
+    return this.map.get(key);
+  }
+
+  /** Demo: stores `value` under `key`, replacing any entry, as the most recently used. */
+  set(key: string, value: V): void {
+    this.map.delete(key);
+    this.getOrCreate(key, () => value);
+  }
+
   /** Drops the entry for `key`, if any, so the next `getOrCreate` builds a new one. */
   delete(key: string): void {
     this.map.delete(key);

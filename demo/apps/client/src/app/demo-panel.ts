@@ -5,6 +5,7 @@ interface DemoFlagsState {
   stub: boolean;
   invalidFirst: boolean;
   leaky: boolean;
+  clientInvalid: boolean;
   thinkingLevel: string;
   liveAvailable: boolean;
   model: string;
@@ -14,7 +15,7 @@ const THINKING_LEVELS = ['MINIMAL', 'LOW', 'MEDIUM', 'HIGH', 'DEFAULT'];
 
 /**
  * Demo: a presenter-only panel for the agent's switches, so stub/live, the invalid first
- * attempt and the leaky replies change between turns without restarting the agent.
+ * attempt, the leaky replies and the renderer-rejected first attempt change between turns without restarting the agent.
  * Hidden by default; Alt+Shift+D (⌥⇧D) shows and hides it. Changes apply from the next turn.
  */
 @Component({
@@ -49,6 +50,11 @@ const THINKING_LEVELS = ['MINIMAL', 'LOW', 'MEDIUM', 'HIGH', 'DEFAULT'];
             <input type="checkbox" [checked]="f.leaky" [disabled]="!f.stub || busy()"
               (change)="set({ leaky: checked($event) }, $event)" />
             <span>Leaky replies <small>internal notes + Delete, for the policy (stage 3)</small></span>
+          </label>
+          <label class="row" [class.off]="!f.stub">
+            <input type="checkbox" [checked]="f.clientInvalid" [disabled]="!f.stub || busy()"
+              (change)="set({ clientInvalid: checked($event) }, $event)" />
+            <span>Renderer rejects first attempt <small>VALIDATION_FAILED back to the agent</small></span>
           </label>
           <label class="row" [class.off]="f.stub">
             <span>Thinking</span>

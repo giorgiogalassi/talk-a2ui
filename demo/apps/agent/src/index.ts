@@ -80,12 +80,14 @@ export async function createApp(options: {env?: NodeJS.ProcessEnv; port?: number
 
   // Demo: the stage switches (src/demo-flags.ts) start from the env and can change at runtime
   // through /demo/flags. STUB_INVALID_FIRST=true makes each turn's first attempt fail
-  // validation; STUB_LEAKY=true serves internal notes for the policy to strip.
+  // validation; STUB_LEAKY=true serves internal notes for the policy to strip;
+  // STUB_CLIENT_INVALID=true makes the first attempt pass the agent and fail the renderer.
   const liveAvailable = Boolean(env.GEMINI_API_KEY?.trim());
   const flags = new DemoFlagStore(flagsFromEnv(env, mode === 'stub'), liveAvailable, resolveModelName(env));
   const backend: ModelBackend = new SwitchableBackend(
     flags,
-    (invalidFirst, leaky) => new StubBackend(format, ticketCatalogs, undefined, invalidFirst, leaky),
+    (invalidFirst, leaky, clientInvalid) =>
+      new StubBackend(format, ticketCatalogs, undefined, invalidFirst, leaky, clientInvalid),
     liveAvailable
       ? new GeminiBackend({
           apiKey: env.GEMINI_API_KEY!,

@@ -5,7 +5,7 @@ import {describe, it} from 'node:test';
 import {DemoFlagStore, flagsFromEnv, SwitchableBackend} from './demo-flags.js';
 import type {ModelBackend, StubBackend, TurnInput} from './model.js';
 
-const off = {stub: true, invalidFirst: false, leaky: false, thinkingLevel: 'MINIMAL' as const};
+const off = {stub: true, invalidFirst: false, leaky: false, clientInvalid: false, thinkingLevel: 'MINIMAL' as const};
 
 /** A backend that yields its own name, so a test can see which one served the turn. */
 function named(name: string): ModelBackend {
@@ -28,9 +28,11 @@ describe('flagsFromEnv', () => {
       stub: true,
       invalidFirst: true,
       leaky: false,
+      clientInvalid: false,
       thinkingLevel: 'MINIMAL',
     });
     assert.equal(flagsFromEnv({GEMINI_THINKING_LEVEL: 'high'}, false).thinkingLevel, 'HIGH');
+    assert.equal(flagsFromEnv({STUB_CLIENT_INVALID: 'true'}, true).clientInvalid, true);
   });
 
   it('rejects an unknown thinking level at startup', () => {
@@ -67,21 +69,23 @@ describe('SwitchableBackend', () => {
     const built: string[] = [];
     const backend = new SwitchableBackend(
       store,
-      (invalidFirst, leaky) => {
-        built.push(`${invalidFirst}:${leaky}`);
-        return named(`stub ${invalidFirst}:${leaky}`) as StubBackend;
+      (invalidFirst, leaky, clientInvalid) => {
+        built.push(`${invalidFirst}:${leaky}:${clientInvalid}`);
+        return named(`stub ${invalidFirst}:${leaky}:${clientInvalid}`) as StubBackend;
       },
       named('live'),
     );
 
-    assert.equal(await served(backend), 'stub false:false');
+    assert.equal(await served(backend), 'stub false:false:false');
     store.update({leaky: true});
-    assert.equal(await served(backend), 'stub false:true');
+    assert.equal(await served(backend), 'stub false:true:false');
     store.update({stub: false});
     assert.equal(await served(backend), 'live');
     store.update({stub: true, leaky: false});
-    assert.equal(await served(backend), 'stub false:false');
-    assert.deepEqual(built, ['false:false', 'false:true']);
+    assert.equal(await served(backend), 'stub false:false:false');
+    store.update({clientInvalid: true});
+    assert.equal(await served(backend), 'stub false:false:true');
+    assert.deepEqual(built, ['false:false:false', 'false:true:false', 'false:false:true']);
   });
 
   it('serves the stub when there is no live backend', async () => {

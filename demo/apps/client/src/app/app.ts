@@ -16,12 +16,19 @@ import { DemoPanel } from './demo-panel';
       </button>
     </form>
 
+    <!-- Demo: the agent's text-only answer (the fallback after a second VALIDATION_FAILED). -->
+    @if (agent.agentText(); as text) {
+      <p class="agent-text" role="status">{{ text }}</p>
+    }
+
     @if (agent.error(); as error) {
       <p class="error">{{ error }}</p>
     }
 
+    <!-- Demo: tracked by the SurfaceModel, not its id: a surface deleted and re-created under the
+         same id (a corrected reply) must get a new element, or the old components stay drawn. -->
     <div class="surfaces" [class.stale]="agent.waitingForUi()">
-      @for (entry of renderer.surfaceGroup.surfacesMap; track entry[0]) {
+      @for (entry of renderer.surfaceGroup.surfacesMap; track entry[1]) {
         <a2ui-v09-surface [surfaceId]="entry[0]" />
       }
     </div>
@@ -42,6 +49,7 @@ import { DemoPanel } from './demo-panel';
     .surfaces.stale { opacity: 0.45; transition: opacity 0.2s 250ms; }
     @keyframes hide { to { visibility: hidden; } }
     @keyframes show { to { visibility: visible; } }
+    .agent-text { border-left: 3px solid var(--accent-fill); padding: 4px 10px; }
     @keyframes pulse { 50% { opacity: 0.35; } }
     @media (prefers-reduced-motion: reduce) {
       button.working .busy { animation: show 0s 250ms both; }
