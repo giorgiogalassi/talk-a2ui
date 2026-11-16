@@ -33,7 +33,7 @@ flowchart LR
   end
   subgraph SV["Client SSR server · :4200"]
     direction TB
-    BR["POST /a2a bridge<br/>server.ts"]
+    BR["POST /api/agent bridge<br/>server.ts"]
     AX["A2AClient<br/>+ X-A2A-Extensions header"]
   end
   subgraph AG["Agent · :10002"]
@@ -100,7 +100,7 @@ flowchart LR
   end
   subgraph SV["Client SSR server · :4200"]
     direction TB
-    BR["POST /a2a bridge<br/>server.ts"]
+    BR["POST /api/agent bridge<br/>server.ts"]
     AX["A2AClient<br/>+ X-A2A-Extensions header"]
   end
   subgraph AG["Agent · :10002"]
@@ -119,7 +119,7 @@ flowchart LR
   U -->|"types a prompt"| APP
   APP -->|"ask(query)<br/>clears surfaces"| AC
   HC ~~~ R
-  AC -->|"fetch POST /a2a<br/>query or event + contextId"| BR
+  AC -->|"fetch POST /api/agent<br/>query or event + contextId"| BR
   BR -->|"text part, or data part<br/>{ version: 'v0.9', action }<br/>+ a2uiClientCapabilities"| AX
   AX -->|"A2A v0.3 message/stream<br/>JSON-RPC"| EX
   EX --> GEN
@@ -169,7 +169,7 @@ flowchart LR
   end
   subgraph SV["Client SSR server · :4200"]
     direction TB
-    BR["POST /a2a bridge<br/>server.ts"]
+    BR["POST /api/agent bridge<br/>server.ts"]
     AX["A2AClient<br/>+ X-A2A-Extensions header"]
   end
   subgraph AG["Agent · :10002"]
@@ -188,7 +188,7 @@ flowchart LR
   U -->|"types a prompt"| APP
   APP -->|"ask(query)<br/>clears surfaces"| AC
   HC ~~~ R
-  AC -->|"fetch POST /a2a<br/>query or event + contextId"| BR
+  AC -->|"fetch POST /api/agent<br/>query or event + contextId"| BR
   BR -->|"text part, or data part<br/>{ version: 'v0.9', action }<br/>+ a2uiClientCapabilities"| AX
   AX -->|"A2A v0.3 message/stream<br/>JSON-RPC"| EX
   EX --> GEN
@@ -241,7 +241,7 @@ flowchart LR
   end
   subgraph SV["Client SSR server · :4200"]
     direction TB
-    BR["POST /a2a bridge<br/>server.ts"]
+    BR["POST /api/agent bridge<br/>server.ts"]
     AX["A2AClient<br/>+ X-A2A-Extensions header"]
   end
   subgraph AG["Agent · :10002"]
@@ -260,7 +260,7 @@ flowchart LR
   U -->|"types a prompt"| APP
   APP -->|"ask(query)<br/>clears surfaces"| AC
   HC ~~~ R
-  AC -->|"fetch POST /a2a<br/>query or event + contextId"| BR
+  AC -->|"fetch POST /api/agent<br/>query or event + contextId"| BR
   BR -->|"text part, or data part<br/>{ version: 'v0.9', action }<br/>+ supportedCatalogIds: [ticket id]"| AX
   AX -->|"A2A v0.3 message/stream<br/>JSON-RPC"| EX
   EX --> GEN
@@ -312,7 +312,7 @@ flowchart LR
   end
   subgraph SV["Client SSR server · :4200"]
     direction TB
-    BR["POST /a2a bridge<br/>server.ts"]
+    BR["POST /api/agent bridge<br/>server.ts"]
     AX["A2AClient<br/>+ X-A2A-Extensions header"]
   end
   subgraph AG["Agent · :10002"]
@@ -331,7 +331,7 @@ flowchart LR
   U -->|"types a prompt"| APP
   APP -->|"ask(query)<br/>clears surfaces"| AC
   HC ~~~ R
-  AC -->|"fetch POST /a2a<br/>query or event + contextId"| BR
+  AC -->|"fetch POST /api/agent<br/>query or event + contextId"| BR
   BR -->|"text part, or data part<br/>{ version: 'v0.9', action }<br/>+ supportedCatalogIds: [ticket id]"| AX
   AX -->|"A2A v0.3 message/stream<br/>JSON-RPC"| EX
   EX --> GEN

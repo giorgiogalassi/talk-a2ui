@@ -515,7 +515,7 @@ flowchart TB
 
 </div>
 <div class="dg-wire">
-  <div class="arrow">POST /a2a</div>
+  <div class="arrow">POST /api/agent</div>
   <div class="arrow left">SSE</div>
   <div class="arrow">VALIDATION_FAILED</div>
 </div>

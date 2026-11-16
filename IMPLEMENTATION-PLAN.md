@@ -25,7 +25,7 @@ the order and what each phase adds.
 ```mermaid
 flowchart LR
   P1["1 · Render without an agent<br/>hardcoded v0.9 message"]
-  P2["2 · Full chain, stub mode<br/>browser → POST /a2a → A2A → agent"]
+  P2["2 · Full chain, stub mode<br/>browser → POST /api/agent → A2A → agent"]
   P3["3 · Live model<br/>Gemini via GEMINI_API_KEY"]
   P4["4 · Zod catalog + ticket domain<br/>packages/catalog"]
   P5["5 · Server-side policy<br/>applyPolicy"]
@@ -62,7 +62,7 @@ flowchart LR
     direction TB
     N1["Official A2UI Node sample<br/>@google/genai + @a2ui/agent 0.0.2"]
     N2["A2A v0.3<br/>@a2a-js/sdk 0.3.13, both sides"]
-    N3["A2A client on the SSR server<br/>server.ts, POST /a2a + SSE"]
+    N3["A2A client on the SSR server<br/>server.ts, POST /api/agent + SSE"]
     N4["Zod 3 ComponentApi → Catalog.toJson()<br/>agent's own validate + retry"]
   end
   KEEP["Kept from July<br/>A2UI v0.9 · Cloud Run · monorepo<br/>policy server side · self-correction loop"]
@@ -421,21 +421,21 @@ to re-prove it works.
    2026-08-12) puts the A2A client in the SSR Express server (`src/server.ts`):
    `A2AClient.fromCardUrl('<agent>/.well-known/agent-card.json')` with an
    `X-A2A-Extensions: https://a2ui.org/a2a-extension/a2ui/v0.9` header, exposed
-   to the browser as a plain `POST /a2a` that answers with SSE. The browser
+   to the browser as a plain `POST /api/agent` that answers with SSE. The browser
    never speaks A2A. **Decided for the demo too (Giorgio, 2026-10-22)**: agent credentials and
    policy enforcement stay server-side, and the agent URL is never exposed.
    This supersedes the July assumption that the browser itself calls
    `ClientFactory().createFromUrl(...)`. Still include
    `a2uiClientCapabilities.supportedCatalogIds` in the outgoing A2A message
    metadata (the sample sends `a2uiClientCapabilities` on every message).
-   *Done when:* `POST /a2a` with a text query reaches the locally-running
+   *Done when:* `POST /api/agent` with a text query reaches the locally-running
    agent and streams a response back.
    **Links:** [Angular sample `server.ts`](https://github.com/a2ui-project/a2ui/blob/main/samples/client/angular/projects/restaurant/src/server.ts) ·
    [A2UI — Catalogs: Catalog Negotiation, Step 2](https://a2ui.org/concepts/catalogs/#step-2-client-advertises-its-support-catalogs-required)
 5. **Bridge the stream into `@a2ui/angular`'s renderer — adapt, don't port
    (revised 2026-10-21).** An official Angular bridge now exists:
    `src/app/client.ts` in the same sample, an `@Injectable` `Client` that
-   POSTs to `/a2a`, parses the SSE `data:` lines, unwraps each part's `data`
+   POSTs to `/api/agent`, parses the SSE `data:` lines, unwraps each part's `data`
    (array or single object, so it covers both the A2A v1.0 and v0.3
    `DataPart` shapes) and calls `A2uiRendererService.processMessages(...)`
    from `@a2ui/angular/v0_9`. `app.ts` renders with `SurfaceComponent`.
@@ -448,7 +448,7 @@ to re-prove it works.
 6. **Wire the `actionHandler`.** Configure `A2UI_RENDERER_CONFIG`'s
    `actionHandler` to take dispatched `action`/`event` payloads and send them
    back to the agent via the step 4 client. (2026-10-21: the Angular sample
-   does this as `Client.handleAction(userAction)` → `POST /a2a` with
+   does this as `Client.handleAction(userAction)` → `POST /api/agent` with
    `{event}` → `processMessages` on the reply. Per the Actions docs, input
    changes stay in the local data model; "the data model is only sent to the
    agent when an event occurs", and `functionCall` actions never reach the
@@ -614,7 +614,7 @@ sequenceDiagram
   participant M as Gemini
   participant P as applyPolicy (policy.ts)
 
-  B->>S: POST /a2a (query or { version: 'v0.9', action })
+  B->>S: POST /api/agent (query or { version: 'v0.9', action })
   S->>E: A2A message/stream + supportedCatalogIds
   loop attempt 1..2 (MAX_ATTEMPTS)
     E->>M: prompt with catalog
@@ -636,7 +636,7 @@ sequenceDiagram
     E-->>S: text-only fallback
   end
   opt renderer rejects part of the reply (client step 8, built 2026-11-12)
-    B->>S: POST /a2a { error: VALIDATION_FAILED }
+    B->>S: POST /api/agent { error: VALIDATION_FAILED }
     S->>E: data part { version: 'v0.9', error }, a new turn
     E->>E: retryQuery(error) once per turn, else text fallback
   end
@@ -693,7 +693,7 @@ the renderer, `VALIDATION_FAILED` back to the agent, client step 8).
       v0.9.1 agent.
 - [x] **Decide where the A2A client lives.** **Decided 2026-10-22 (Giorgio):
       server side**, as in the official sample. The browser talks only to the
-      app's own `POST /a2a` + SSE; the SSR server is the A2A client.
+      app's own `POST /api/agent` + SSE; the SSR server is the A2A client.
 - [ ] **Update the deck's pipeline diagram (section 4)** for the server-side
       A2A client: browser → own API → server (A2A client) → agent.
 - [ ] **Update the deck's section 5c speaker notes** (2026-07-24, session 5):
@@ -767,11 +767,11 @@ the renderer, `VALIDATION_FAILED` back to the agent, client step 8).
       **Done 2026-11-10:** `server.ts` flattens the A2A data parts into
       `{ messages, sessionId }`; the browser's `contextId` became `sessionId`
       (the server maps it to A2A's `contextId`). Checked: `ng build`, client
-      tests, and a stub run (`STUB_LEAKY=true`) over `POST /a2a`: 14 SSE events
+      tests, and a stub run (`STUB_LEAKY=true`) over `POST /api/agent`: 14 SSE events
       per turn, all `messages`, none with `parts`. The stretch (second adapter)
       is not done; the slide shows the one-file diff.
       **Stretch, only if the critical path is done by ~6 Nov:** a second
-      adapter behind the same `POST /a2a` contract (an AG-UI one, or a plain
+      adapter behind the same `POST /api/agent` contract (an AG-UI one, or a plain
       SSE agent) switched by env var, to show live that only the adapter
       changes. Otherwise show the one-file diff on a slide.
       **Honesty caveat for the slide:** the UI layer doesn't care about the
@@ -858,7 +858,7 @@ the Angular client.
 - **2026-10-21** — Found the official Angular sample
   (`samples/client/angular/projects/restaurant`) that the July sessions
   didn't have. Client build order steps 4–5 rewritten: the A2A client
-  moves to the SSR server (`server.ts`, `POST /a2a` + SSE to the browser),
+  moves to the SSR server (`server.ts`, `POST /api/agent` + SSE to the browser),
   and the bridge is adapted from the sample's `client.ts` instead of ported
   from Lit. Step 6 annotated with the sample's `handleAction` and the
   Actions docs' local-data-model rule. New open item: decide where the A2A
@@ -951,3 +951,7 @@ the Angular client.
   (a data-model value only the renderer can check), instead of the planned skip of the agent's
   validation. Found: re-created surfaces kept their old drawing (incident 6, fixed in `app.ts`).
   Roadmap: P6 and P7 (transport swap, 2026-11-10) done, `next` moved to the deck.
+- **2026-11-16** — The browser's route renamed from `POST /api/agent` to `POST /api/agent` (client
+  `agent-client.ts`, `server.ts`, docs, slide 16). What the browser sends there is the app's own
+  JSON + SSE contract, not A2A; the old name contradicted "the browser never speaks A2A" on stage
+  and in the article. The agent's own A2A endpoint (`/a2a/json-rpc`) is unchanged.
