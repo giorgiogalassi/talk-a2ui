@@ -1039,7 +1039,7 @@ The Angular renderer **swaps in Angular's own signals** at startup. No bridge be
 systems: every signal `web_core` creates is an Angular signal.
 
 ```ts {1-2|4-7}
-// @a2ui/angular, once per app (ComponentBinder's constructor)
+// @a2ui/angular, once per app (initializeAngularReactivity)
 setSignalImplementation({ signal, computed, effect, /* … from @angular/core */ });
 
 // your catalog component: props().priority is an Angular signal
@@ -1064,9 +1064,12 @@ It doesn't. web_core is written against an abstract signal API, and the default
 implementation is @preact/signals-core because it's tiny and framework-free: that's
 what runs in the Node agent or on a plain web-components page.
 
-A framework can provide its own. The Angular renderer does, once per app: the
-ComponentBinder's constructor calls setSignalImplementation with signal, computed and
-effect from @angular/core. From then on, the data model's per-path signals, resolved
+A framework can provide its own. The Angular renderer does, once per app:
+initializeAngularReactivity calls setSignalImplementation with signal, computed and
+effect from @angular/core (plus batchWrite, getValue, setValue…). It runs the first time
+A2uiRendererService or ComponentBinder is created, whichever comes first; in the demo
+that's the renderer service, injected at startup. A flag makes later calls no-ops; it must
+run before web_core creates its first signal. From then on, the data model's per-path signals, resolved
 bindings and computed values are all Angular signals. One graph, Angular's.
 
 [click: the component] What you write: ComponentBinder resolves each prop to
