@@ -74,7 +74,7 @@ describe('ClientRetries: one client-triggered retry per turn', () => {
     const retries = new ClientRetries();
     retries.remember('c1', {query: 'Show me the open tickets'});
 
-    const first = retries.plan('c1', ERROR, 'direct_json');
+    const first = retries.plan('c1', ERROR);
     assert.equal(first.retry, true);
     assert.ok(first.retry);
     assert.equal(first.query, 'Show me the open tickets');
@@ -82,27 +82,27 @@ describe('ClientRetries: one client-triggered retry per turn', () => {
     assert.ok(first.retryQuery.includes("VALIDATION_FAILED on surface 'tickets' at /tickets/0/priority"));
     assert.ok(first.retryQuery.includes("'Show me the open tickets'"));
 
-    const second = retries.plan('c1', ERROR, 'direct_json');
+    const second = retries.plan('c1', ERROR);
     assert.deepEqual(second, {retry: false, reason: 'This turn was already retried once after a client report.'});
   });
 
   it('allows a retry again after a new user turn', () => {
     const retries = new ClientRetries();
     retries.remember('c1', {query: 'q1'});
-    assert.equal(retries.plan('c1', ERROR, 'direct_json').retry, true);
+    assert.equal(retries.plan('c1', ERROR).retry, true);
     retries.remember('c1', {query: 'q2', actionName: 'open_ticket'});
-    const plan = retries.plan('c1', ERROR, 'direct_json');
+    const plan = retries.plan('c1', ERROR);
     assert.ok(plan.retry);
     assert.equal(plan.actionName, 'open_ticket');
   });
 
   it('does not retry without an earlier turn, or for an error that is not a validation failure', () => {
     const retries = new ClientRetries();
-    assert.equal(retries.plan('c1', ERROR, 'direct_json').retry, false);
+    assert.equal(retries.plan('c1', ERROR).retry, false);
     retries.remember('c1', {query: 'q1'});
-    assert.equal(retries.plan('c1', {code: 'RENDER_FAILED', surfaceId: 's', message: 'm'}, 'direct_json').retry, false);
+    assert.equal(retries.plan('c1', {code: 'RENDER_FAILED', surfaceId: 's', message: 'm'}).retry, false);
     // The refused generic error did not use up the turn's retry.
-    assert.equal(retries.plan('c1', ERROR, 'direct_json').retry, true);
+    assert.equal(retries.plan('c1', ERROR).retry, true);
   });
 });
 
@@ -110,7 +110,7 @@ describe('ClientRetries: one client-triggered retry per turn', () => {
 class RecordingStub extends StubBackend {
   readonly queries: string[] = [];
   constructor() {
-    super('direct_json', loadTicketCatalogs(), undefined, false, false, true);
+    super(undefined, false, false, true);
   }
   override async *streamTurn(input: TurnInput): AsyncIterable<string> {
     this.queries.push(input.query);
@@ -147,7 +147,7 @@ describe('the executor with STUB_CLIENT_INVALID', () => {
     const warnings = recordConsole(t, 'warn');
     const errors = recordConsole(t, 'error');
     const stub = new RecordingStub();
-    const executor = new TicketExecutor('direct_json', stub, loadBasicCatalogs(), loadTicketCatalogs());
+    const executor = new TicketExecutor(stub, loadBasicCatalogs(), loadTicketCatalogs());
 
     // Turn 1: the agent's validation passes the reply; the data model carries `critical`.
     const first = await turn(executor, [{kind: 'text', text: 'Show me the open tickets'}]);
@@ -181,7 +181,7 @@ describe('the executor with STUB_CLIENT_INVALID', () => {
 
   it('keeps the action name, so the detail view is the one retried', async () => {
     const stub = new RecordingStub();
-    const executor = new TicketExecutor('direct_json', stub, loadBasicCatalogs(), loadTicketCatalogs());
+    const executor = new TicketExecutor(stub, loadBasicCatalogs(), loadTicketCatalogs());
     const open = {version: 'v0.9', action: {name: 'open_ticket', context: {ticketId: 'TCK-1042'}}};
     const first = await turn(executor, [{kind: 'data', data: open}]);
     assert.ok(first.data.includes('"priority":"critical"'));

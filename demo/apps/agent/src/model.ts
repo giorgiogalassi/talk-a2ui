@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified for the talk-a2ui demo (2026): changes are marked "Demo:".
+ * Original: https://github.com/a2ui-project/a2ui/blob/3a64be7/samples/agent/node/restaurant_finder/src/model.ts
  */
 
 import fs from 'fs';
@@ -20,8 +23,6 @@ import path from 'path';
 import type {AgentToRendererMessage} from '@a2ui/agent';
 import {Chat, FunctionCall, GoogleGenAI, PartListUnion, type ThinkingLevel} from '@google/genai';
 
-import type {BasicCatalogs} from './catalogs.js';
-import type {A2uiFormat} from './config.js';
 import {readMessages, toResponseText} from './examples.js';
 import {LruCache} from './lru-cache.js';
 import {executeGetTickets, getPackageRootDir, getTicketsDeclaration} from './tools.js';
@@ -171,7 +172,7 @@ export class GeminiBackend implements ModelBackend {
 /**
  * Answers without a model. Each turn is the stub notice (a separate `stub-notice`
  * surface saying no model was called) followed by the example that matches the action,
- * written in the configured format and cut into four chunks like a model stream.
+ * written as Direct JSON and cut into four chunks like a model stream.
  */
 export class StubBackend implements ModelBackend {
   /** Response text by version, then by example name. */
@@ -182,9 +183,6 @@ export class StubBackend implements ModelBackend {
   private readonly clientInvalidResponses = new Map<string, Record<string, string>>();
 
   constructor(
-    format: A2uiFormat,
-    // Demo: the ticket catalogs, which the canned responses use (only Express reads them).
-    catalogs: BasicCatalogs,
     packageRoot: string = getPackageRootDir(),
     /**
      * Demo: when true (`STUB_INVALID_FIRST=true`), a turn's first attempt answers with a
@@ -211,7 +209,6 @@ export class StubBackend implements ModelBackend {
     private readonly clientInvalidFirstAttempt = false,
   ) {
     for (const profile of VERSIONS) {
-      const catalog = catalogs.get(profile.version)!;
       const notice = readMessages(path.join(packageRoot, 'stub_notice', `${profile.version}.json`));
       const byExample: Record<string, string> = {};
       const invalid: Record<string, string> = {};
@@ -222,12 +219,12 @@ export class StubBackend implements ModelBackend {
           path.join(packageRoot, 'examples', profile.version, `${name}.json`),
         );
         const example = leaky ? leakInternalNotes(read, packageRoot) : read;
-        byExample[name] = toResponseText(profile, catalog, format, [...notice, ...example]);
-        invalid[name] = toResponseText(profile, catalog, format, [
+        byExample[name] = toResponseText([...notice, ...example]);
+        invalid[name] = toResponseText([
           ...notice,
           ...JSON.parse(JSON.stringify(example).replace(/"priority":\{"path":"[^"]*"\}/g, '"priority":"critical"')),
         ]);
-        clientInvalid[name] = toResponseText(profile, catalog, format, [
+        clientInvalid[name] = toResponseText([
           ...notice,
           ...priorityOutsideCatalog(example),
         ]);

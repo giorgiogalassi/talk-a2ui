@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified for the talk-a2ui demo (2026): changes are marked "Demo:".
+ * Original: https://github.com/a2ui-project/a2ui/blob/3a64be7/samples/agent/node/restaurant_finder/src/a2a.ts
  */
 
 import * as crypto from 'crypto';
@@ -19,6 +22,7 @@ import * as crypto from 'crypto';
 import type {DataPart, Message, Part, Task, TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import type {ExecutionEventBus, RequestContext} from '@a2a-js/sdk/server';
 import type {ResponsePart} from '@a2ui/agent';
+import {A2uiClientErrorSchema} from '@a2ui/web_core/v0_9';
 
 /** The MIME type of every A2UI data part, in v0.9.1 and v1.0. */
 export const A2UI_MIME_TYPE = 'application/a2ui+json';
@@ -117,16 +121,17 @@ export function readInboundMessage(message: Message, version: string): InboundMe
   return {text: texts.join(''), action, clientError, useStreaming};
 }
 
-/** Demo: the error's fields, or undefined when a required one is missing or not a string. */
+/**
+ * Demo: the error's fields, or undefined when it isn't a v0.9 client error. The check is
+ * web_core's own `A2uiClientErrorSchema` (string code, surfaceId and message; `path` too for
+ * VALIDATION_FAILED), the same schema a v0.9 renderer's errors follow.
+ */
 function readClientError(raw: Record<string, unknown>): ClientError | undefined {
-  const {code, surfaceId, path, message} = raw;
-  if (typeof code !== 'string' || typeof surfaceId !== 'string' || typeof message !== 'string') {
-    return undefined;
-  }
-  if (code === 'VALIDATION_FAILED' && typeof path !== 'string') {
-    return undefined;
-  }
-  return {code, surfaceId, message, ...(typeof path === 'string' ? {path} : {})};
+  const parsed = A2uiClientErrorSchema.safeParse(raw);
+  if (!parsed.success) return undefined;
+  const {code, surfaceId, message} = parsed.data;
+  const path = 'path' in parsed.data && typeof parsed.data.path === 'string' ? parsed.data.path : undefined;
+  return {code, surfaceId, message, ...(path !== undefined ? {path} : {})};
 }
 
 /** Publishes the A2A events of one task: its creation and its status updates. */

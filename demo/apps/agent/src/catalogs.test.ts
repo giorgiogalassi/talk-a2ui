@@ -34,7 +34,7 @@ function processorFor(catalog: CatalogApi): A2uiRequestProcessor {
 
 /** A ticket surface holding one button whose action context is `context`. */
 function buttonReply(context: unknown): string {
-  return toResponseText(V0_9, ticketCatalog, 'direct_json', [
+  return toResponseText([
     {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: TICKET_CATALOG_ID}},
     {
       version: 'v0.9',
@@ -88,7 +88,7 @@ describe('the ticket catalog', () => {
   });
 
   it('rejects a component that is not in it', () => {
-    const reply = toResponseText(V0_9, ticketCatalog, 'direct_json', [
+    const reply = toResponseText([
       {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: TICKET_CATALOG_ID}},
       {version: 'v0.9', updateComponents: {surfaceId: 's', components: [{id: 'root', component: 'Image', url: 'x'}]}},
     ] as never);
@@ -99,7 +99,7 @@ describe('the ticket catalog', () => {
   });
 
   it('rejects a prop that is not in a component', () => {
-    const reply = toResponseText(V0_9, ticketCatalog, 'direct_json', [
+    const reply = toResponseText([
       {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: TICKET_CATALOG_ID}},
       {
         version: 'v0.9',
@@ -129,7 +129,7 @@ describe('the prompt examples and the stub notice', () => {
       const messages = readMessages(file);
       assert.ok(messages.some(m => JSON.stringify(m).includes(TICKET_CATALOG_ID)));
       validatePayload([ticketCatalog, basicCatalog], messages);
-      processorFor(ticketCatalog).parseResponse(toResponseText(V0_9, ticketCatalog, 'direct_json', messages));
+      processorFor(ticketCatalog).parseResponse(toResponseText(messages));
     });
   }
 });

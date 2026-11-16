@@ -12,28 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified for the talk-a2ui demo (2026): changes are marked "Demo:".
+ * Original: https://github.com/a2ui-project/a2ui/blob/3a64be7/samples/agent/node/restaurant_finder/src/config.ts
  */
-
-/** The text format the model writes A2UI in. */
-export type A2uiFormat = 'direct_json' | 'express';
-
-/**
- * Resolves the A2UI format from `A2UI_FORMAT`.
- * Fails fast if the variable is set to an unsupported value.
- */
-export function resolveSampleConfig(env: NodeJS.ProcessEnv = process.env): {format: A2uiFormat} {
-  const rawFormat = env.A2UI_FORMAT?.trim();
-  let format: A2uiFormat = 'direct_json';
-  if (rawFormat !== undefined && rawFormat !== '') {
-    if (rawFormat !== 'direct_json' && rawFormat !== 'express') {
-      throw new Error(
-        `A2UI_FORMAT must be "direct_json" or "express", but it is "${env.A2UI_FORMAT}". Allowed values are "direct_json", "express".`,
-      );
-    }
-    format = rawFormat;
-  }
-  return {format};
-}
 
 /** Which backend serves a turn: a real model, or the canned response. */
 export type LlmMode = 'live' | 'stub';

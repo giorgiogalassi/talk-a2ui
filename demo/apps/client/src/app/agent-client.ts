@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  * Modified for the talk-a2ui demo (2026): changes are marked "Demo:".
- * Original: a2ui-project/a2ui, samples/client/angular/projects/restaurant/src/app/client.ts
+ * Original: https://github.com/a2ui-project/a2ui/blob/0af1b1e7/samples/client/angular/projects/restaurant/src/app/client.ts
  */
 
 import { ApplicationRef, Injectable, inject, signal } from '@angular/core';

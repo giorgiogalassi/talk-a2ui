@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified for the talk-a2ui demo (2026): changes are marked "Demo:".
+ * Original: https://github.com/a2ui-project/a2ui/blob/3a64be7/samples/agent/node/restaurant_finder/src/index.ts
  */
 
 import fs from 'fs';
@@ -25,7 +28,7 @@ import express from 'express';
 import {TicketExecutor} from './agent.js';
 import {DemoFlagStore, flagsFromEnv, SwitchableBackend} from './demo-flags.js';
 import {loadBasicCatalogs, loadTicketCatalogs} from './catalogs.js';
-import {resolveLlmMode, resolveModelName, resolveSampleConfig} from './config.js';
+import {resolveLlmMode, resolveModelName} from './config.js';
 import {GeminiBackend, type ModelBackend, StubBackend} from './model.js';
 import {resolveAssetsDir, verifyTicketData} from './tools.js';
 
@@ -70,7 +73,6 @@ export async function createApp(options: {env?: NodeJS.ProcessEnv; port?: number
 }> {
   const env = options.env ?? process.env;
   const port = options.port ?? (env.PORT ? parseInt(env.PORT, 10) : DEFAULT_PORT);
-  const {format} = resolveSampleConfig(env);
   const mode = resolveLlmMode(env);
   const assetsDir = resolveAssetsDir();
   verifyTicketData(assetsDir);
@@ -87,7 +89,7 @@ export async function createApp(options: {env?: NodeJS.ProcessEnv; port?: number
   const backend: ModelBackend = new SwitchableBackend(
     flags,
     (invalidFirst, leaky, clientInvalid) =>
-      new StubBackend(format, ticketCatalogs, undefined, invalidFirst, leaky, clientInvalid),
+      new StubBackend(undefined, invalidFirst, leaky, clientInvalid),
     liveAvailable
       ? new GeminiBackend({
           apiKey: env.GEMINI_API_KEY!,
@@ -101,7 +103,7 @@ export async function createApp(options: {env?: NodeJS.ProcessEnv; port?: number
   const requestHandler = new DefaultRequestHandler(
     agentCard,
     new InMemoryTaskStore(),
-    new TicketExecutor(format, backend, catalogs, ticketCatalogs),
+    new TicketExecutor(backend, catalogs, ticketCatalogs),
   );
 
   const app = express();
@@ -145,10 +147,8 @@ export async function createApp(options: {env?: NodeJS.ProcessEnv; port?: number
 /** Checks the configuration, then serves the agent. */
 export async function main() {
   let mode;
-  let format;
   let app;
   try {
-    format = resolveSampleConfig().format;
     mode = resolveLlmMode();
     ({app} = await createApp());
   } catch (e) {
@@ -165,7 +165,6 @@ export async function main() {
       process.exit(1);
     }
     console.log(`Support Ticket Agent (A2UI demo) running on port ${port}`);
-    console.log(`Format: ${format}`);
     console.log(
       mode === 'stub'
         ? 'Model: none. STUB_LLM=true, so every turn serves the canned response.'
