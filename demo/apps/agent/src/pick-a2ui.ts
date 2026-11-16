@@ -27,13 +27,10 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
 /**
  * Picks the A2UI version and catalogs to answer a message with.
  *
- * Renderers list what they can show in the message metadata, keyed by protocol version
- * (`a2uiClientCapabilities` in v0.9, `a2uiRendererCapabilities` in v1.0), so one lookup
- * gives both the version and the catalog ids. The newest version the renderer names wins.
- *
- * The A2A transport also lets a client activate the A2UI extension. Activation is
- * optional and this sample does not use it; see
- * specification/v1_0/extensions/a2a/docs/a2ui_extension_specification.md.
+ * The renderer lists what it can show in the message metadata, keyed by protocol version:
+ * `a2uiClientCapabilities: { "v0.9": { supportedCatalogIds: [...] } }`. One lookup gives both
+ * the version and the catalog ids. Demo: only v0.9 is served (versions.ts); the client's
+ * server.ts adds this metadata to every A2A message.
  *
  * @throws Error if the metadata lists capabilities only for versions this agent does not
  *     serve.
