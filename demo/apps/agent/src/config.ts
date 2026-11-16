@@ -65,9 +65,9 @@ export function resolveLlmMode(env: NodeJS.ProcessEnv = process.env): LlmMode {
       ? 'GEMINI_API_KEY is set but empty.'
       : 'GEMINI_API_KEY is not set, and it is required to reach a model.') +
       '\nEither provide a key:\n' +
-      '  GEMINI_API_KEY=... yarn workspace @a2ui/agent-restaurant-node run start\n' +
+      '  GEMINI_API_KEY=... npm start -w agent   (from demo/; or put it in apps/agent/.env)\n' +
       'or ask for the canned response explicitly:\n' +
-      '  STUB_LLM=true yarn workspace @a2ui/agent-restaurant-node run start',
+      '  npm run start:stub -w agent',
   );
 }
 

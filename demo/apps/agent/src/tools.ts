@@ -28,22 +28,14 @@ export function getPackageRootDir(): string {
   return path.resolve(dirname, '../..');
 }
 
-/** Resolves the Python ADK restaurant finder sample directory. */
-export function resolvePythonSampleDir(): string {
-  // Demo: the sample's shared data and images are vendored into assets/.
+/** Demo: the directory with the ticket data the get_tickets tool reads (assets/tickets.json). */
+export function resolveAssetsDir(): string {
   return path.join(getPackageRootDir(), 'assets');
 }
 
-/** Resolves the repository root, which holds the published catalog documents. */
-export function getRepoRootDir(): string {
-  // Demo: the basic catalog is vendored into catalogs/, relative to the package root.
-  return getPackageRootDir();
-}
-
-/** Verifies that the shared Python assets exist at startup. */
-export function verifyPythonSampleAssets(pythonDir: string = resolvePythonSampleDir()): void {
-  // Demo: the ticket data replaces the sample's restaurant data and images.
-  const dataPath = path.join(pythonDir, 'tickets.json');
+/** Demo: fails at startup, not on the first tool call, if the ticket data is missing. */
+export function verifyTicketData(assetsDir: string = resolveAssetsDir()): void {
+  const dataPath = path.join(assetsDir, 'tickets.json');
   if (!fs.existsSync(dataPath)) {
     throw new Error(`Required ticket data file not found at ${dataPath}.`);
   }
@@ -92,7 +84,7 @@ export interface GetTicketsArgs {
  */
 export function executeGetTickets(
   args: GetTicketsArgs,
-  pythonDir: string = resolvePythonSampleDir(),
+  assetsDir: string = resolveAssetsDir(),
   /** Demo: why the agent called it itself, when the model didn't (logged instead of "TOOL CALLED"). */
   reason?: string,
 ): string {
@@ -104,7 +96,7 @@ export function executeGetTickets(
   );
 
   let items: Record<string, unknown>[] = [];
-  const filePath = path.join(pythonDir, 'tickets.json');
+  const filePath = path.join(assetsDir, 'tickets.json');
   try {
     const all = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as Record<string, unknown>[];
     items = all

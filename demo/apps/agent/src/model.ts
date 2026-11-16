@@ -61,9 +61,8 @@ export class GeminiBackend implements ModelBackend {
     private readonly options: {
       apiKey: string;
       modelName: string;
-      /** Base URL the restaurant image links should point at. Demo: unused by the ticket tool. */
-      baseUrl: string;
-      pythonSampleDir: string;
+      /** Demo: the directory with assets/tickets.json, for the get_tickets tool. */
+      assetsDir: string;
       /** Demo: the thinking level, read per turn (the demo panel can change it). Default: the env. */
       thinkingLevel?: () => string | undefined;
     },
@@ -118,10 +117,9 @@ export class GeminiBackend implements ModelBackend {
         functionResponse: {
           name: fc.name ?? 'get_tickets',
           response: {
-            // Demo: the ticket tool needs no base URL; it serves no images.
             result: executeGetTickets(
               (fc.args ?? {}) as Record<string, unknown>,
-              this.options.pythonSampleDir,
+              this.options.assetsDir,
             ),
           },
         },

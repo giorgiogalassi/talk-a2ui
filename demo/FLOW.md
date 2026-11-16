@@ -1,5 +1,9 @@
 # Demo flow, phase by phase
 
+> **Build history.** One frame per build phase, kept as they were drawn (phases 2–3 still show the
+> restaurant sample the demo started from). For how the demo works today, see
+> [`docs/data-flow/`](docs/data-flow/README.md).
+
 One diagram per implementation phase, so the demo's growth can be followed (and, later, shown on
 stage) as a sequence of frames. Status per phase lives in `README.md`; this file only draws it.
 
@@ -38,7 +42,7 @@ flowchart LR
   end
   subgraph AG["Agent · :10002"]
     direction TB
-    EX["RestaurantExecutor.run<br/>pick version · read action"]
+    EX["TicketExecutor.run<br/>pick version · read action"]
     GEN["generateUi<br/>stream · validate · 1 retry"]
     STUB["StubBackend<br/>canned example per action"]
     LLM[("Gemini")]
@@ -105,7 +109,7 @@ flowchart LR
   end
   subgraph AG["Agent · :10002"]
     direction TB
-    EX["RestaurantExecutor.run<br/>pick version · read action"]
+    EX["TicketExecutor.run<br/>pick version · read action"]
     GEN["generateUi<br/>stream · validate · 1 retry"]
     STUB["StubBackend<br/>canned example per action"]
     LLM[("Gemini")]
@@ -174,7 +178,7 @@ flowchart LR
   end
   subgraph AG["Agent · :10002"]
     direction TB
-    EX["RestaurantExecutor.run<br/>pick version · read action"]
+    EX["TicketExecutor.run<br/>pick version · read action"]
     GEN["generateUi → answer()<br/>@a2ui/agent 0.0.2 stream<br/>checked per message · 1 retry<br/>web_core basicCatalog (renderer's Zod)"]
     STUB["StubBackend<br/>canned example per action"]
     LLM[("Gemini")]
@@ -246,7 +250,7 @@ flowchart LR
   end
   subgraph AG["Agent · :10002"]
     direction TB
-    EX["RestaurantExecutor.run<br/>pick version · read action"]
+    EX["TicketExecutor.run<br/>pick version · read action"]
     GEN["generateUi → answer()<br/>@a2ui/agent 0.0.2 stream<br/>checked per message · 1 retry<br/>ticket catalog (Zod)"]
     STUB["StubBackend<br/>canned ticket UI per action"]
     LLM[("Gemini")]
@@ -317,7 +321,7 @@ flowchart LR
   end
   subgraph AG["Agent · :10002"]
     direction TB
-    EX["RestaurantExecutor.run<br/>pick version · read action"]
+    EX["TicketExecutor.run<br/>pick version · read action"]
     GEN["generateUi → answer()<br/>@a2ui/agent 0.0.2 stream<br/>checked per message · 1 retry<br/>ticket catalog (Zod)"]
     STUB["StubBackend<br/>canned ticket UI per action<br/>STUB_LEAKY: notes + Delete"]
     LLM[("Gemini")]

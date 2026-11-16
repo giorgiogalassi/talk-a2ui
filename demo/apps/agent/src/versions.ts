@@ -26,8 +26,6 @@ export interface VersionProfile {
   capabilitiesKey: 'a2uiClientCapabilities' | 'a2uiRendererCapabilities';
   /** The id renderers use for the basic catalog of this version. */
   basicCatalogId: string;
-  /** The basic catalog document, relative to the repository root. */
-  basicCatalogPath: string;
 }
 
 /**
@@ -39,15 +37,6 @@ export const V0_9: VersionProfile = {
   version: 'v0.9',
   capabilitiesKey: 'a2uiClientCapabilities',
   basicCatalogId: 'https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json',
-  basicCatalogPath: 'catalogs/v0_9/basic_catalog.json',
-};
-
-/** The v1.0 candidate protocol. */
-export const V1_0: VersionProfile = {
-  version: 'v1.0',
-  capabilitiesKey: 'a2uiRendererCapabilities',
-  basicCatalogId: 'https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json',
-  basicCatalogPath: 'catalogs/basic/v1/catalog.json',
 };
 
 /** Every version this agent serves, oldest first. */
