@@ -38,6 +38,35 @@ html.dark .ta-deck, html.dark .ta {
 /* Inline accent words: the blog's Instrument Serif italic. */
 .ta-deck em.serif, .ta-deck .serif { font-family: 'Instrument Serif', Georgia, serif; font-style: italic; font-weight: 400; letter-spacing: -0.01em; }
 .ta-deck h1 em { font-family: 'Instrument Serif', Georgia, serif; font-style: italic; font-weight: 400; letter-spacing: -0.01em; }
+/* .hl: the title slide's "generate HTML." look for one key phrase on a slide: Instrument Serif
+   italic with the hand-drawn accent underline. Works in headings, text, callouts and inside a
+   <FitText> line. Use it once per slide at most. */
+.ta-deck .hl {
+  position: relative;
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  padding-right: 0.06em;
+  white-space: nowrap;
+  /* Instrument Serif runs small next to Google Sans: a touch larger to match. */
+  font-size: 1.12em;
+  line-height: 1;
+}
+/* Inside a FitText line the line sizes itself; keep the phrase at the line's size. */
+.ta-deck .fit-text .hl { font-size: 1em; }
+.ta-deck .hl::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.02em;
+  height: 0.08em;
+  min-height: 2px;
+  background-color: var(--ta-accent);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 12' preserveAspectRatio='none'%3E%3Cpath d='M3 9 C 80 2, 200 1, 297 6' stroke='black' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 12' preserveAspectRatio='none'%3E%3Cpath d='M3 9 C 80 2, 200 1, 297 6' stroke='black' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+}
 /* Headings: the blog's section heading (.lp-h2): Roboto Flex 600, tight tracking. */
 .ta-deck h1 {
   font-family: 'Roboto Flex', Roboto, system-ui, sans-serif;

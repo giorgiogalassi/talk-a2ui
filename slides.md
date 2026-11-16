@@ -172,7 +172,7 @@ and option 2 doesn't cover the intent the agent needs to express.
 rule: ['The Problem', 'Part 1']
 ---
 
-# What if there was a fourth option?
+# What if there was a <span class="hl">fourth option</span>?
 
 What if the agent could describe *what* it wants to show, and the frontend could
 decide *how* to show it — safely, within bounds it controls?
@@ -207,7 +207,7 @@ rule: ['Part 2', 'The Paradigm Shift']
 rule: ['The Paradigm Shift', 'Part 2']
 ---
 
-# The LLM becomes a planner and composer, not a code generator
+# The LLM becomes a <span class="hl">planner and composer</span>, not a code generator
 
 <div v-click>
 
@@ -256,7 +256,7 @@ The agent can only request components from that catalog.
 
 <div class="callout">
 
-HTML has infinite surface area. A2UI has an enumerable, allowlisted one.
+HTML has infinite surface area. A2UI has an <span class="hl">enumerable, allowlisted</span> one.
 
 </div>
 
@@ -477,7 +477,7 @@ a settings page, a login screen — **this is unnecessary complexity**.
 
 <div class="callout">
 
-If you can enumerate the states, enumerate them.
+If you can enumerate the states, <span class="hl">enumerate them</span>.
 
 </div>
 
@@ -652,7 +652,7 @@ rule: ['Part 5', 'The Trust Boundary']
 
 <div class="ta">
   <div class="ta-hero">
-    <FitText>The Trust Boundary.</FitText>
+    <FitText>The <span class="hl">Trust Boundary.</span></FitText>
   </div>
 </div>
 
@@ -706,7 +706,7 @@ component is typed from the same object.
 
 <div v-click class="callout">
 
-Zod isn't the validation you bolt on. It's the language the whole agent–client
+Zod isn't the validation you bolt on. It's the <span class="hl">language</span> the whole agent–client
 contract is written in.
 
 </div>
@@ -746,7 +746,7 @@ breathe.
 rule: ['The Trust Boundary', 'Part 5']
 ---
 
-# Valid isn't allowed
+# Valid isn't <span class="hl">allowed</span>
 
 The catalog answers one question: *is this a valid UI?* It can't answer the next one:
 *may this user see it?*
@@ -844,7 +844,7 @@ new name.
 
 <div v-click class="callout">
 
-A2UI is not AI magic. It's a controlled rendering contract: it fixes what can
+A2UI is not AI magic. It's a <span class="hl">controlled rendering contract</span>: it fixes what can
 appear, not whether it makes sense.
 
 </div>
@@ -908,7 +908,7 @@ asserting.
 rule: ['Angular as the Rendering Engine', 'Part 6']
 ---
 
-# Your entire rendering integration
+# Your entire <span class="hl">rendering</span> integration
 
 ```ts {1-4|6-10|12-13}
 // app.config.ts
@@ -1266,7 +1266,7 @@ rule: ['Demo', 'Part 7']
 
 <div class="callout">
 
-The agent never touched the DOM. The system controlled the model, not the other way
+The agent never touched the DOM. The system <span class="hl">controlled the model</span>, not the other way
 around.
 
 </div>
@@ -1494,7 +1494,7 @@ rule: ['Thank you', 'ggalassi.dev']
     <FitText serif>Thank you</FitText>
   </div>
   <div class="ta-aside" style="margin-top:0.8rem;grid-template-columns:1fr">
-    <strong>Stop letting LLMs generate HTML. Start designing systems that speak UI.</strong>
+    <strong>Stop letting LLMs generate HTML. Start designing systems that <span class="hl">speak UI</span>.</strong>
   </div>
   <div class="ta-thanks" style="grid-template-columns:1fr;gap:0.6rem;padding-top:0.6rem">
     <div class="who">
