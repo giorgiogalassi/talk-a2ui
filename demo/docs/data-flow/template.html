@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A2UI Demo Data Flow</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a map table. Graph canvas fills the left, a reading rail on the right holds walks and the selected node; stacks on phones. */
+:root {
+  --bg: #f3f4f1; --surface: #ffffff; --ink: #1d2321; --muted: #5d6763; --line: #d9ddd8;
+  --accent: #1f6f78; --accent-soft: #d7ebec; --dim: 0.12;
+  --g1: #1f6f78; --g2: #b4532a; --g3: #6a4fa3; --g4: #3f7d3a; --g5: #a8761a; --g6: #b23a62; --g7: #4b6584; --g8: #7a7f2a;
+  --font-body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121615; --surface: #1a1f1e; --ink: #e6ebe8; --muted: #9aa5a0; --line: #2c3432;
+  --accent: #5fb7bf; --accent-soft: #1d3a3d; --dim: 0.14;
+  --g1: #5fb7bf; --g2: #e08a60; --g3: #a993dd; --g4: #7fbf73; --g5: #d9ad55; --g6: #e47b9f; --g7: #8fa7c7; --g8: #b8bd5c;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121615; --surface: #1a1f1e; --ink: #e6ebe8; --muted: #9aa5a0; --line: #2c3432;
+  --accent: #5fb7bf; --accent-soft: #1d3a3d; --dim: 0.14;
+  --g1: #5fb7bf; --g2: #e08a60; --g3: #a993dd; --g4: #7fbf73; --g5: #d9ad55; --g6: #e47b9f; --g7: #8fa7c7; --g8: #b8bd5c;
+  color-scheme: dark }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { display: flex; flex-direction: column; height: 100%; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px; gap: 12px; box-sizing: border-box; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; }
+h1 { font-size: 20px; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h1 small { font-family: var(--font-mono); font-size: 11px; font-weight: 400; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-left: 8px; }
+.tabs { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 3px; }
+.tabs button { font: 500 13px var(--font-body); color: var(--muted); background: none; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--accent-soft); color: var(--ink); }
+.tabs button:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 12px; }
+.stage { position: relative; min-width: 0; min-height: 420px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+#cy { position: absolute; inset: 0; }
+.toolbar { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; flex-wrap: wrap; gap: 6px; z-index: 2; pointer-events: none; }
+.toolbar > * { pointer-events: auto; }
+.toolbar input { font: 13px var(--font-body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 9px; width: 180px; }
+.chip { font: 500 11px var(--font-mono); letter-spacing: 0.02em; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 4px 9px 4px 7px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.chip i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.chip[aria-pressed="false"] { opacity: 0.45; }
+.chip[aria-pressed="false"] i { background: transparent !important; outline: 1px solid var(--muted); }
+.fit { position: absolute; right: 10px; bottom: 10px; z-index: 2; }
+aside { min-width: 0; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+section.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.eyebrow { font: 500 11px var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0; }
+.summary { margin: 0; color: var(--ink); font-size: 14px; }
+.walks { display: flex; flex-direction: column; gap: 6px; }
+.walk { text-align: left; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; cursor: pointer; }
+.walk b { display: block; font-size: 14px; font-weight: 600; }
+.walk span { display: block; font-size: 12.5px; color: var(--muted); }
+.walk[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+ol.steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 3px; font-size: 13.5px; }
+ol.steps li { cursor: pointer; }
+ol.steps li.on { color: var(--accent); font-weight: 600; }
+.stepnav { display: flex; gap: 6px; }
+.btn { font: 500 12.5px var(--font-body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+.node-title { font-size: 17px; font-weight: 600; margin: 0; text-wrap: balance; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill { font: 500 11px var(--font-mono); border-radius: 999px; padding: 2px 8px; border: 1px solid var(--line); color: var(--muted); }
+.pill.status-proposed, .pill.status-pending, .pill.status-planned, .pill.status-open { border-style: dashed; color: var(--ink); }
+.detail { margin: 0; font-size: 14px; }
+.payload { margin: 0; padding: 8px 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; font: 11.5px/1.45 var(--font-mono); white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto; }
+.payload[hidden] { display: none; }
+.src { font: 12px var(--font-mono); color: var(--muted); word-break: break-all; margin: 0; }
+.src a { color: var(--accent); }
+ul.links { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+ul.links li { cursor: pointer; }
+ul.links li em { font-style: normal; font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); }
+.hint { color: var(--muted); font-size: 13px; margin: 0; }
+.legend-note { font-size: 12px; color: var(--muted); margin: 0; }
+@media (max-width: 860px) {
+  main { grid-template-columns: 1fr; grid-template-rows: 62vh auto; }
+  html, body { height: auto; }
+  .wrap { height: auto; }
+  aside { overflow: visible; }
+  .toolbar input { width: 140px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>A2UI demo: data flow <small>talk-a2ui · A2UI v0.9</small></h1>
+    <div class="tabs" role="tablist" id="tabs"></div>
+  </header>
+  <main>
+    <div class="stage">
+      <div class="toolbar">
+        <input id="search" type="search" placeholder="Find a node…" aria-label="Find a node">
+        <div id="legend" style="display:contents"></div>
+      </div>
+      <div id="cy" role="img" aria-label="Interactive knowledge graph"></div>
+      <button class="btn fit" id="fit" type="button">Fit</button>
+    </div>
+    <aside>
+      <section class="card">
+        <p class="eyebrow" id="g-eyebrow">Map</p>
+        <p class="summary" id="summary"></p>
+        <p class="legend-note">Columns are where the code runs; top to bottom is the order things happen. Tap a node for its file and the exact payload, or open a walk for one complete path.</p>
+      </section>
+      <section class="card">
+        <p class="eyebrow">Guided walks</p>
+        <div class="walks" id="walks"></div>
+        <div id="walkview" hidden>
+          <ol class="steps" id="steps"></ol>
+          <div class="stepnav"><button class="btn" id="prev" type="button">Previous</button><button class="btn" id="next" type="button">Next</button><button class="btn" id="clearwalk" type="button">Clear</button></div>
+        </div>
+      </section>
+      <section class="card" id="nodecard">
+        <p class="eyebrow">Selected</p>
+        <p class="hint" id="nodehint">Tap a node to read it and see its connections.</p>
+        <div id="nodeview" hidden style="display:flex;flex-direction:column;gap:8px">
+          <h2 class="node-title" id="n-title"></h2>
+          <div class="meta" id="n-meta"></div>
+          <p class="detail" id="n-detail"></p>
+          <pre class="payload" id="n-payload" hidden></pre>
+          <p class="src" id="n-src"></p>
+          <p class="eyebrow">Connections</p>
+          <ul class="links" id="n-links"></ul>
+        </div>
+      </section>
+    </aside>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+<script>
+// Built by build.py from graph.json: edit graph.json, then run `python3 build.py`.
+const GRAPHS = /*DATA*/[];
+const GCOL = ['--g1','--g2','--g3','--g4','--g5','--g6','--g7','--g8'];
+const DASHED = new Set(['proposed','pending','planned','open','goal']);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+let cy, G, groupColor = {}, hidden = new Set(), walk = null, step = 0;
+
+const tabs = document.getElementById('tabs');
+GRAPHS.forEach((g, i) => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.role = 'tab'; b.id = 'tab-' + g.key; b.textContent = g.tab;
+  b.onclick = () => { location.hash = g.key; };
+  tabs.appendChild(b);
+});
+
+function load(key) {
+  G = GRAPHS.find(g => g.key === key) || GRAPHS[0];
+  [...tabs.children].forEach(b => b.setAttribute('aria-selected', b.id === 'tab-' + G.key));
+  document.getElementById('g-eyebrow').textContent = G.title;
+  document.getElementById('summary').textContent = G.summary;
+  groupColor = {}; G.groups.forEach((gr, i) => groupColor[gr.id] = GCOL[i % GCOL.length]);
+  hidden = new Set(); walk = null;
+  renderLegend(); renderWalks(); showNode(null);
+  draw();
+}
+
+function elements() {
+  const ids = new Set(G.nodes.map(n => n.id));
+  return [
+    ...G.nodes.map(n => ({ data: { ...n, gid: n.group } })),
+    ...G.edges.filter(e => ids.has(e.from) && ids.has(e.to)).map((e, i) => ({ data: { id: 'e' + i, source: e.from, target: e.to, label: e.label } })),
+  ];
+}
+
+function positions() {
+  // Stage maps lay groups out as columns in order, nodes sorted by date down each column.
+  if (G.layout !== 'stages') return null;
+  const pos = {}; const colW = 260;
+  G.groups.forEach((gr, ci) => {
+    const ns = G.nodes.filter(n => n.group === gr.id).sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
+    ns.forEach((n, ri) => { pos[n.id] = { x: ci * colW, y: (n.order ?? ri + 1) * 80 }; });
+  });
+  return pos;
+}
+
+function style() {
+  const ink = css('--ink'), muted = css('--muted'), surf = css('--surface'), line = css('--line'), acc = css('--accent');
+  return [
+    { selector: 'node', style: {
+      'background-color': n => css(groupColor[n.data('gid')] || '--g7'),
+      'border-width': 2, 'border-color': surf,
+      'label': 'data(label)', 'color': ink, 'font-family': 'Instrument Sans, system-ui, sans-serif', 'font-size': 11,
+      'text-wrap': 'wrap', 'text-max-width': 110, 'text-valign': 'bottom', 'text-margin-y': 5,
+      'text-background-color': surf, 'text-background-opacity': 0.85, 'text-background-padding': 2, 'text-background-shape': 'roundrectangle',
+      'width': 16, 'height': 16 } },
+    { selector: 'node[status = "proposed"], node[status = "pending"], node[status = "planned"], node[status = "open"], node[status = "goal"]', style: {
+      'background-opacity': 0.15, 'border-width': 2, 'border-style': 'dashed', 'border-color': n => css(groupColor[n.data('gid')] || '--g7') } },
+    { selector: 'edge', style: {
+      'width': 1.2, 'line-color': line, 'target-arrow-color': line, 'target-arrow-shape': 'triangle', 'arrow-scale': 0.7,
+      'curve-style': 'bezier', 'label': '', 'font-size': 9, 'color': muted, 'font-family': 'JetBrains Mono, monospace',
+      'text-background-color': surf, 'text-background-opacity': 0.9, 'text-background-padding': 1, 'text-rotation': 'autorotate' } },
+    { selector: '.faded', style: { 'opacity': parseFloat(css('--dim')) || 0.12 } },
+    { selector: 'edge.hl', style: { 'line-color': acc, 'target-arrow-color': acc, 'width': 2.2, 'label': 'data(label)', 'z-index': 9 } },
+    { selector: 'node.hl', style: { 'width': 22, 'height': 22, 'font-weight': 600, 'z-index': 9 } },
+    { selector: 'node.focus', style: { 'border-color': acc, 'border-width': 4, 'width': 28, 'height': 28 } },
+    { selector: '.hiddenGroup', style: { 'display': 'none' } },
+  ];
+}
+
+function draw() {
+  if (cy) cy.destroy();
+  const pos = positions();
+  cy = cytoscape({
+    container: document.getElementById('cy'), elements: elements(), style: style(),
+    layout: pos ? { name: 'preset', positions: n => pos[n.id()], fit: true, padding: 50 }
+                : { name: 'cose', animate: false, nodeRepulsion: 9000, idealEdgeLength: 90, padding: 50, randomize: false, componentSpacing: 80 },
+    minZoom: 0.2, maxZoom: 3, wheelSensitivity: 0.25,
+  });
+  cy.on('tap', 'node', e => { walk = null; markWalks(); focus(e.target.id()); });
+  cy.on('tap', e => { if (e.target === cy) { walk = null; markWalks(); clearHL(); showNode(null); } });
+}
+
+function clearHL() { cy.elements().removeClass('faded hl focus'); }
+
+function focus(id, center = true) {
+  const n = cy.getElementById(id); if (!n.length) return;
+  clearHL();
+  const hood = n.closedNeighborhood();
+  cy.elements().not(hood).addClass('faded');
+  hood.edges().addClass('hl'); n.addClass('focus');
+  if (center) cy.animate({ center: { eles: n }, duration: 250 });
+  showNode(id);
+}
+
+function showNode(id) {
+  const view = document.getElementById('nodeview'), hint = document.getElementById('nodehint');
+  if (!id) { view.hidden = true; view.style.display = 'none'; hint.hidden = false; return; }
+  const n = G.nodes.find(x => x.id === id);
+  hint.hidden = true; view.hidden = false; view.style.display = 'flex';
+  document.getElementById('n-title').textContent = n.label;
+  const gl = (G.groups.find(g => g.id === n.group) || {}).label || n.group;
+  const meta = document.getElementById('n-meta'); meta.replaceChildren();
+  [[gl, ''], [n.order != null ? 'step ' + n.order : '', '']].filter(([t]) => t).forEach(([t, c]) => {
+    const s = document.createElement('span'); s.className = 'pill ' + c; s.textContent = t; meta.appendChild(s);
+  });
+  document.getElementById('n-detail').textContent = n.detail || '';
+  const pl = document.getElementById('n-payload'); pl.hidden = !n.payload; pl.textContent = n.payload || '';
+  const src = document.getElementById('n-src'); src.replaceChildren();
+  if (n.source) {
+    if (/^https?:\/\//.test(n.source)) { const a = document.createElement('a'); a.href = n.source; a.target = '_blank'; a.rel = 'noopener'; a.textContent = n.source; src.appendChild(a); }
+    else src.textContent = n.source;
+  }
+  const ul = document.getElementById('n-links'); ul.replaceChildren();
+  const lbl = x => (G.nodes.find(m => m.id === x) || {}).label || x;
+  G.edges.filter(e => e.from === id || e.to === id).forEach(e => {
+    const li = document.createElement('li'); const other = e.from === id ? e.to : e.from;
+    const em = document.createElement('em'); em.textContent = (e.from === id ? '→ ' : '← ') + e.label + ' ';
+    li.append(em, document.createTextNode(lbl(other)));
+    li.onclick = () => focus(other); ul.appendChild(li);
+  });
+}
+
+function renderLegend() {
+  const box = document.getElementById('legend'); box.replaceChildren();
+  G.groups.forEach(gr => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.setAttribute('aria-pressed', 'true');
+    const i = document.createElement('i'); i.style.background = `var(${groupColor[gr.id]})`;
+    b.append(i, document.createTextNode(gr.label));
+    b.onclick = () => {
+      const on = hidden.has(gr.id); on ? hidden.delete(gr.id) : hidden.add(gr.id);
+      b.setAttribute('aria-pressed', String(on));
+      cy.nodes().forEach(n => n.toggleClass('hiddenGroup', hidden.has(n.data('gid'))));
+    };
+    box.appendChild(b);
+  });
+}
+
+function renderWalks() {
+  const box = document.getElementById('walks'); box.replaceChildren();
+  (G.paths || []).forEach(p => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'walk'; b.dataset.id = p.id; b.setAttribute('aria-pressed', 'false');
+    const t = document.createElement('b'); t.textContent = p.label; const s = document.createElement('span'); s.textContent = p.note;
+    b.append(t, s); b.onclick = () => startWalk(p.id); box.appendChild(b);
+  });
+  markWalks();
+}
+
+function markWalks() {
+  document.querySelectorAll('.walk').forEach(b => b.setAttribute('aria-pressed', String(!!walk && b.dataset.id === walk.id)));
+  document.getElementById('walkview').hidden = !walk;
+}
+
+function startWalk(id) {
+  walk = G.paths.find(p => p.id === id); step = 0; markWalks();
+  const ol = document.getElementById('steps'); ol.replaceChildren();
+  walk.nodes.forEach((nid, i) => {
+    const li = document.createElement('li'); li.textContent = (G.nodes.find(n => n.id === nid) || {}).label || nid;
+    li.onclick = () => { step = i; showStep(); }; ol.appendChild(li);
+  });
+  showStep();
+}
+
+function showStep() {
+  clearHL();
+  const ids = walk.nodes; const set = cy.collection();
+  ids.forEach((nid, i) => {
+    set.merge(cy.getElementById(nid));
+    if (i > 0) set.merge(cy.edges().filter(e => (e.source().id() === ids[i - 1] && e.target().id() === nid) || (e.target().id() === ids[i - 1] && e.source().id() === nid)));
+  });
+  cy.elements().not(set).addClass('faded'); set.addClass('hl');
+  const cur = cy.getElementById(ids[step]); cur.addClass('focus');
+  cy.animate({ fit: { eles: set, padding: 60 }, duration: 250 });
+  [...document.getElementById('steps').children].forEach((li, i) => li.classList.toggle('on', i === step));
+  showNode(ids[step]);
+  document.getElementById('prev').disabled = step === 0;
+  document.getElementById('next').disabled = step === ids.length - 1;
+}
+
+document.getElementById('prev').onclick = () => { if (walk && step > 0) { step--; showStep(); } };
+document.getElementById('next').onclick = () => { if (walk && step < walk.nodes.length - 1) { step++; showStep(); } };
+document.getElementById('clearwalk').onclick = () => { walk = null; markWalks(); clearHL(); showNode(null); cy.fit(undefined, 50); };
+document.getElementById('fit').onclick = () => cy.fit(undefined, 50);
+document.getElementById('search').addEventListener('input', e => {
+  const q = e.target.value.trim().toLowerCase(); if (!q) { clearHL(); return; }
+  const hit = G.nodes.find(n => n.label.toLowerCase().includes(q)) || G.nodes.find(n => (n.detail || '').toLowerCase().includes(q));
+  if (hit) focus(hit.id);
+});
+
+const restyle = () => cy && cy.style(style());
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', restyle);
+new MutationObserver(restyle).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+addEventListener('hashchange', () => load(location.hash.slice(1)));
+load(location.hash.slice(1));
+</script>
