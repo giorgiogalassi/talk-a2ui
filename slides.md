@@ -35,6 +35,9 @@ rule: ['A2UI · AngularDay 2026', 'Structured generative UI']
 <!--
 Speaker notes:
 Welcome the room. No preamble needed.
+Then 15 seconds about you, no more: name, what you do (frontend, Angular, GDG Roma
+Città), and that you built the demo you're about to show. The full "who I am" is at
+the end.
 Point at the QR once: questions can go in the AngularDay app during the talk,
 and the same app is where they rate it. Q&A is at the end.
 Let the title sit for a second before moving on.
@@ -1403,11 +1406,8 @@ payload itself is the audit trail.
 This is the summary slide tying together the reactivity and zoneless slides — don't re-explain the
 mechanism, just name the pieces and let the room recall what they already saw.
 
-[Say last, after the Performance click: was the "Production-ready Generative UI" slide]
-"Production-ready Generative UI is an architecture problem. Not a prompt engineering problem."
-Close of the talk, before Q&A. Let this land —
-this line is a good one to repeat verbatim if asked to summarize the talk
-in one sentence afterward.
+[After the Performance click]
+End of the content. Straight to Questions: the wrap-up comes after them.
 -->
 
 
@@ -1434,8 +1434,10 @@ Speaker notes:
 Open the Q&A with the masterclass in one sentence: "If you want to build this
 hands-on, I'm running a masterclass in December: the QR stays up the whole Q&A."
 Then take questions.
-Q&A happens here, before the closing line: I decide how many questions and for
-how long. When time is up, move to the Thank you slide and land the close.
+Time-box it: about 5 minutes in a 40-minute slot. You end it, not the organiser:
+"One last question, then I'll wrap up." If someone needs longer, "find me after,
+I'm around all day."
+Then the wrap-up slide (about a minute) and the thank-you.
 
 Q&A prep — likely questions:
 - "Is A2UI production-ready?" → The spec is v1.0 and stable since 6 Nov; the
@@ -1447,9 +1449,10 @@ Q&A prep — likely questions:
   Capability negotiation sends the catalog to the agent before generation
   (Part 5). It's a closed, known vocabulary, not an open one.
 - "What stops a compromised agent from requesting a valid-looking but malicious
-  combination of valid components?" → Server-side policy enforcement (Part 5
-  validation ownership slide) is the layer for this — catalog validation checks
-  shape, not business rules.
+  combination of valid components?" → Server-side policy enforcement ("Valid
+  isn't allowed", Part 5) is the layer for this — catalog validation checks
+  shape, not business rules. And say the honest limit ("What the boundary
+  guarantees, and what it doesn't").
 
 - "Where is this heading?" → was Part 7, The Future (moved off the slides 2026-11-14; no published source, it is my projection). Renderers checked on a2ui-project/a2ui main 2026-11-14: Angular, React, Lit (TypeScript), Flutter (Dart), SwiftUI (Swift, via SwiftPM). Jetpack Compose is only named in the README, no renderer in the repo.
 
@@ -1483,6 +1486,60 @@ system.
 Notes: Widen the lens here. Everything in the talk was scoped to one Angular app —
 this is the reminder that the protocol itself doesn't care which renderer
 is on the other end, and that's a deliberate design choice, not an accident.
+-->
+
+---
+rule: ['Wrap-up', 'A2UI · AngularDay 2026']
+---
+
+# Three things to take home
+
+<div class="ta-cols c3">
+<div v-click>
+
+## The catalog
+
+The agent describes the screen; your frontend decides what can appear on it.
+
+</div>
+<div v-click>
+
+## The boundary
+
+One Zod catalog, checked three times. And *valid* still isn't *allowed*: the
+policy is yours.
+
+</div>
+<div v-click>
+
+## Angular
+
+It renders the result with signals, zoneless. The transport is one file you can
+swap.
+
+</div>
+</div>
+
+<div v-click class="callout" style="font-size: 1.7rem; line-height: 1.3; margin-top: 1.6rem">
+
+The agent composes the screen. You design <span class="hl">what it composes with</span>.
+
+</div>
+
+<!--
+Speaker notes:
+About a minute. One sentence per column, then the callout.
+
+[click: The catalog] [click: The boundary] [click: Angular]
+Don't re-explain, name them: the room has seen all three.
+
+[click: callout] Say this around it, slowly:
+"People will ask an agent instead of clicking through our apps. They'll still need
+an interface they can trust, built from our components and shaped by what they just
+asked. Designing that is the next job for frontend developers."
+
+If time's up: skip the columns, say only that.
+Then the thank-you slide.
 -->
 
 ---
@@ -1531,11 +1588,12 @@ rule: ['Thank you', 'ggalassi.dev']
 
 <!--
 Speaker notes:
-[Was the Close slide]
-Land this slowly, mirroring the close of the context-engineering talk structure.
-The room should leave with the reframe from Part 2, not a list of APIs:
-AI-native Angular is not a new framework. It's the one you already know,
-used correctly. Thank the room (questions already happened on the previous slide).
+Who you are, briefly: what you do, why you built this, where to find you
+(ggalassi.dev, the links QR). The questions and the wrap-up already happened.
+
+Then the last line, slowly, echoing the title:
+"Stop letting LLMs generate HTML. Start designing systems that speak UI."
+Thank the room.
 
 Before leaving the slide: remind the room to use the AngularDay app to interact
 and, above all, to rate the talk (QR on the right goes to grusp.org/agenda).
