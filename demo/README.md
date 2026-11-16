@@ -3,7 +3,7 @@
 Demo for the talk *Your AI Should Not Generate HTML*. Plan and decisions: `../IMPLEMENTATION-PLAN.md`.
 
 ```
-apps/client      Angular 22 app (SSR server = the A2A client, POST /a2a), renders A2UI via @a2ui/angular
+apps/client      Angular 22 app (SSR server = the A2A client, POST /api/agent), renders A2UI via @a2ui/angular
 apps/agent       A2A agent (official Node sample pattern: @google/genai + @a2ui/agent), A2UI v0.9
 packages/catalog the ticket catalog: Zod 3 ComponentApis, shared by agent and client (@demo/catalog)
 ```
@@ -20,7 +20,7 @@ message (`apps/client/src/app/booking-form.json`, copied from the official Node 
 basic catalog. Checked in a browser: typing into fields sends nothing; *Submit Reservation* fires one
 `submit_booking` action whose `context` carries the typed values. Actions are logged to the console.
 
-**Step 2, the full chain in stub mode — done (2026-10-22).** Browser → `POST /a2a` (the client's
+**Step 2, the full chain in stub mode — done (2026-10-22).** Browser → `POST /api/agent` (the client's
 own server) → A2A `message/stream` → agent → A2UI messages back as SSE → renderer. Checked in a
 browser: prompt → restaurant list → *Book Now* → booking form → *Submit* → confirmation.
 - Gotcha found: the agent reads a UI action inside a v0.9 envelope, `{ version: 'v0.9', action }`,
@@ -103,7 +103,7 @@ the two places the plan names: the streaming path's `send()` (every `stream.feed
   `@a2ui/agent` stream, without the policy, emits `internal_notes` in an `updateDataModel` re-send
   before the last one; through the executor, streamed and non-streamed, list and detail, no published
   message carries `internal_notes` or `delete_ticket`. Headless browser, `STUB_LEAKY=true`: the SSE
-  bodies of `POST /a2a` (list: 14 events, 4 `updateDataModel` re-sends; detail: 16 events) hold 0
+  bodies of `POST /api/agent` (list: 14 events, 4 `updateDataModel` re-sends; detail: 16 events) hold 0
   `internal_notes`, 0 `delete_ticket`, 0 note text; the detail renders without notes or Delete; the
   agent logged 17 policy lines (e.g. `--- policy: stripped /tickets/0/internal_notes ---` three times,
   once per re-send carrying it). Also checked: plain stub (only the Delete strip), and Express +

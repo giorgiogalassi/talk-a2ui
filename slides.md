@@ -522,7 +522,7 @@ flowchart TB
 
 </div>
 <div class="dg-wire">
-  <div class="arrow">POST /a2a</div>
+  <div class="arrow">POST /api/agent</div>
   <div class="arrow left">SSE</div>
   <div class="arrow dashed">VALIDATION_FAILED</div>
 </div>
@@ -563,6 +563,29 @@ flowchart TB
 
 </div>
 </div>
+
+<!--
+Speaker notes:
+Read it left to right, one lane at a time. Three boxes, two different wires.
+
+Browser to our own server: plain POST /api/agent, SSE back. That's our API, not
+A2A. The browser never sees an A2A type; it only gets A2UI messages.
+
+Server to agent: this is the only A2A hop. server.ts is the A2A client and the
+only file that knows A2A exists, so swapping the transport (AG-UI, MCP, plain
+REST) means rewriting one file. Note: A2A here is app-to-agent, one agent. No
+agent-to-agent delegation in this demo; that's what A2A would add later.
+
+Inside the agent: negotiate the catalog from supportedCatalogIds, put
+catalog.toJson() in the prompt, call Gemini, validate against the Zod catalog,
+retry once on failure, then applyPolicy on every streamed message, not just the
+last one. The orange box is the one validation can't replace.
+
+Back in the browser, web_core checks the same Zod catalog again on arrival.
+The dashed VALIDATION_FAILED arrow is the renderer reporting back to the agent:
+[check before Friday: that's phase 6, PR #8. If it isn't merged, say "the
+spec has this; the demo doesn't send it yet".]
+-->
 
 
 
