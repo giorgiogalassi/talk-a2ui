@@ -208,7 +208,11 @@ function sourceEl(n) {
   links.forEach(l => box.append(el('li', {}, el('a', { href: l.url, target: '_blank', rel: 'noopener' },
     el('span', { textContent: l.path }), el('span', { className: 'lines', textContent: 'L' + l.lines })))));
   rest.forEach(s => {
-    const url = /^https?:\/\//.test(s) ? s : (PAGE.sourceBase && /^[\w@.-]+\/[\w./@-]+$/.test(s) && !s.includes(' ') ? PAGE.sourceBase + s.replace(/\/$/, '') : null);
+    // A URL as is; a package (@scope/name) to npm; a path in this repo (demo/…) to GitHub.
+    const pkg = /^(@[\w.-]+\/[\w.-]+)(\s|$)/.exec(s);
+    const url = /^https?:\/\//.test(s) ? s
+      : pkg ? 'https://www.npmjs.com/package/' + pkg[1]
+      : PAGE.sourceBase && /^demo\/[\w./@-]+$/.test(s) ? PAGE.sourceBase + s.replace(/\/$/, '') : null;
     box.append(el('li', {}, url ? el('a', { href: url, target: '_blank', rel: 'noopener', textContent: s }) : s));
   });
   return box;
