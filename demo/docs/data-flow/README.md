@@ -6,7 +6,8 @@ Read this before the code: every step names the file it lives in.
 There are two ways to read it:
 
 - **This page.** Three diagrams (end to end, frontend, backend), then the payloads.
-- **The interactive map:** [`index.html`](index.html). Open it in a browser, from a clone or with any static
+- **The interactive map:** [`index.html`](index.html): pick a node to read it (file, payload,
+  what leads to it and from it); the graph beside it shows where you are. Open it in a browser, from a clone or with any static
   server (`python3 -m http.server` in this folder). It has the same three views as tabs, with guided
   walks, and each node shows its file and the exact payload. It needs the cytoscape CDN.
 
@@ -70,9 +71,9 @@ published stays on screen until the retry's `createSurface` replaces it.
 flowchart TD
   P["Prompt form (app.ts)"] -->|"ask(query)"| SEND
   ACT["Button click: context resolved locally<br/>A2uiClientAction"] -->|"actionHandler → handleAction(event)"| SEND
-  SEND["send(): clear surfaces and issues,<br/>isLoading, waitingForUi"] -->|"fetch POST /api/agent"| SSE
+  SEND["send(): mark old surfaces stale, clear issues,<br/>isLoading, waitingForUi"] -->|"fetch POST /api/agent"| SSE
   SSE["read SSE, split on blank lines"] -->|"each data: line"| HE
-  HE["handleEvent(): store sessionId, show text,<br/>delete a re-created surface"] -->|"one message at a time"| PROC
+  HE["handleEvent(): store sessionId, first A2UI → old surfaces go,<br/>show text, delete a re-created surface"] -->|"one message at a time"| PROC
   PROC["process(message)"] -->|"processMessages([msg])"| R
   R["A2uiRendererService (web_core)"] --> CS["createSurface → SurfaceModel"]
   R --> UC["updateComponents → Zod check per component"]
@@ -89,8 +90,11 @@ flowchart TD
   REP --> SEND
 ```
 
-- `send()` deletes every surface first: each reply carries its whole UI, `createSurface` included.
-  A phase-6 report keeps the old surfaces until the corrected reply's first messages arrive.
+- Each reply carries its whole UI, `createSurface` included, so the old surfaces must go. They go on
+  the reply's first A2UI message, in one swap: until then they stay on screen, dimmed, while the Ask
+  button pulses "Working…" (both after 250 ms, so a fast stub reply doesn't flash). A phase-6 report
+  works the same way: the partly rejected surface stays until the corrected reply, or under the
+  agent's text fallback.
 - web_core rejects a whole `updateComponents` if one component fails. `process()` then applies the
   components one by one and replaces each rejected one with a placeholder `Text` (same id), so the rest
   renders **(phase 6)**.
@@ -136,9 +140,21 @@ flowchart TD
 - **Validation while streaming.** `@a2ui/agent`'s Direct JSON stream re-sends a message whole each
   time it grows, and only when a fresh renderer state accepts it.
 - **Policy.** `DEMO_POLICY` forbids `/tickets/*/internal_notes` and `/ticket/internal_notes` and
-  disables `delete_ticket`. It runs on every re-send, because each one reaches the browser.
+  disables `delete_ticket`. It runs on every re-send, because each one reaches the browser. Since
+  the model is given the notes, it also checks text (`forbiddenText`, per sentence): a text part,
+  a literal string or a data model value quoting a note is withheld. A paraphrase isn't caught.
 - **Errors.** A model or network error (e.g. a Gemini 503) retries the original query; an A2UI error
   retries with the error. Any exception ends the task with a `failed` status and a text part.
+  Each model call times out after 30 s (`GEMINI_CALL_TIMEOUT_MS`), a turn gets at most 3 tool
+  rounds, and a turn that doesn't finish drops its Gemini chat so the retry starts clean.
+- **Errors to the browser.** Fixed messages only ("The agent is not reachable…", "…could not
+  answer…"); details stay in the server log. The browser runs one turn at a time and gives up
+  after 150 s.
+- **Stage switches.** `stub`, `invalidFirst`, `leaky`, `clientInvalid` and `thinkingLevel` start from
+  the env (`STUB_LLM`, `STUB_INVALID_FIRST`, `STUB_LEAKY`, `STUB_CLIENT_INVALID`,
+  `GEMINI_THINKING_LEVEL`) and change at runtime from the demo panel (⌥⇧D): `GET/PUT /demo/flags`
+  on the app's server, forwarded to the agent's `DemoFlagStore`. `PUT` only from this machine.
+  `SwitchableBackend` reads them at the start of every turn, so a change applies from the next one.
 
 ## Payloads at each boundary
 
