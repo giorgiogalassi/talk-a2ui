@@ -951,7 +951,7 @@ the Angular client.
   (a data-model value only the renderer can check), instead of the planned skip of the agent's
   validation. Found: re-created surfaces kept their old drawing (incident 6, fixed in `app.ts`).
   Roadmap: P6 and P7 (transport swap, 2026-11-10) done, `next` moved to the deck.
-- **2026-11-16** — The browser's route renamed from `POST /api/agent` to `POST /api/agent` (client
+- **2026-11-16** — The browser's route renamed from `POST /a2a` to `POST /api/agent` (client
   `agent-client.ts`, `server.ts`, docs, slide 16). What the browser sends there is the app's own
   JSON + SSE contract, not A2A; the old name contradicted "the browser never speaks A2A" on stage
   and in the article. The agent's own A2A endpoint (`/a2a/json-rpc`) is unchanged.

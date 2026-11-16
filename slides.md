@@ -18,19 +18,25 @@ rule: ['A2UI · AngularDay 2026', 'Structured generative UI']
 
 <div class="ta">
   <div class="ta-hero">
-    <FitText :weight="300" :wdth="100" class="ta-dim">Your AI should not</FitText>
-    <FitText :weight="900" :wdth="100" class="ta-accent">generate HTML.</FitText>
+    <FitText>Your AI should not</FitText>
+    <FitText serif>generate HTML.</FitText>
   </div>
-  <div class="ta-foot">
+  <div class="ta-foot" style="grid-template-columns:repeat(3,minmax(0,1fr)) auto;align-items:center">
     <div><b>Angular + A2UI</b><span>structured generative UI</span></div>
     <div><b>AngularDay 2026</b><span>Verona · 20 November</span></div>
     <div><b>Giorgio Galassi</b><span>ggalassi.dev</span></div>
+    <div class="ta-qrs"><div class="qr-row">
+      <img src="/src/qr-angularday-agenda.png" alt="QR code to the AngularDay agenda" class="qr-code" />
+      <span><b>Questions? Ratings?</b>use the AngularDay app</span>
+    </div></div>
   </div>
 </div>
 
 <!--
 Speaker notes:
 Welcome the room. No preamble needed.
+Point at the QR once: questions can go in the AngularDay app during the talk,
+and the same app is where they rate it. Q&A is at the end.
 Let the title sit for a second before moving on.
 This is an Advanced-level talk, 40 minutes with a live demo: a live agent drives the dashboard
 (stub agent and recording ready as fallbacks).
@@ -46,7 +52,7 @@ rule: ['Part 1', 'The Problem']
 
 <div class="ta">
   <div class="ta-hero">
-    <FitText :weight="900" :wdth="90">The Problem.</FitText>
+    <FitText>The Problem.</FitText>
   </div>
 </div>
 
@@ -64,20 +70,7 @@ They handle complex tasks. They call tools. They manage multi-step workflows.
 
 And the moment they need to respond with something richer than text, they hit a wall.
 
-<!--
-Speaker notes:
-This is the actual opening line. Say it plainly, no dramatization.
-The problem is not bad code quality. Not developer tooling.
-It's agents that need to hand something visual and interactive back to a user,
-in a system they do not fully control.
-Pause after "they hit a wall" — let that land before moving to the quote.
--->
-
----
-rule: ['The Problem', 'Part 1']
----
-
-# Google says it plainly
+<div v-click>
 
 > "Generative AI excels at creating text and code, but agents can struggle to present
 > rich, interactive interfaces to users, especially when those agents are remote or
@@ -85,12 +78,22 @@ rule: ['The Problem', 'Part 1']
 
 <div class="text-sm text-gray-400">
 
-Source: [github.com/google/A2UI — Summary](https://github.com/google/A2UI#summary)
+Source: [github.com/a2ui-project/a2ui — Summary](https://github.com/a2ui-project/a2ui#summary)
+
+</div>
 
 </div>
 
 <!--
 Speaker notes:
+
+This is the actual opening line. Say it plainly, no dramatization.
+The problem is not bad code quality. Not developer tooling.
+It's agents that need to hand something visual and interactive back to a user,
+in a system they do not fully control.
+Pause after "they hit a wall" — let that land before moving to the quote.
+
+[click: Google says it plainly]
 Ground the problem in Google's own framing from the A2UI README before offering
 your own take. This isn't me inventing a problem — Google's own team building this
 standard describes it the same way.
@@ -105,25 +108,19 @@ rule: ['The Problem', 'Part 1']
 
 # What the agent's options look like today
 
-**Option 1 — Generate HTML or JSX and inject it**
+<div class="ta-cols c3">
+<div v-click>
+
+## Option 1 — Generate HTML or JSX and inject it
+
 Unbounded output, no contract, no validation surface. By the time it renders,
 it's too late to check. Across a trust boundary, you're executing arbitrary code
 from a remote agent in your client application.
 
-<!--
-Speaker notes:
-Walk through the three options one at a time, don't rush.
-Option 1 is the one everyone's instinct jumps to because it's what a browser-based
-coding agent already does locally, in a sandbox you control. The moment the agent
-is remote — a different service, a different trust domain — this stops being safe.
-There's no way to inspect what you're about to execute before you execute it.
--->
+</div>
+<div v-click>
 
----
-rule: ['The Problem', 'Part 1']
----
-
-# Option 2 — return data, let the frontend render it
+## Option 2 — return data, let the frontend render it
 
 Clean. Predictable. And now the agent has no voice in how its output is presented.
 
@@ -132,27 +129,35 @@ It cannot say "this data needs a date picker."
 
 The agent is reduced to a JSON API with no say in presentation.
 
-<!--
-Speaker notes:
-This is the safe-but-limited option. Most teams that get nervous about option 1
-land here by default. It's not wrong, it's just incomplete — you've solved safety
-by removing the agent's ability to express intent about presentation at all.
-The dashboard demo later in the talk is specifically the case where this breaks:
-the agent needs to choose the shape of the response, not just supply values.
--->
+</div>
+<div v-click>
 
----
-rule: ['The Problem', 'Part 1']
----
-
-# Option 3 — nothing
+## Option 3 — nothing
 
 The agent responds in plain text.
 
 The interactive experience is lost entirely.
 
+</div>
+</div>
+
 <!--
 Speaker notes:
+
+Walk through the three options one at a time, don't rush.
+Option 1 is the one everyone's instinct jumps to because it's what a browser-based
+coding agent already does locally, in a sandbox you control. The moment the agent
+is remote — a different service, a different trust domain — this stops being safe.
+There's no way to inspect what you're about to execute before you execute it.
+
+[click: Option 2]
+This is the safe-but-limited option. Most teams that get nervous about option 1
+land here by default. It's not wrong, it's just incomplete — you've solved safety
+by removing the agent's ability to express intent about presentation at all.
+The dashboard demo later in the talk is specifically the case where this breaks:
+the agent needs to choose the shape of the response, not just supply values.
+
+[click: Option 3]
 Quick beat, don't over-explain. This is the fallback most teams actually ship
 when they hit the wall — chat-only, no rich UI at all, because option 1 is unsafe
 and option 2 doesn't cover the intent the agent needs to express.
@@ -185,7 +190,7 @@ rule: ['Part 2', 'The Paradigm Shift']
 
 <div class="ta">
   <div class="ta-hero">
-    <FitText :weight="900" :wdth="90">The Paradigm Shift.</FitText>
+    <FitText>The Paradigm Shift.</FitText>
   </div>
 </div>
 
@@ -199,24 +204,23 @@ rule: ['The Paradigm Shift', 'Part 2']
 
 # The LLM becomes a planner and composer, not a code generator
 
-<!--
-Speaker notes:
-State this clearly and let it sit as its own slide before backing it with evidence.
-This single sentence is the reframe the rest of the talk builds on.
--->
+<div v-click>
 
----
-rule: ['The Paradigm Shift', 'Part 2']
----
-
-# This is not hypothetical
+## This is not hypothetical
 
 Google has published A2UI as an open-source standard — spec **v1.0** since
 6 Nov 2026, **17k+ GitHub stars** — specifically designed to let agents "speak UI" through
 a declarative JSON format rather than generating executable code.
 
+</div>
+
 <!--
 Speaker notes:
+
+State this clearly and let it sit as its own slide before backing it with evidence.
+This single sentence is the reframe the rest of the talk builds on.
+
+[click: This is not hypothetical]
 Ground the shift immediately in reality, don't let it float as a concept.
 This is a real, actively maintained standard with real adoption signal, not
 a one-off research idea. That's worth saying explicitly for a room of engineers
@@ -233,33 +237,11 @@ rule: ['The Paradigm Shift', 'Part 2']
 User Intent → LLM → A2UI JSON → Renderer → Native UI
 ```
 
-<!--
-Speaker notes:
-Walk left to right slowly. User intent goes into the LLM. The LLM's only output
-is A2UI JSON — never markup, never executable code. The renderer — the Angular
-app — turns that JSON into native UI using components it already trusts.
-Hold here, because the next slide is the objection this diagram immediately raises.
--->
+<div v-click class="ta-beat">"Why is AI-generated JSON safer than AI-generated HTML?"</div>
 
----
-rule: ['The Paradigm Shift', 'Part 2']
----
+<div v-click>
 
-# "Why is AI-generated JSON safer than AI-generated HTML?"
-
-<!--
-Speaker notes:
-Say this as the question the audience is already forming. Don't answer immediately —
-let it hang for a beat, then move to the next slide for the actual answer.
-This is the objection-handling moment of the talk. If you skip it, the room
-mentally checks out for the rest of the technical sections.
--->
-
----
-rule: ['The Paradigm Shift', 'Part 2']
----
-
-# The real argument
+## The real argument
 
 A2UI is a **declarative data format**, not executable code.
 
@@ -272,8 +254,23 @@ HTML has infinite surface area. A2UI has an enumerable, allowlisted one.
 
 </div>
 
+</div>
+
 <!--
 Speaker notes:
+
+Walk left to right slowly. User intent goes into the LLM. The LLM's only output
+is A2UI JSON — never markup, never executable code. The renderer — the Angular
+app — turns that JSON into native UI using components it already trusts.
+Hold here, because the next slide is the objection this diagram immediately raises.
+
+[click: the question]
+Say this as the question the audience is already forming. Don't answer immediately —
+let it hang for a beat, then move to the next slide for the actual answer.
+This is the objection-handling moment of the talk. If you skip it, the room
+mentally checks out for the rest of the technical sections.
+
+[click: The real argument]
 This is the answer, and it's the sentence to get exactly right: "HTML has infinite
 surface area. A2UI has an enumerable, allowlisted one." Say it slowly.
 JSON isn't safe because it's JSON — plenty of JSON-based attacks exist.
@@ -322,8 +319,8 @@ rule: ['Part 3', 'Where This Actually Makes Sense']
 
 <div class="ta">
   <div class="ta-hero">
-    <FitText :weight="900" :wdth="90">Where This Actually</FitText>
-    <FitText :weight="900" :wdth="90">Makes Sense.</FitText>
+    <FitText>Where This Actually</FitText>
+    <FitText>Makes Sense.</FitText>
   </div>
 </div>
 
@@ -337,7 +334,10 @@ build this?" before buying into the architecture in section 4 and 5.
 rule: ['Where This Actually Makes Sense', 'Part 3']
 ---
 
-# Enterprise internal tooling at scale
+<div class="ta-cols">
+<div>
+
+## Enterprise internal tooling at scale
 
 Platforms like Salesforce, ServiceNow, or SAP serve thousands of customers,
 each with different data models, roles, and workflows.
@@ -348,19 +348,10 @@ feature flags, conditional rendering logic.
 **A2UI replaces the configuration layer** with an agent that reads the
 customer's data model and composes the appropriate surface on demand.
 
-<!--
-Speaker notes:
-The policy enforcement layer maps directly onto the per-customer access
-restrictions these platforms already have to enforce today. You're not adding
-a new security model — you're moving an existing one to sit in front of
-generation instead of behind it.
--->
+</div>
+<div v-click>
 
----
-rule: ['Where This Actually Makes Sense', 'Part 3']
----
-
-# Financial services dashboards
+## Financial services dashboards
 
 Analysts ask highly specific questions:
 *"show me exposure across these five positions with this risk metric,
@@ -370,8 +361,19 @@ The answer is always a different surface.
 
 Today: either a huge library of pre-built views, or a custom dashboard per request.
 
+</div>
+</div>
+
 <!--
 Speaker notes:
+
+[Enterprise internal tooling at scale]
+The policy enforcement layer maps directly onto the per-customer access
+restrictions these platforms already have to enforce today. You're not adding
+a new security model — you're moving an existing one to sit in front of
+generation instead of behind it.
+
+[click: Financial services dashboards]
 An agent composing from a validated catalog of financial components is strictly
 safer than one generating arbitrary HTML, and it maps cleanly onto compliance
 requirements around what data specific roles are allowed to see — the catalog
@@ -382,7 +384,10 @@ and the role-based policy layer are doing the same enforcement job.
 rule: ['Where This Actually Makes Sense', 'Part 3']
 ---
 
-# Healthcare and clinical decision support
+<div class="ta-cols">
+<div>
+
+## Healthcare and clinical decision support
 
 A cardiologist's workflow looks nothing like an oncologist's — and both change
 depending on the specific patient's data.
@@ -396,19 +401,10 @@ Arbitrary HTML generation would never pass a compliance review.
 
 </div>
 
-<!--
-Speaker notes:
-A2UI gives the flexibility of dynamic composition with the auditability
-healthcare demands. The catalog is what makes a compliance review possible
-at all — you can point to the exact enumerable set of things that could
-ever have been rendered, for any payload, at any time.
--->
+</div>
+<div v-click>
 
----
-rule: ['Where This Actually Makes Sense', 'Part 3']
----
-
-# Remote sub-agents in an orchestrator
+## Remote sub-agents in an orchestrator
 
 A parent agent delegates a task to a specialized sub-agent —
 a booking agent, a reporting agent.
@@ -422,8 +418,19 @@ The catalog defines the contract both agents work within.
 
 </div>
 
+</div>
+</div>
+
 <!--
 Speaker notes:
+
+[Healthcare and clinical decision support]
+A2UI gives the flexibility of dynamic composition with the auditability
+healthcare demands. The catalog is what makes a compliance review possible
+at all — you can point to the exact enumerable set of things that could
+ever have been rendered, for any payload, at any time.
+
+[click: Remote sub-agents in an orchestrator]
 This is the multi-agent case, and it's worth calling out separately because it's
 the one that generalizes furthest. The parent doesn't need to know anything about
 the sub-agent's internals — the shared catalog is the entire interface between them.
@@ -484,8 +491,8 @@ rule: ['Part 4', 'Anatomy of an A2UI System']
 
 <div class="ta">
   <div class="ta-hero">
-    <FitText :weight="900" :wdth="90">Anatomy of an</FitText>
-    <FitText :weight="900" :wdth="90">A2UI System.</FitText>
+    <FitText>Anatomy of an</FitText>
+    <FitText>A2UI System.</FitText>
   </div>
 </div>
 
@@ -525,7 +532,7 @@ flowchart TB
 ```mermaid {scale: 0.74}
 %%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "11px", "lineColor": "#9aa0a6", "edgeLabelBackground": "#262626"}, "flowchart": {"curve": "basis", "nodeSpacing": 24, "rankSpacing": 44, "padding": 10}}}%%
 flowchart TB
-  S1["<b>A2A client</b><br/>server.ts"] --> S2["supportedCatalogIds"]
+  S1["<b>A2A client</b><br/>(app-to-agent)<br/>server.ts"] --> S2["supportedCatalogIds"]
   classDef file fill:#2a2a2a,stroke:#454545,stroke-width:1px,color:#9cdcfe
   classDef step fill:#333333,stroke:#569cd6,stroke-width:2px,color:#f0ebe4
   class S1 step
@@ -534,8 +541,8 @@ flowchart TB
 
 </div>
 <div class="dg-wire">
-  <div class="arrow">A2A</div>
-  <div class="arrow left">A2A stream</div>
+  <div class="arrow">A2A (app-to-agent)</div>
+  <div class="arrow left">A2A stream (app-to-agent)</div>
 </div>
 <div class="dg-lane dg-wide">
 <div class="dg-label">// agent · @a2ui/agent</div>
@@ -556,6 +563,34 @@ flowchart TB
 
 </div>
 </div>
+
+<!--
+Speaker notes:
+Read it left to right, one lane at a time. Three boxes, two different wires.
+
+Browser to our own server: plain POST /api/agent, SSE (Server-Sent Events) back.
+That's our API (Application Programming Interface), not A2A (Agent2Agent
+protocol, used here app-to-agent: our server to the agent). The browser never
+sees an A2A (app-to-agent) type; it only gets A2UI (Agent-to-User Interface)
+messages.
+
+Server to agent: this is the only A2A (app-to-agent) hop. server.ts is the A2A
+(app-to-agent) client and the only file that knows A2A (app-to-agent) exists,
+so swapping the transport for AG-UI
+(Agent-User Interaction Protocol), MCP (Model Context Protocol) or plain REST
+(Representational State Transfer) means rewriting one file. Note: A2A here is app-to-agent, one agent. No
+agent-to-agent delegation in this demo; that's what A2A (agent-to-agent) would
+add later.
+
+Inside the agent: negotiate the catalog from supportedCatalogIds, put
+catalog.toJson() in the prompt, call Gemini, validate against the Zod catalog,
+retry once on failure, then applyPolicy on every streamed message, not just the
+last one. The orange box is the one validation can't replace.
+
+Back in the browser, web_core checks the same Zod catalog again on arrival.
+The dashed VALIDATION_FAILED arrow is the renderer reporting back to the agent
+(app code, not web_core): the agent redoes the turn once, then answers in text.
+-->
 
 
 
@@ -579,8 +614,8 @@ can also send a catalog inline; the demo doesn't need to.
 
 <div class="text-sm text-gray-400">
 
-Source: [catalog/types.ts#L172-L183](https://github.com/google/A2UI/blob/0af1b1e7/renderers/web_core/src/v0_9/catalog/types.ts#L172-L183) ·
-[client-capabilities.ts#L15-L30](https://github.com/google/A2UI/blob/0af1b1e7/renderers/web_core/src/v0_9/schema/client-capabilities.ts#L15-L30) ·
+Source: [catalog/types.ts#L172-L183](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/web_core/src/v0_9/catalog/types.ts#L172-L183) ·
+[client-capabilities.ts#L15-L30](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/web_core/src/v0_9/schema/client-capabilities.ts#L15-L30) ·
 demo: `packages/catalog`
 
 </div>
@@ -635,7 +670,7 @@ before the payload reaches the client.
 
 <div class="text-sm text-gray-400">
 
-Source: [samples/client/angular/README.md#L54-L61](https://github.com/google/A2UI/blob/0af1b1e7/samples/client/angular/README.md#L54-L61)
+Source: [samples/client/angular/README.md#L54-L61](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/samples/client/angular/README.md#L54-L61)
 
 </div>
 
@@ -661,19 +696,9 @@ It cannot invent. It cannot escape.
 
 Unknown component types are rejected before reaching the renderer.
 
-<!--
-Speaker notes:
-Say this plainly, it's the summary of everything in this section.
-This is the sentence to return to if anyone in Q&A asks "but what if the agent
-tries something malicious" — the answer is always the same: it structurally
-cannot reference anything outside the catalog, full stop.
--->
+<div v-click>
 
----
-rule: ['Anatomy of an A2UI System', 'Part 4']
----
-
-# A2UI is not AI magic
+## A2UI is not AI magic
 
 <div class="callout">
 
@@ -682,8 +707,17 @@ is written in.
 
 </div>
 
+</div>
+
 <!--
 Speaker notes:
+
+Say this plainly, it's the summary of everything in this section.
+This is the sentence to return to if anyone in Q&A asks "but what if the agent
+tries something malicious" — the answer is always the same: it structurally
+cannot reference anything outside the catalog, full stop.
+
+[click: A2UI is not AI magic]
 Close of section 4. Let this sit for a beat before moving into section 5,
 which is where Angular specifically enters the picture.
 -->
@@ -694,8 +728,8 @@ rule: ['Part 5', 'Angular as the Rendering Engine']
 
 <div class="ta">
   <div class="ta-hero">
-    <FitText :weight="900" :wdth="90">Angular as the</FitText>
-    <FitText :weight="900" :wdth="90">Rendering Engine.</FitText>
+    <FitText>Angular as the</FitText>
+    <FitText>Rendering Engine.</FitText>
   </div>
 </div>
 
@@ -729,18 +763,18 @@ rule: ['Angular as the Rendering Engine', 'Part 5']
 
 # 5a. You write a catalog, not a renderer
 
-`@a2ui/angular` ships a `SurfaceComponent` you drop into your app.
+`@a2ui/angular/v0_9` ships a `SurfaceComponent` (`<a2ui-v09-surface>`) you drop into your app.
 
 It handles, internally:
-- receiving A2UI messages via the `MessageProcessor`
+- receiving A2UI messages: `A2uiRendererService.processMessages()` feeds the `MessageProcessor` from `web_core`
 - resolving component types from your catalog
 - dynamically instantiating Angular components via `ComponentHostComponent`
 - wiring up reactive property bindings via `ComponentBinder`
 
 <div class="text-sm text-gray-400">
 
-Source: [surface.component.ts](https://github.com/google/A2UI/blob/0af1b1e7/renderers/angular/src/v0_9/core/surface.component.ts) ·
-[component-host.component.ts#L67-L100](https://github.com/google/A2UI/blob/0af1b1e7/renderers/angular/src/v0_9/core/component-host.component.ts#L67-L100)
+Source: [surface.component.ts](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/angular/src/v0_9/core/surface.component.ts) ·
+[component-host.component.ts#L67-L100](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/angular/src/v0_9/core/component-host.component.ts#L67-L100)
 
 </div>
 
@@ -748,12 +782,13 @@ Source: [surface.component.ts](https://github.com/google/A2UI/blob/0af1b1e7/rend
 Speaker notes:
 Start the section here — this reframes everything correctly before diving into
 mechanism. What you write is a catalog. What the library gives you is a renderer.
-Your custom components extend `BasicCatalogComponent<T>`, which provides
-type-safe access to reactive props via Angular computed signals bridging from
-the underlying Preact signals in `web_core`.
-Source: catalog_component.ts#L36-L47.
-The canonical example in the repo is the custom slider component in the A2UI
-Explorer app — worth pulling up live if time allows.
+Your custom components extend `CatalogComponent<typeof XApi>`, which types
+`props()` straight from the Zod `ComponentApi`; each prop is a bound property
+whose `value()` is an Angular signal bridged from the underlying Preact signal
+in `web_core`. (`BasicCatalogComponent` is the subclass the library's own basic
+components use; the demo's custom ones don't need it.)
+The example to pull up live if time allows: the demo's PriorityBadge,
+demo/apps/client/src/app/catalog/priority-badge.ts.
 -->
 
 ---
@@ -762,15 +797,33 @@ rule: ['Angular as the Rendering Engine', 'Part 5']
 
 # Your entire Angular integration
 
-```html
-<a2ui-surface [messageProcessor]="processor" [catalog]="catalog" />
+```ts {1-4|6-9}
+// app.config.ts
+provideA2Ui(() => ({
+  catalogs: [createTicketCatalog(), new BasicCatalog()],
+}))
+
+// app.ts template
+@for (entry of renderer.surfaceGroup.surfacesMap; track entry[0]) {
+  <a2ui-v09-surface [surfaceId]="entry[0]" />
+}
 ```
+
+<div class="text-sm text-gray-400">
+
+Source: [app.config.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/apps/client/src/app/app.config.ts) ·
+[app.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/apps/client/src/app/app.ts) (trimmed)
+
+</div>
 
 <!--
 Speaker notes:
 Let this sit on screen for a second — it's deliberately anticlimactic.
-One element. That's the whole integration surface at the app-shell level.
-Everything else lives in the catalog you write next.
+One provider, one element per surface. That's the whole integration surface
+at the app-shell level. Messages go in with one call,
+`renderer.processMessages(messages)` (agent-client.ts). The real config also
+passes an `actionHandler` that sends button actions back to the agent; trimmed
+here. Everything else lives in the catalog you write next.
 -->
 
 ---
@@ -779,27 +832,29 @@ rule: ['Angular as the Rendering Engine', 'Part 5']
 
 # What your catalog looks like
 
-```ts
-// Extend the base catalog with your own components
-export class AppCatalog extends BasicCatalogBase {
-  override extraComponents = [
-    { api: MetricCardApi, implementation: MetricCardComponent },
-    { api: DataTableApi,  implementation: DataTableComponent },
-  ];
-}
+```ts {3|4-6}
+// Pair each Zod ComponentApi with the Angular component that draws it
+new AngularCatalog(TICKET_CATALOG_ID, 'v0.9', [
+  ...BASIC_COMPONENTS.filter((impl) => basicNames.has(impl.name)),
+  createComponentImplementation(TicketListApi, TicketListComponent),
+  createComponentImplementation(PriorityBadgeApi, PriorityBadgeComponent),
+  createComponentImplementation(AssigneeChipApi, AssigneeChipComponent),
+], [], BasicCatalogThemeSchema);
 ```
 
 <div class="text-sm text-gray-400">
 
-Source: [demo-catalog.ts#L29-L52](https://github.com/google/A2UI/blob/0af1b1e7/renderers/angular/a2ui_explorer/src/app/demo-catalog.ts#L29-L52)
+Source: [ticket-catalog.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/apps/client/src/app/catalog/ticket-catalog.ts)
 
 </div>
 
 <!--
 Speaker notes:
 This is the artifact your team actually maintains: a list of API/implementation
-pairs. Each `Api` is the Zod schema from section 4. Each `implementation` is a
-normal Angular component. There's no special DSL to learn beyond this.
+pairs. Each `Api` is the Zod schema from section 4, imported from the same
+`packages/catalog` the agent validates with. Each implementation is a normal
+Angular component. The basic components (Text, Row, Card…) are the library's
+own, filtered to the ones the catalog lists. No special DSL beyond this.
 -->
 
 ---
@@ -814,40 +869,37 @@ framework-agnostic by design.
 The Angular renderer bridges Preact signals into Angular's component model
 via `ComponentBinder`.
 
+## Inside a catalog component
+
+```ts {1|2-4}
+export class PriorityBadgeComponent extends CatalogComponent<typeof PriorityBadgeApi> {
+  // 'low' | 'medium' | 'high' | 'urgent', inferred from the Zod enum;
+  // value() re-reads when the Preact signal in web_core changes
+  protected readonly priority = computed(() => this.props().priority?.value());
+}
+```
+
 <div class="text-sm text-gray-400">
 
-Source: [signals.ts#L1-L20](https://github.com/google/A2UI/blob/0af1b1e7/renderers/web_core/src/v0_9/reactivity/signals.ts#L1-L20) ·
-[component-binder.service.ts](https://github.com/google/A2UI/blob/0af1b1e7/renderers/angular/src/v0_9/core/component-binder.service.ts)
+Source: [signals.ts#L1-L20](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/web_core/src/v0_9/reactivity/signals.ts#L1-L20) ·
+[component-binder.service.ts](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/angular/src/v0_9/core/component-binder.service.ts) ·
+[priority-badge.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/apps/client/src/app/catalog/priority-badge.ts) ·
+[components.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/packages/catalog/src/components.ts) (`PriorityBadgeApi`, Zod 3)
 
 </div>
 
 <!--
 Speaker notes:
+
 Preact signals were chosen at the protocol level precisely because they're
 tiny and framework-agnostic — any renderer, in any framework, can bridge them
 into its own reactivity model. Angular's bridge is `ComponentBinder`; a
 different framework would write its own bridge over the same underlying signal.
--->
 
----
-rule: ['Angular as the Rendering Engine', 'Part 5']
----
-
-# Inside a catalog component
-
-```ts
-export class MetricCardComponent extends BasicCatalogComponent<MetricCardProps> {
-  // props() is an Angular computed signal, updated reactively
-  // when the underlying Preact signal in web_core changes
-  protected label = computed(() => this.props()?.label ?? '');
-  protected value = computed(() => this.props()?.value ?? 0);
-}
-```
-
-<!--
-Speaker notes:
+[Inside a catalog component]
 This is what you actually write inside a catalog component: ordinary Angular
-`computed()` signals reading from `props()`. Nothing about Preact leaks into
+`computed()` signals reading `props().<name>.value()`. The type comes from
+`PriorityBadgeApi`, so there is no hand-written props interface to keep in sync. Nothing about Preact leaks into
 your component code — the bridge absorbs it entirely.
 -->
 
@@ -872,8 +924,8 @@ The rest of the surface is untouched.
 
 <div class="text-sm text-gray-400">
 
-Source: [a2ui_protocol.md#L22-L29](https://github.com/google/A2UI/blob/0af1b1e7/specification/v0_9/docs/a2ui_protocol.md#L22-L29) ·
-[component-context.ts#L27-L38](https://github.com/google/A2UI/blob/0af1b1e7/renderers/web_core/src/v0_9/rendering/component-context.ts#L27-L38)
+Source: [a2ui_protocol.md#L22-L29](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/specification/v0_9/docs/a2ui_protocol.md#L22-L29) ·
+[component-context.ts#L27-L38](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/renderers/web_core/src/v0_9/rendering/component-context.ts#L27-L38)
 
 </div>
 
@@ -894,22 +946,19 @@ rule: ['Angular as the Rendering Engine', 'Part 5']
 A2UI streams many small `updateDataModel` messages, each targeting one
 JSON Pointer path.
 
-With Zone.js: every incoming async message from a WebSocket or SSE stream
+<div class="ta-cols" style="grid-template-columns: 1fr 1.45fr">
+<div>
+
+## With Zone.js
+
+Every incoming async message from a WebSocket or SSE stream
 triggers **application-wide** change detection — even when one field on one
 component changed.
 
-<!--
-Speaker notes:
-Don't just name-drop Zoneless here — make the specific case, this is the slide
-where a skeptical Angular engineer decides whether you actually understand the
-mechanism or are pattern-matching buzzwords.
--->
+</div>
+<div v-click>
 
----
-rule: ['Angular as the Rendering Engine', 'Part 5']
----
-
-# With Zoneless + OnPush
+## With Zoneless + OnPush
 
 ```ts
 bootstrapApplication(AppComponent, {
@@ -929,8 +978,17 @@ on Angular 22 with no Zone.js at all.
 
 </div>
 
+</div>
+</div>
+
 <!--
 Speaker notes:
+
+Don't just name-drop Zoneless here — make the specific case, this is the slide
+where a skeptical Angular engineer decides whether you actually understand the
+mechanism or are pattern-matching buzzwords.
+
+[click: With Zoneless + OnPush]
 On 21+ the provider line is not needed; it's on the slide to name the
 mechanism. OnPush plus signals already gets you most of the win. Zoneless removes the last bit of
 coarse-grained triggering on top of that.
@@ -988,43 +1046,16 @@ Quick, confident close to the section. Standalone components aren't incidental
 here — the dynamic-instantiation model in `ComponentHostComponent` needs
 components that can be loaded in isolation, without a module graph to resolve
 first. That's precisely what standalone gives you.
--->
 
----
-rule: ['Part 6', 'Demo']
----
+DEMO RUN-SHEET (was the Demo section slides; the screen stays on this slide during the demo)
 
-<div class="ta">
-  <div class="ta-hero">
-    <FitText :weight="900" :wdth="90">Demo.</FitText>
-  </div>
-</div>
-
-<!--
-~10 minutes. Scenario: Enterprise Support Dashboard.
--->
-
----
-rule: ['Demo', 'Part 6']
----
+Notes: ~10 minutes. Scenario: Enterprise Support Dashboard.
 
 # The prompt
 
 > "Show me unresolved enterprise tickets with priority and assignee."
 
-<!--
-Speaker notes:
-Set the scene, then walk each stage explicitly on the following slides.
-Run the live agent (Gemini), as the abstract promises. If the model is slow or
-down, switch to the stub agent (same catalog, policy and validation, canned
-replies) or the recording, and say so openly.
--->
-
----
-rule: ['Demo', 'Part 6']
----
-
-# Stage by stage
+## Stage by stage
 
 1. Network tab: `a2uiClientCapabilities` goes to the agent **before** any UI is
    generated. It carries only the catalog IDs; the agent already holds the schema
@@ -1033,16 +1064,16 @@ rule: ['Demo', 'Part 6']
    the button never reaches the browser
 4. Payload reaches the client, `web_core` validates against the catalog schema
 
-<!--
-Speaker notes:
+Notes: 
+Set the scene, then walk each stage explicitly on the following slides.
+Run the live agent (Gemini), as the abstract promises. If the model is slow or
+down, switch to the stub agent (same catalog, policy and validation, canned
+replies) or the recording, and say so openly.
+
+[Stage by stage]
 Narrate each numbered step as you show it on screen. Don't rush stage 1 —
 it's the one that visually proves the capability negotiation happened before
 generation, which is the whole argument from section 4.
--->
-
----
-rule: ['Demo', 'Part 6']
----
 
 # Stage by stage, continued
 
@@ -1053,9 +1084,7 @@ rule: ['Demo', 'Part 6']
 7. The streamed `updateDataModel` messages fill the list in — show only the
    ticket rows re-evaluating in Angular DevTools profiler
 
-<!--
-Speaker notes:
-Stage 5 is the moment that proves the reliability story from section 7 —
+Notes: Stage 5 is the moment that proves the reliability story from section 7 —
 don't let it pass as a throwaway line, it's evidence, not decoration.
 Trigger it with the stub agent (STUB_INVALID_FIRST=true): a live model rarely
 fails on cue.
@@ -1069,15 +1098,8 @@ second report for the same turn gets the text answer. web_core does not send
 this by itself: the demo's AgentClient catches and reports it.
 Stage 7 is where the Zoneless/signals argument from 5c becomes visible —
 open the profiler and let the room see exactly one component highlighted.
--->
-
----
-rule: ['Demo', 'Part 6']
----
 
 # The moment to land
-
-<div class="callout">
 
 The agent never touched the DOM.
 
@@ -1086,38 +1108,27 @@ crash, not a silent failure.
 
 The system controlled the model. Not the other way around.
 
-</div>
-
-<!--
-Speaker notes:
-Deliver slowly. This is the payoff of the entire demo and arguably the entire
-talk. Let it sit before moving to the model-choice footnote.
--->
-
----
-rule: ['Demo', 'Part 6']
----
-
-# On model choice
-
-Gemini through `@google/genai`, with one tool (`get_tickets`) and thinking set
+**On model choice** · Gemini through `@google/genai`, with one tool (`get_tickets`) and thinking set
 to `MINIMAL` for latency. No `response_schema`: the catalog in the prompt and
 the Zod check after it do that job.
 
-<!--
-Speaker notes:
+Notes: 
+Deliver slowly. This is the payoff of the entire demo and arguably the entire
+talk. Let it sit before moving to the model-choice footnote.
+
+[On model choice]
 Quick, factual footnote for anyone asking "what LLM did you actually use."
 Not the focus of the talk — the architecture is model-agnostic, this is just
 transparency about the demo setup.
 -->
 
 ---
-rule: ['Part 7', 'Production Reality']
+rule: ['Part 6', 'Production Reality']
 ---
 
 <div class="ta">
   <div class="ta-hero">
-    <FitText :weight="900" :wdth="90">Production Reality.</FitText>
+    <FitText>Production Reality.</FitText>
   </div>
 </div>
 
@@ -1126,7 +1137,7 @@ rule: ['Part 7', 'Production Reality']
 -->
 
 ---
-rule: ['Production Reality', 'Part 7']
+rule: ['Production Reality', 'Part 6']
 ---
 
 # Security
@@ -1142,7 +1153,7 @@ The Angular README documents three threat categories: **UI spoofing**,
 
 <div class="text-sm text-gray-400">
 
-Source: [samples/client/angular/README.md#L54-L61](https://github.com/google/A2UI/blob/0af1b1e7/samples/client/angular/README.md#L54-L61)
+Source: [samples/client/angular/README.md#L54-L61](https://github.com/a2ui-project/a2ui/blob/0af1b1e7/samples/client/angular/README.md#L54-L61)
 
 </div>
 
@@ -1156,10 +1167,13 @@ tree would be, since depth and fan-out are cheap to bound-check.
 -->
 
 ---
-rule: ['Production Reality', 'Part 7']
+rule: ['Production Reality', 'Part 6']
 ---
 
-# Reliability
+<div class="ta-cols c3">
+<div>
+
+## Reliability
 
 The agent checks every payload against the Zod catalog before it ships. A
 failure goes back to the model with the error, for one retry.
@@ -1172,21 +1186,10 @@ This is not a silent drop. It's a feedback loop.
 
 Define fallback surfaces for each failure level before you need them.
 
-<!--
-Speaker notes:
-Tie this directly back to demo stage 5 — the room just saw this happen.
-On the client, the protocol defines the same signal: a `VALIDATION_FAILED`
-error message from renderer to agent. The demo sends it (app code, not web_core)
-and the agent retries once on it. The point: failure is communicated back to the agent,
-which means the agent can potentially retry or degrade gracefully, rather than
-the user just seeing a broken page with no explanation anywhere in the system.
--->
+</div>
+<div v-click>
 
----
-rule: ['Production Reality', 'Part 7']
----
-
-# Observability
+## Observability
 
 Every A2UI payload is a **structured, loggable artifact**.
 
@@ -1200,19 +1203,10 @@ structured trace.
 
 </div>
 
-<!--
-Speaker notes:
-Quick slide — the point is simple and doesn't need much elaboration. With raw
-HTML generation you can log the string, but you have no structured way to ask
-"did the agent try to do something it wasn't allowed to do." With A2UI, the
-payload itself is the audit trail.
--->
+</div>
+<div v-click>
 
----
-rule: ['Production Reality', 'Part 7']
----
-
-# Performance
+## Performance
 
 Separate `updateComponents` / `updateDataModel` message types.
 
@@ -1225,158 +1219,63 @@ These compose into a genuinely efficient streaming surface.
 
 </div>
 
-<!--
-Speaker notes:
-This is the summary slide tying together 5b and 5c — don't re-explain the
-mechanism, just name the pieces and let the room recall what they already saw.
--->
-
----
-rule: ['Production Reality', 'Part 7']
----
-
-# Production-ready Generative UI
-
-<div class="callout">
-
-Is an architecture problem. Not a prompt engineering problem.
-
+</div>
 </div>
 
 <!--
 Speaker notes:
+
+[Reliability]
+Tie this directly back to demo stage 5 — the room just saw this happen.
+On the client, the protocol defines the same signal: a `VALIDATION_FAILED`
+error message from renderer to agent. The demo sends it (app code, not web_core)
+and the agent retries once on it. The point: failure is communicated back to the agent,
+which means the agent can potentially retry or degrade gracefully, rather than
+the user just seeing a broken page with no explanation anywhere in the system.
+
+[click: Observability]
+Quick slide — the point is simple and doesn't need much elaboration. With raw
+HTML generation you can log the string, but you have no structured way to ask
+"did the agent try to do something it wasn't allowed to do." With A2UI, the
+payload itself is the audit trail.
+
+[click: Performance]
+This is the summary slide tying together 5b and 5c — don't re-explain the
+mechanism, just name the pieces and let the room recall what they already saw.
+
+[Say last, after the Performance click: was the "Production-ready Generative UI" slide]
+"Production-ready Generative UI is an architecture problem. Not a prompt engineering problem."
 Close of section 7. Let this land, then transition into the future section —
 this line is a good one to repeat verbatim if asked to summarize the talk
 in one sentence afterward.
 -->
 
+
 ---
-rule: ['Part 8', 'The Future']
+rule: ['Questions', 'A2UI · AngularDay 2026']
 ---
 
 <div class="ta">
   <div class="ta-hero">
-    <FitText :weight="900" :wdth="90">The Future.</FitText>
+    <FitText>Questions?</FitText>
   </div>
-</div>
-
-<!--
-~3 minutes.
--->
-
----
-rule: ['The Future', 'Part 8']
----
-
-# A component that describes itself
-
-Imagine a `<calendar>` component that, alongside its rendering logic, exposes
-a schema describing its own capabilities: what actions it accepts, what data
-it needs, what events it emits.
-
-<div class="callout">
-
-Any agent, without knowing the component exists, can compose it correctly —
-because the capability negotiation protocol already handles exactly this
-exchange.
-
-</div>
-
-The component advertises itself. The agent operates within what it's been shown.
-
-<!--
-Speaker notes:
-Ground the future section with this one concrete example before going broad —
-don't jump straight to the abstract vision. This is a natural extension of
-the capability manifest mechanism from section 4, just pushed further: instead
-of a fixed catalog manifest, individual components self-describe.
--->
-
----
-rule: ['The Future', 'Part 8']
----
-
-# The broader vision
-
-A2UI is already pointing here.
-
-The same agent composes a surface that renders natively in **Angular**,
-**Flutter**, or **SwiftUI** — from the same JSON payload.
-
-<div class="callout">
-
-The frontend stops being a passive render target and becomes a capability
-system.
-
-</div>
-
-<!--
-Speaker notes:
-Widen the lens here. Everything in the talk was scoped to one Angular app —
-this is the reminder that the protocol itself doesn't care which renderer
-is on the other end, and that's a deliberate design choice, not an accident.
--->
-
----
-rule: ['The Future', 'Part 8']
----
-
-# Close
-
-<div class="callout">
-
-**Stop letting LLMs generate HTML.**
-
-**Start designing systems that speak UI.**
-
-</div>
-
-<!--
-Speaker notes:
-Land this slowly, mirroring the close of the context-engineering talk structure.
-The room should leave with the reframe from section 2, not a list of APIs:
-AI-native Angular is not a new framework. It's the one you already know,
-used correctly. Thank the room. Open for questions.
--->
-
----
-rule: ['Thank you', 'ggalassi.dev']
----
-
-<div class="ta ta-split">
-  <div class="ta-split-main">
-  <div class="ta-hero" style="margin-block:0">
-    <FitText :weight="900" :wdth="100" class="ta-accent">Thank you</FitText>
-  </div>
-  <div class="ta-aside" style="margin-top:0.8rem;grid-template-columns:1fr">
-    <strong>Stop letting LLMs generate HTML. Start designing systems that speak UI.</strong>
-  </div>
-  <div class="ta-thanks" style="grid-template-columns:minmax(0,1fr) auto">
-    <div class="who">
-      <b>Giorgio Galassi</b>
-      <span>Senior Frontend Engineer (Freelancer) · GDG Roma Città Organizer</span>
-      <div class="tags" style="margin-top:0.7rem">
-        <span class="tag">Angular</span>
-        <span class="tag">AI</span>
-        <span class="tag">Generative UI</span>
-        <span class="tag">A2UI</span>
-        <span class="tag">Signals</span>
-        <span class="tag">Zoneless</span>
-      </div>
-    </div>
-    <div class="qr">
-      <img src="/src/qrcode.png" alt="QR code to links and slides" class="qr-code" style="width:7.5rem;height:7.5rem" />
-      Links, slides &amp; more
+  <div class="ta-promo">
+    <!-- TODO masterclass: replace the placeholder with <img src="/src/qr-masterclass.png" class="qr-code" alt="QR code to the masterclass sign-up" /> once the link exists -->
+    <div class="qr-placeholder" aria-hidden="true">QR<br>soon</div>
+    <div>
+      <b>Go deeper: the A2UI masterclass</b>
+      <span>Structured generative UI with Angular, hands-on · December · sign up via the QR</span>
     </div>
   </div>
-  </div>
-  <img src="/src/profile.jpg" alt="Giorgio Galassi speaking on stage" class="ta-portrait" />
 </div>
 
 <!--
 Speaker notes:
-Leave contact or social handle here if desired.
-Open Q&A.
+Open the Q&A with the masterclass in one sentence: "If you want to build this
+hands-on, I'm running a masterclass in December: the QR stays up the whole Q&A."
+Then take questions.
+Q&A happens here, before the closing line: I decide how many questions and for
+how long. When time is up, move to the Thank you slide and land the close.
 
 Q&A prep — likely questions:
 - "Is A2UI production-ready?" → The spec is v1.0 and stable since 6 Nov; the
@@ -1391,4 +1290,93 @@ Q&A prep — likely questions:
   combination of valid components?" → Server-side policy enforcement (section 4
   validation ownership slide) is the layer for this — catalog validation checks
   shape, not business rules.
+
+- "Where is this heading?" → was Part 7, The Future (moved off the slides 2026-11-14; no published source, it is my projection). Renderers checked on a2ui-project/a2ui main 2026-11-14: Angular, React, Lit (TypeScript), Flutter (Dart), SwiftUI (Swift, via SwiftPM). Jetpack Compose is only named in the README, no renderer in the repo.
+
+# A component that describes itself
+
+Imagine a `<calendar>` component that, alongside its rendering logic, exposes
+a schema describing its own capabilities: what actions it accepts, what data
+it needs, what events it emits.
+
+Any agent, without knowing the component exists, can compose it correctly —
+because the capability negotiation protocol already handles exactly this
+exchange.
+
+The component advertises itself. The agent operates within what it's been shown.
+
+Notes: Ground the future section with this one concrete example before going broad —
+don't jump straight to the abstract vision. This is a natural extension of
+the capability manifest mechanism from section 4, just pushed further: instead
+of a fixed catalog manifest, individual components self-describe.
+
+# The broader vision
+
+A2UI is already pointing here.
+
+The same agent composes a surface that renders natively in **Angular**,
+**Flutter**, or **SwiftUI** — from the same JSON payload.
+
+The frontend stops being a passive render target and becomes a capability
+system.
+
+Notes: Widen the lens here. Everything in the talk was scoped to one Angular app —
+this is the reminder that the protocol itself doesn't care which renderer
+is on the other end, and that's a deliberate design choice, not an accident.
+-->
+
+---
+rule: ['Thank you', 'ggalassi.dev']
+---
+<div class="ta ta-split">
+  <div class="ta-split-main">
+  <div class="ta-hero" style="margin-block:0">
+    <FitText serif>Thank you</FitText>
+  </div>
+  <div class="ta-aside" style="margin-top:0.8rem;grid-template-columns:1fr">
+    <strong>Stop letting LLMs generate HTML. Start designing systems that speak UI.</strong>
+  </div>
+  <div class="ta-thanks" style="grid-template-columns:1fr;gap:0.6rem;padding-top:0.6rem">
+    <div class="who">
+      <b>Giorgio Galassi</b>
+      <span>Senior Frontend Engineer (Freelancer) · GDG Roma Città Organizer</span>
+      <div class="tags" style="margin-top:0.5rem">
+        <span class="tag">Angular</span>
+        <span class="tag">AI</span>
+        <span class="tag">Generative UI</span>
+        <span class="tag">A2UI</span>
+        <span class="tag">Signals</span>
+        <span class="tag">Zoneless</span>
+      </div>
+    </div>
+    <div class="ta-qrs">
+      <div class="qr-row">
+        <img src="/src/qr-angularday-agenda.png" alt="QR code to the AngularDay agenda" class="qr-code" />
+        <span><b>Rate this talk</b>in the AngularDay app</span>
+      </div>
+      <div class="qr-row">
+        <img src="/src/qrcode.png" alt="QR code to links and slides" class="qr-code" />
+        <span><b>Links, slides</b>&amp; more</span>
+      </div>
+    </div>
+  </div>
+  </div>
+  <div class="ta-blob">
+    <div class="ta-blob-back" aria-hidden="true"></div>
+    <div class="ta-blob-photo">
+      <img src="/src/profile.jpg" alt="Giorgio Galassi speaking on stage" />
+    </div>
+  </div>
+</div>
+
+<!--
+Speaker notes:
+[Was the Close slide]
+Land this slowly, mirroring the close of the context-engineering talk structure.
+The room should leave with the reframe from section 2, not a list of APIs:
+AI-native Angular is not a new framework. It's the one you already know,
+used correctly. Thank the room (questions already happened on the previous slide).
+
+Before leaving the slide: remind the room to use the AngularDay app to interact
+and, above all, to rate the talk (QR on the right goes to grusp.org/agenda).
 -->

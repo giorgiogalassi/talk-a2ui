@@ -64,6 +64,8 @@ export class GeminiBackend implements ModelBackend {
       /** Base URL the restaurant image links should point at. Demo: unused by the ticket tool. */
       baseUrl: string;
       pythonSampleDir: string;
+      /** Demo: the thinking level, read per turn (the demo panel can change it). Default: the env. */
+      thinkingLevel?: () => string | undefined;
     },
   ) {
     this.client = new GoogleGenAI({apiKey: options.apiKey});
@@ -71,7 +73,10 @@ export class GeminiBackend implements ModelBackend {
 
   async *streamTurn({contextId, query, profile, systemPrompt}: TurnInput): AsyncIterable<string> {
     // The system prompt differs by version, so a conversation gets one chat per version.
-    const chat = this.chats.getOrCreate(`${contextId}:${profile.version}`, () =>
+    // Demo: and per thinking level, which is fixed when a chat is created; changing the level
+    // mid-conversation starts a fresh chat.
+    const level = this.options.thinkingLevel?.() ?? process.env.GEMINI_THINKING_LEVEL;
+    const chat = this.chats.getOrCreate(`${contextId}:${profile.version}:${level ?? ''}`, () =>
       this.client.chats.create({
         model: this.options.modelName,
         config: {
@@ -80,7 +85,7 @@ export class GeminiBackend implements ModelBackend {
           // Demo: the model thinks before its first token on every call; MINIMAL cut the time to
           // the first UI token from ~10 s to ~3 s (README, "Latency"). GEMINI_THINKING_LEVEL
           // overrides it (MINIMAL | LOW | MEDIUM | HIGH); DEFAULT leaves the model's own setting.
-          ...thinkingConfig(process.env.GEMINI_THINKING_LEVEL),
+          ...thinkingConfig(level),
         },
       }),
     );

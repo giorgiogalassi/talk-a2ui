@@ -35,12 +35,14 @@ export class AgentClient {
   readonly isLoading = signal(false);
   /**
    * Demo: true from the request until the first A2UI message arrives. A live turn can take
-   * 10+ s before anything streams (README, "Latency"), and the old UI is already cleared.
+   * 10+ s before anything streams (README, "Latency"); the old UI stays, dimmed, meanwhile.
    */
   readonly waitingForUi = signal(false);
   readonly error = signal<string | null>(null);
   /** Demo: what the agent said in text, when it had no UI to send (e.g. the fallback). */
   readonly agentText = signal<string | null>(null);
+  /** The old surfaces are still on screen and go when the reply's first A2UI message arrives. */
+  private clearOnFirstMessage = false;
 
   /** A new prompt replaces whatever the agent rendered before. */
   ask(query: string): Promise<void> {
@@ -56,12 +58,13 @@ export class AgentClient {
 
   private async send(body: { query?: string; event?: unknown; error?: ValidationFailed }): Promise<void> {
     // Every reply carries its whole UI, createSurface included (@a2ui/agent 0.0.2 checks each
-    // reply against a fresh state), so any interaction clears the old surfaces first, as the
-    // official Angular sample does.
-    // Demo: an error report keeps the partly rejected surface on screen until the corrected
-    // reply's first messages arrive (below).
-    let staleSurfaces = Boolean(body.error);
-    if (!staleSurfaces) this.clearSurfaces();
+    // reply against a fresh state), so the old surfaces must go. The official Angular sample
+    // clears them here, before the request; demo: they stay until the reply's first A2UI message
+    // and are swapped in one go, so a fast (stub) reply doesn't flash an empty screen, a slow
+    // (live) one keeps the old view, dimmed, and an error report keeps the partly rejected surface
+    // until the corrected reply arrives (or under the agent's text fallback). app.ts tracks
+    // surfaces by object, not id, so a surface re-created under the same id is drawn afresh.
+    this.clearOnFirstMessage = true;
     // Demo: only this reply's problems are reported.
     this.issues.clear();
     let complete = false;
@@ -88,21 +91,15 @@ export class AgentClient {
         const events = buffer.split('\n\n');
         buffer = events.pop() ?? '';
         for (const event of events) {
-          if (!event.startsWith('data: ')) continue;
-          const data = JSON.parse(event.slice(6)) as Parameters<AgentClient['handleEvent']>[0];
-          if (staleSurfaces && data.messages?.length) {
-            // Demo: the corrected reply replaces every old surface. app.ts tracks surfaces by
-            // object, not id, so a surface re-created under the same id is drawn afresh.
-            staleSurfaces = false;
-            this.clearSurfaces();
-          }
-          this.handleEvent(data);
+          if (event.startsWith('data: ')) this.handleEvent(JSON.parse(event.slice(6)));
         }
       }
       complete = true;
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : String(error));
     } finally {
+      // A reply without any A2UI (an error, a text-only answer) leaves the old view in place.
+      this.clearOnFirstMessage = false;
       this.isLoading.set(false);
       this.waitingForUi.set(false);
     }
@@ -144,6 +141,10 @@ export class AgentClient {
   private handleEvent(event: { messages?: A2uiMessage[]; text?: string; sessionId?: string; error?: string }) {
     if (event.error) throw new Error(event.error);
     if (event.sessionId) this.sessionId = event.sessionId;
+    if (this.clearOnFirstMessage && event.messages?.length) {
+      this.clearOnFirstMessage = false;
+      this.clearSurfaces();
+    }
     if (event.text) {
       this.agentText.set(event.text);
       this.waitingForUi.set(false);

@@ -1,20 +1,20 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { A2uiRendererService, SurfaceComponent } from '@a2ui/angular/v0_9';
 import { AgentClient } from './agent-client';
+import { DemoPanel } from './demo-panel';
 
 @Component({
   selector: 'app-root',
-  imports: [SurfaceComponent],
+  imports: [SurfaceComponent, DemoPanel],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form (submit)="submit($event, prompt.value)">
       <input #prompt name="prompt" value="Show me the open tickets" [disabled]="agent.isLoading()" />
-      <button type="submit" [disabled]="agent.isLoading()">Ask</button>
+      <button type="submit" [disabled]="agent.isLoading()" [class.working]="agent.waitingForUi()">
+        <span class="label">Ask</span>
+        <span class="busy" role="status" aria-live="polite">{{ agent.waitingForUi() ? 'Working…' : '' }}</span>
+      </button>
     </form>
-
-    @if (agent.waitingForUi()) {
-      <p class="working" role="status" aria-live="polite">Agent is working…</p>
-    }
 
     <!-- Demo: the agent's text-only answer (the fallback after a second VALIDATION_FAILED). -->
     @if (agent.agentText(); as text) {
@@ -27,16 +27,33 @@ import { AgentClient } from './agent-client';
 
     <!-- Demo: tracked by the SurfaceModel, not its id: a surface deleted and re-created under the
          same id (a corrected reply) must get a new element, or the old components stay drawn. -->
-    @for (entry of renderer.surfaceGroup.surfacesMap; track entry[1]) {
-      <a2ui-v09-surface [surfaceId]="entry[0]" />
-    }
+    <div class="surfaces" [class.stale]="agent.waitingForUi()">
+      @for (entry of renderer.surfaceGroup.surfacesMap; track entry[1]) {
+        <a2ui-v09-surface [surfaceId]="entry[0]" />
+      }
+    </div>
+
+    <app-demo-panel />
   `,
-  // Demo: a quiet pulse while the agent works, so a long live turn doesn't read as broken.
+  // Demo: while the agent works, the Ask button pulses "Working…" and the old view dims, so a
+  // long live turn doesn't read as broken. Both wait 250 ms: a stub reply lands before that,
+  // so nothing flashes. No line is added or removed, so nothing below moves.
   styles: `
-    .agent-text { border-left: 3px solid #1a73e8; padding: 4px 10px; }
-    .working { color: #5f6368; animation: pulse 1.2s ease-in-out infinite; }
+    button { display: grid; }
+    button > * { grid-area: 1 / 1; }
+    .busy { visibility: hidden; }
+    button.working .label { animation: hide 0s 250ms both; }
+    button.working .busy { animation: show 0s 250ms both, pulse 1.2s 250ms ease-in-out infinite; }
+    .surfaces { display: flex; flex-direction: column; gap: 20px; }
+    /* Dims on the way in only: the new view must arrive at full strength. */
+    .surfaces.stale { opacity: 0.45; transition: opacity 0.2s 250ms; }
+    @keyframes hide { to { visibility: hidden; } }
+    @keyframes show { to { visibility: visible; } }
+    .agent-text { border-left: 3px solid var(--accent-fill); padding: 4px 10px; }
     @keyframes pulse { 50% { opacity: 0.35; } }
-    @media (prefers-reduced-motion: reduce) { .working { animation: none; } }
+    @media (prefers-reduced-motion: reduce) {
+      button.working .busy { animation: show 0s 250ms both; }
+    }
   `,
 })
 export class App {
