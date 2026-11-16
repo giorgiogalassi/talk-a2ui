@@ -35,7 +35,7 @@
       },
       {
         "id": "e-post",
-        "label": "2 POST /a2a",
+        "label": "2 POST /api/agent",
         "group": "browser",
         "order": 2,
         "detail": "Same-origin JSON: { query | event | error, sessionId }. The browser never talks to the agent and holds no A2A types or keys.",
@@ -139,7 +139,7 @@
         "label": "13 VALIDATION_FAILED back",
         "group": "browser",
         "order": 13,
-        "detail": "After the reply has rendered, at most 2 reports per user turn go back through the same POST /a2a as { error }. The agent redoes the turn once; a second report gets the text fallback.",
+        "detail": "After the reply has rendered, at most 2 reports per user turn go back through the same POST /api/agent as { error }. The agent redoes the turn once; a second report gets the text fallback.",
         "source": "demo/apps/client/src/app/agent-client.ts",
         "status": "done"
       },
@@ -390,13 +390,13 @@
       },
       {
         "id": "f-post",
-        "label": "POST /a2a",
+        "label": "POST /api/agent",
         "group": "client",
         "order": 3,
         "detail": "One fetch to the app's own server, same origin. The body carries exactly one of query, event or error, plus the session id from the previous reply (absent on the first turn).",
         "source": "demo/apps/client/src/app/agent-client.ts",
         "status": "done",
-        "payload": "POST /a2a  Content-Type: application/json\n{ \"query\": \"Show me the open tickets\", \"sessionId\": \"…\" }\n{ \"event\": { \"name\": \"open_ticket\", \"surfaceId\": \"tickets\",\n             \"sourceComponentId\": \"open_button\", \"timestamp\": \"…\",\n             \"context\": { \"ticketId\": \"TCK-1042\" } }, \"sessionId\": \"…\" }\n{ \"error\": { \"code\": \"VALIDATION_FAILED\", \"surfaceId\": \"tickets\",\n             \"path\": \"/tickets/0/priority\", \"message\": \"…\" }, \"sessionId\": \"…\" }"
+        "payload": "POST /api/agent  Content-Type: application/json\n{ \"query\": \"Show me the open tickets\", \"sessionId\": \"…\" }\n{ \"event\": { \"name\": \"open_ticket\", \"surfaceId\": \"tickets\",\n             \"sourceComponentId\": \"open_button\", \"timestamp\": \"…\",\n             \"context\": { \"ticketId\": \"TCK-1042\" } }, \"sessionId\": \"…\" }\n{ \"error\": { \"code\": \"VALIDATION_FAILED\", \"surfaceId\": \"tickets\",\n             \"path\": \"/tickets/0/priority\", \"message\": \"…\" }, \"sessionId\": \"…\" }"
       },
       {
         "id": "f-sse",
@@ -783,7 +783,7 @@
     "nodes": [
       {
         "id": "b-route",
-        "label": "POST /a2a",
+        "label": "POST /api/agent",
         "group": "ssr",
         "order": 1,
         "detail": "The Express route the browser calls. Reads { query, event, error, sessionId }. A malformed error (missing string code, surfaceId, message, or path for VALIDATION_FAILED) gets 400 and goes no further.",

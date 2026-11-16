@@ -17,7 +17,7 @@ are marked **(phase 6)**.
 
 | Process | Port | Code | Talks to |
 |---|---|---|---|
-| **Browser**, the Angular 22 app | – | `apps/client/src/app/` | its own server only: `POST /a2a`, reply as SSE |
+| **Browser**, the Angular 22 app | – | `apps/client/src/app/` | its own server only: `POST /api/agent`, reply as SSE |
 | **SSR server**, Express from `@angular/ssr` | 4200 (`npm run start:client`), 4000 (built) | `apps/client/src/server.ts` | the agent, over A2A |
 | **Agent**, Node + `@a2ui/agent` 0.0.2 | 10002 | `apps/agent/src/` | Gemini (`gemini-3.6-flash`) or the stub |
 
@@ -40,7 +40,7 @@ sequenceDiagram
   participant M as Gemini or stub
 
   U->>B: prompt, or a button click
-  B->>S: POST /a2a { query | event | error, sessionId }
+  B->>S: POST /api/agent { query | event | error, sessionId }
   S->>A: A2A message/stream (text or data part, contextId, supportedCatalogIds)
   A->>A: pickA2ui, readInboundMessage, system prompt from the catalog
   A->>M: query + system prompt
@@ -54,7 +54,7 @@ sequenceDiagram
   A-->>S: final status input-required (or completed)
   B->>B: createSurface, updateComponents, updateDataModel, draw
   opt phase 6: a bound value the schema forbids
-    B->>S: POST /a2a { error: VALIDATION_FAILED }
+    B->>S: POST /api/agent { error: VALIDATION_FAILED }
     S->>A: data part { version, error }
     A->>M: the last turn again, the error first in the query (once)
   end
@@ -70,7 +70,7 @@ published stays on screen until the retry's `createSurface` replaces it.
 flowchart TD
   P["Prompt form (app.ts)"] -->|"ask(query)"| SEND
   ACT["Button click: context resolved locally<br/>A2uiClientAction"] -->|"actionHandler → handleAction(event)"| SEND
-  SEND["send(): clear surfaces and issues,<br/>isLoading, waitingForUi"] -->|"fetch POST /a2a"| SSE
+  SEND["send(): clear surfaces and issues,<br/>isLoading, waitingForUi"] -->|"fetch POST /api/agent"| SSE
   SSE["read SSE, split on blank lines"] -->|"each data: line"| HE
   HE["handleEvent(): store sessionId, show text,<br/>delete a re-created surface"] -->|"one message at a time"| PROC
   PROC["process(message)"] -->|"processMessages([msg])"| R
@@ -103,7 +103,7 @@ flowchart TD
 ```mermaid
 flowchart TD
   subgraph SSR["SSR server · server.ts"]
-    R1["POST /a2a: { query | event | error, sessionId }<br/>malformed error → 400"] --> R2["one A2A message: text part,<br/>or data part { version, action | error }"]
+    R1["POST /api/agent: { query | event | error, sessionId }<br/>malformed error → 400"] --> R2["one A2A message: text part,<br/>or data part { version, action | error }"]
     R2 --> R3["getAgent(): agent card, cached<br/>X-A2A-Extensions header"]
     R3 --> R4["sendMessageStream"]
     R6["unwrap parts: data → messages, text → text"] --> R7["SSE: data: { messages, text?, sessionId }"]
@@ -142,7 +142,7 @@ flowchart TD
 
 ## Payloads at each boundary
 
-**Browser → SSR server**, `POST /a2a` (one of `query`, `event`, `error`):
+**Browser → SSR server**, `POST /api/agent` (one of `query`, `event`, `error`):
 
 ```json
 { "query": "Show me the open tickets", "sessionId": "…" }
