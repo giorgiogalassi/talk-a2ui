@@ -201,7 +201,7 @@ html.dark:has(.ta-deck) .talk-footer { color: #8a8a8a; }
 
 /* ---- .arrow: a label on a line that stretches to its container's width, so it connects
    whatever sits either side (diagram lanes, boxes) at any gap.
-   <div class="arrow">POST /a2a</div>          head on the right
+   <div class="arrow">POST /api/agent</div>          head on the right
    <div class="arrow left">SSE</div>           head on the left
    <div class="arrow both">sync</div>          heads on both ends
    <div class="arrow dashed">planned</div>     dashed line (combine with left / both)

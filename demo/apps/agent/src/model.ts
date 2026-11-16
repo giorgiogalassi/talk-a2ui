@@ -135,6 +135,8 @@ export class StubBackend implements ModelBackend {
   private readonly responses = new Map<string, Record<string, string>>();
   /** Demo: the same responses with a priority outside the catalog, by version and example. */
   private readonly invalidResponses = new Map<string, Record<string, string>>();
+  /** Demo: the same responses with a priority outside the catalog in the data model. */
+  private readonly clientInvalidResponses = new Map<string, Record<string, string>>();
 
   constructor(
     format: A2uiFormat,
@@ -155,12 +157,22 @@ export class StubBackend implements ModelBackend {
      * chunks, so each message is re-sent many times as it grows and the notes appear mid-stream.
      */
     private readonly leaky = false,
+    /**
+     * Demo: when true (`STUB_CLIENT_INVALID=true`), a turn's first attempt writes the priority
+     * `critical` into the data model, not into a component: the PriorityBadge still binds
+     * `{path: 'priority'}`, which the catalog allows, so the agent's validation passes it (it
+     * checks components, not the values bindings resolve to). The renderer resolves the
+     * binding and rejects the value, then reports VALIDATION_FAILED; the agent's retry,
+     * whose query starts with the error, answers with the valid response.
+     */
+    private readonly clientInvalidFirstAttempt = false,
   ) {
     for (const profile of VERSIONS) {
       const catalog = catalogs.get(profile.version)!;
       const notice = readMessages(path.join(packageRoot, 'stub_notice', `${profile.version}.json`));
       const byExample: Record<string, string> = {};
       const invalid: Record<string, string> = {};
+      const clientInvalid: Record<string, string> = {};
       // Demo: the ticket flow: list, then one ticket, then the resolved confirmation.
       for (const name of ['ticket_list', 'ticket_detail', 'ticket_resolved']) {
         const read = readMessages(
@@ -172,9 +184,14 @@ export class StubBackend implements ModelBackend {
           ...notice,
           ...JSON.parse(JSON.stringify(example).replace(/"priority":\{"path":"[^"]*"\}/g, '"priority":"critical"')),
         ]);
+        clientInvalid[name] = toResponseText(profile, catalog, format, [
+          ...notice,
+          ...priorityOutsideCatalog(example),
+        ]);
       }
       this.responses.set(profile.version, byExample);
       this.invalidResponses.set(profile.version, invalid);
+      this.clientInvalidResponses.set(profile.version, clientInvalid);
     }
   }
 
@@ -188,7 +205,13 @@ export class StubBackend implements ModelBackend {
           : 'ticket_list';
     // Demo: a retry's query starts with this (prompt.ts, retryQuery).
     const isRetry = query.startsWith('Your previous response was invalid.');
-    const responses = this.invalidFirstAttempt && !isRetry ? this.invalidResponses : this.responses;
+    const responses = isRetry
+      ? this.responses
+      : this.invalidFirstAttempt
+        ? this.invalidResponses
+        : this.clientInvalidFirstAttempt
+          ? this.clientInvalidResponses
+          : this.responses;
     const text = responses.get(profile.version)![exampleName];
     // Demo: STUB_LEAKY streams 80-character chunks, so the notes show up in re-sends.
     const chunkSize = this.leaky ? 80 : Math.ceil(text.length / 4);
@@ -196,6 +219,19 @@ export class StubBackend implements ModelBackend {
       yield text.substring(start, start + chunkSize);
     }
   }
+}
+
+/**
+ * Demo: the example messages with the priority `critical` in the data model: the first
+ * ticket of a list, or the ticket of a detail view. What `STUB_CLIENT_INVALID=true` serves.
+ */
+export function priorityOutsideCatalog(messages: AgentToRendererMessage[]): AgentToRendererMessage[] {
+  return (JSON.parse(JSON.stringify(messages)) as Record<string, any>[]).map(message => {
+    const value = message.updateDataModel?.value;
+    if (Array.isArray(value?.tickets) && value.tickets.length > 0) value.tickets[0].priority = 'critical';
+    if (value?.ticket) value.ticket.priority = 'critical';
+    return message;
+  }) as AgentToRendererMessage[];
 }
 
 /**

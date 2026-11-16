@@ -25,7 +25,7 @@ the order and what each phase adds.
 ```mermaid
 flowchart LR
   P1["1 · Render without an agent<br/>hardcoded v0.9 message"]
-  P2["2 · Full chain, stub mode<br/>browser → POST /a2a → A2A → agent"]
+  P2["2 · Full chain, stub mode<br/>browser → POST /api/agent → A2A → agent"]
   P3["3 · Live model<br/>Gemini via GEMINI_API_KEY"]
   P4["4 · Zod catalog + ticket domain<br/>packages/catalog"]
   P5["5 · Server-side policy<br/>applyPolicy"]
@@ -40,9 +40,9 @@ flowchart LR
   classDef done fill:#ffffff,stroke:#5f6368,color:#202124
   classDef next fill:#e8f0fe,stroke:#1a73e8,stroke-width:2px,color:#0b3d91
   classDef todo fill:none,stroke:#9aa0a6,stroke-dasharray:4 3,color:#5f6368
-  class P1,P2,P3,P4,P5 done
-  class P6 next
-  class P7,D,R,T todo
+  class P1,P2,P3,P4,P5,P6,P7 done
+  class D next
+  class R,T todo
 ```
 
 ### Decisions and what they replaced
@@ -62,7 +62,7 @@ flowchart LR
     direction TB
     N1["Official A2UI Node sample<br/>@google/genai + @a2ui/agent 0.0.2"]
     N2["A2A v0.3<br/>@a2a-js/sdk 0.3.13, both sides"]
-    N3["A2A client on the SSR server<br/>server.ts, POST /a2a + SSE"]
+    N3["A2A client on the SSR server<br/>server.ts, POST /api/agent + SSE"]
     N4["Zod 3 ComponentApi → Catalog.toJson()<br/>agent's own validate + retry"]
   end
   KEEP["Kept from July<br/>A2UI v0.9 · Cloud Run · monorepo<br/>policy server side · self-correction loop"]
@@ -240,6 +240,10 @@ or more of those stages.
 8. **Deliberately-broken-node beat** — script this, don't rely on the model
    misbehaving on cue. On a specific trigger, skip pre-send validation once
    on purpose so the client's rejection is guaranteed to fire live.
+   *Built 2026-11-12 differently:* `STUB_CLIENT_INVALID=true` skips no validation. It writes
+   `priority: "critical"` into the data model, which the agent's checks pass (they validate
+   components, and the badge binds `{path}`) and only the renderer, resolving the binding, rejects
+   (`demo/README.md`, step 6).
 9. **Receiving `VALIDATION_FAILED`** — confirmed real and precisely specified:
    `{"version": "v0.9", "error": {"code": "VALIDATION_FAILED", "surfaceId",
    "path", "message"}}`. **Same decision as item 5**: build the minimal
@@ -417,21 +421,21 @@ to re-prove it works.
    2026-08-12) puts the A2A client in the SSR Express server (`src/server.ts`):
    `A2AClient.fromCardUrl('<agent>/.well-known/agent-card.json')` with an
    `X-A2A-Extensions: https://a2ui.org/a2a-extension/a2ui/v0.9` header, exposed
-   to the browser as a plain `POST /a2a` that answers with SSE. The browser
+   to the browser as a plain `POST /api/agent` that answers with SSE. The browser
    never speaks A2A. **Decided for the demo too (Giorgio, 2026-10-22)**: agent credentials and
    policy enforcement stay server-side, and the agent URL is never exposed.
    This supersedes the July assumption that the browser itself calls
    `ClientFactory().createFromUrl(...)`. Still include
    `a2uiClientCapabilities.supportedCatalogIds` in the outgoing A2A message
    metadata (the sample sends `a2uiClientCapabilities` on every message).
-   *Done when:* `POST /a2a` with a text query reaches the locally-running
+   *Done when:* `POST /api/agent` with a text query reaches the locally-running
    agent and streams a response back.
    **Links:** [Angular sample `server.ts`](https://github.com/a2ui-project/a2ui/blob/main/samples/client/angular/projects/restaurant/src/server.ts) ·
    [A2UI — Catalogs: Catalog Negotiation, Step 2](https://a2ui.org/concepts/catalogs/#step-2-client-advertises-its-support-catalogs-required)
 5. **Bridge the stream into `@a2ui/angular`'s renderer — adapt, don't port
    (revised 2026-10-21).** An official Angular bridge now exists:
    `src/app/client.ts` in the same sample, an `@Injectable` `Client` that
-   POSTs to `/a2a`, parses the SSE `data:` lines, unwraps each part's `data`
+   POSTs to `/api/agent`, parses the SSE `data:` lines, unwraps each part's `data`
    (array or single object, so it covers both the A2A v1.0 and v0.3
    `DataPart` shapes) and calls `A2uiRendererService.processMessages(...)`
    from `@a2ui/angular/v0_9`. `app.ts` renders with `SurfaceComponent`.
@@ -444,7 +448,7 @@ to re-prove it works.
 6. **Wire the `actionHandler`.** Configure `A2UI_RENDERER_CONFIG`'s
    `actionHandler` to take dispatched `action`/`event` payloads and send them
    back to the agent via the step 4 client. (2026-10-21: the Angular sample
-   does this as `Client.handleAction(userAction)` → `POST /a2a` with
+   does this as `Client.handleAction(userAction)` → `POST /api/agent` with
    `{event}` → `processMessages` on the reply. Per the Actions docs, input
    changes stay in the local data model; "the data model is only sent to the
    agent when an event occurs", and `functionCall` actions never reach the
@@ -467,7 +471,9 @@ to re-prove it works.
    [`provideZonelessChangeDetection` API reference](https://angular.dev/api/core/provideZonelessChangeDetection) ·
    [Angular DevTools (for the profiler demo beat)](https://angular.dev/tools/devtools)
 8. **`VALIDATION_FAILED` reporting — confirm the automatic-vs-manual
-   question.** Unclear from docs read so far whether `@a2ui/web_core`
+   question.** *Answered 2026-11-12 from the installed code: manual.* `@a2ui/web_core` 0.14.0
+   throws `A2uiValidationError` from `processMessages` and sends nothing; app code catches it and
+   POSTs the error (`demo/README.md`, step 6). Unclear from docs read so far whether `@a2ui/web_core`
    automatically emits the client-to-server `error` message over the wired
    transport on a schema validation failure, or whether app code must catch a
    validation event and send it manually. Resolve this empirically alongside
@@ -595,9 +601,9 @@ flowchart LR
 - Keep it in its own file (`src/policy.ts`) with a unit test, so the deck can
   show it whole and the diff against the upstream sample stays small.
 
-One turn, with the policy hooks and the planned client-side validation (Direct JSON mode, `@a2ui/agent`
-0.0.2). `applyPolicy` is built (2026-11-06); the `VALIDATION_FAILED` path is not yet; the retry loop is
-(`generateUi` → `answer()` in `agent.ts`).
+One turn, with the policy hooks and the client-side validation (Direct JSON mode, `@a2ui/agent`
+0.0.2). `applyPolicy` is built (2026-11-06), the retry loop is (`generateUi` → `answer()` in
+`agent.ts`), and so is the `VALIDATION_FAILED` path (2026-11-12, `src/client-retry.ts`).
 
 ```mermaid
 sequenceDiagram
@@ -608,7 +614,7 @@ sequenceDiagram
   participant M as Gemini
   participant P as applyPolicy (policy.ts)
 
-  B->>S: POST /a2a (query or { version: 'v0.9', action })
+  B->>S: POST /api/agent (query or { version: 'v0.9', action })
   S->>E: A2A message/stream + supportedCatalogIds
   loop attempt 1..2 (MAX_ATTEMPTS)
     E->>M: prompt with catalog
@@ -629,9 +635,10 @@ sequenceDiagram
   opt both attempts fail
     E-->>S: text-only fallback
   end
-  opt renderer rejects a message (client step 8, planned)
-    B->>S: VALIDATION_FAILED
-    S->>E: forwarded as a new turn
+  opt renderer rejects part of the reply (client step 8, built 2026-11-12)
+    B->>S: POST /api/agent { error: VALIDATION_FAILED }
+    S->>E: data part { version: 'v0.9', error }, a new turn
+    E->>E: retryQuery(error) once per turn, else text fallback
   end
 ```
 
@@ -686,7 +693,7 @@ the renderer, `VALIDATION_FAILED` back to the agent, client step 8).
       v0.9.1 agent.
 - [x] **Decide where the A2A client lives.** **Decided 2026-10-22 (Giorgio):
       server side**, as in the official sample. The browser talks only to the
-      app's own `POST /a2a` + SSE; the SSR server is the A2A client.
+      app's own `POST /api/agent` + SSE; the SSR server is the A2A client.
 - [ ] **Update the deck's pipeline diagram (section 4)** for the server-side
       A2A client: browser → own API → server (A2A client) → agent.
 - [ ] **Update the deck's section 5c speaker notes** (2026-07-24, session 5):
@@ -703,9 +710,15 @@ the renderer, `VALIDATION_FAILED` back to the agent, client step 8).
       `A2UI_RENDERER_CONFIG`/`BasicCatalog`, or are these describing different
       package versions? Needs the empirical check before designing the real
       custom catalog components.
-- [ ] **Resolve whether `@a2ui/web_core` auto-reports `VALIDATION_FAILED`**
+- [x] ~~**Resolve whether `@a2ui/web_core` auto-reports `VALIDATION_FAILED`**
       or whether app code must catch and send it manually (client build order
-      step 8).
+      step 8).~~ **2026-11-12: manual.** In 0.14.0, `processMessages` validates an
+      `updateComponents` before applying it and throws `A2uiValidationError`
+      (nothing applied); `@a2ui/angular` 0.13.0 passes it through. `VALIDATION_FAILED`
+      exists only in the generated schema (`v0_9/schema/client-to-server.js`); the
+      processor's one outbound channel, `outboundListener`, carries function calls.
+      Values a binding resolves to are not checked at all. The demo catches, reports
+      and checks bound values itself (`demo/README.md`, step 6).
 - [ ] **By 13 Nov 2026: re-check the Angular sample's A2A client.** The
       demo's `server.ts` uses `A2AClient.fromCardUrl`, deprecated in
       `@a2a-js/sdk` 0.3.x in favour of `ClientFactory`, because the official
@@ -754,11 +767,11 @@ the renderer, `VALIDATION_FAILED` back to the agent, client step 8).
       **Done 2026-11-10:** `server.ts` flattens the A2A data parts into
       `{ messages, sessionId }`; the browser's `contextId` became `sessionId`
       (the server maps it to A2A's `contextId`). Checked: `ng build`, client
-      tests, and a stub run (`STUB_LEAKY=true`) over `POST /a2a`: 14 SSE events
+      tests, and a stub run (`STUB_LEAKY=true`) over `POST /api/agent`: 14 SSE events
       per turn, all `messages`, none with `parts`. The stretch (second adapter)
       is not done; the slide shows the one-file diff.
       **Stretch, only if the critical path is done by ~6 Nov:** a second
-      adapter behind the same `POST /a2a` contract (an AG-UI one, or a plain
+      adapter behind the same `POST /api/agent` contract (an AG-UI one, or a plain
       SSE agent) switched by env var, to show live that only the adapter
       changes. Otherwise show the one-file diff on a slide.
       **Honesty caveat for the slide:** the UI layer doesn't care about the
@@ -845,7 +858,7 @@ the Angular client.
 - **2026-10-21** — Found the official Angular sample
   (`samples/client/angular/projects/restaurant`) that the July sessions
   didn't have. Client build order steps 4–5 rewritten: the A2A client
-  moves to the SSR server (`server.ts`, `POST /a2a` + SSE to the browser),
+  moves to the SSR server (`server.ts`, `POST /api/agent` + SSE to the browser),
   and the bridge is adapted from the sample's `client.ts` instead of ported
   from Lit. Step 6 annotated with the sample's `handleAction` and the
   Actions docs' local-data-model rule. New open item: decide where the A2A
@@ -929,3 +942,16 @@ the Angular client.
   `STUB_LEAKY=true` leaks the notes in small chunks. Found: the plan's path pattern missed the
   detail view's `/ticket` (added), and a stateless filter cannot hide a child id streamed before
   its component (incident 5). Phase 5 frame in `demo/FLOW.md`; roadmap `next` moved to P6.
+- **2026-11-12** — Phase 6 done (stub mode): the renderer reports `VALIDATION_FAILED` and the
+  agent redoes the turn once. web_core does not auto-report (open item resolved: manual).
+  `AgentClient` applies messages one at a time, replaces a component web_core rejects with a
+  placeholder `Text`, and POSTs `{ error }`; `PriorityBadge` checks its bound value against the
+  catalog's Zod; `server.ts` forwards a data part `{ version, error }`; the executor retries with
+  `retryQuery(error)`, one client-triggered retry per turn, then text. Trigger: `STUB_CLIENT_INVALID`
+  (a data-model value only the renderer can check), instead of the planned skip of the agent's
+  validation. Found: re-created surfaces kept their old drawing (incident 6, fixed in `app.ts`).
+  Roadmap: P6 and P7 (transport swap, 2026-11-10) done, `next` moved to the deck.
+- **2026-11-16** — The browser's route renamed from `POST /api/agent` to `POST /api/agent` (client
+  `agent-client.ts`, `server.ts`, docs, slide 16). What the browser sends there is the app's own
+  JSON + SSE contract, not A2A; the old name contradicted "the browser never speaks A2A" on stage
+  and in the article. The agent's own A2A endpoint (`/a2a/json-rpc`) is unchanged.

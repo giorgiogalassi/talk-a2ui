@@ -3,13 +3,16 @@
 Demo for the talk *Your AI Should Not Generate HTML*. Plan and decisions: `../IMPLEMENTATION-PLAN.md`.
 
 ```
-apps/client      Angular 22 app (SSR server = the A2A client, POST /a2a), renders A2UI via @a2ui/angular
+apps/client      Angular 22 app (SSR server = the A2A client, POST /api/agent), renders A2UI via @a2ui/angular
 apps/agent       A2A agent (official Node sample pattern: @google/genai + @a2ui/agent), A2UI v0.9
 packages/catalog the ticket catalog: Zod 3 ComponentApis, shared by agent and client (@demo/catalog)
 ```
 
-The browser never speaks A2A: the client will call the app's own server, which is the A2A client
+The browser never speaks A2A: it calls the app's own server, which is the A2A client
 (decided 2026-10-22, same shape as the official Angular sample).
+
+**How data moves through the demo, step by step:** [`docs/data-flow/`](docs/data-flow/README.md)
+(diagrams and exact payloads; `index.html` there is the interactive map).
 
 ## Status
 
@@ -20,7 +23,7 @@ message (`apps/client/src/app/booking-form.json`, copied from the official Node 
 basic catalog. Checked in a browser: typing into fields sends nothing; *Submit Reservation* fires one
 `submit_booking` action whose `context` carries the typed values. Actions are logged to the console.
 
-**Step 2, the full chain in stub mode — done (2026-10-22).** Browser → `POST /a2a` (the client's
+**Step 2, the full chain in stub mode — done (2026-10-22).** Browser → `POST /api/agent` (the client's
 own server) → A2A `message/stream` → agent → A2UI messages back as SSE → renderer. Checked in a
 browser: prompt → restaurant list → *Book Now* → booking form → *Submit* → confirmation.
 - Gotcha found: the agent reads a UI action inside a v0.9 envelope, `{ version: 'v0.9', action }`,
@@ -103,14 +106,75 @@ the two places the plan names: the streaming path's `send()` (every `stream.feed
   `@a2ui/agent` stream, without the policy, emits `internal_notes` in an `updateDataModel` re-send
   before the last one; through the executor, streamed and non-streamed, list and detail, no published
   message carries `internal_notes` or `delete_ticket`. Headless browser, `STUB_LEAKY=true`: the SSE
-  bodies of `POST /a2a` (list: 14 events, 4 `updateDataModel` re-sends; detail: 16 events) hold 0
+  bodies of `POST /api/agent` (list: 14 events, 4 `updateDataModel` re-sends; detail: 16 events) hold 0
   `internal_notes`, 0 `delete_ticket`, 0 note text; the detail renders without notes or Delete; the
   agent logged 17 policy lines (e.g. `--- policy: stripped /tickets/0/internal_notes ---` three times,
   once per re-send carrying it). Also checked: plain stub (only the Delete strip), and Express +
   `STUB_LEAKY` + `STUB_INVALID_FIRST` (retry, then the same strips). `ng test`, `ng build` green.
 - One thing the plan didn't expect: incident 5 below. Not yet run against the live model.
 
-**Next:** client-side validation, `VALIDATION_FAILED` (step 6).
+**Step 6, client-side validation + `VALIDATION_FAILED` back to the agent — done (2026-11-12), checked
+in stub mode.** The renderer tells the agent what it could not show, and the agent redoes the turn once.
+- *What web_core 0.14.0 does (read in `node_modules`):* `processMessages` validates each component of
+  an `updateComponents` against the catalog's Zod (`PayloadValidator.validateComponent`) before applying
+  any of them; one bad component throws an `A2uiValidationError` (message `Validation failed for
+  component 'X' (id): …`, Zod issues in `details`) and none is applied. `updateDataModel` values are not
+  checked, nor is the value a binding resolves to. **It does not report anything:** `VALIDATION_FAILED`
+  appears only in the generated client-to-server schema (`v0_9/schema/client-to-server.js`), and the
+  only outbound channel (`outboundListener`) is for function calls. `@a2ui/angular` 0.13.0's
+  `A2uiRendererService.processMessages` passes the exception straight through. Before this step it
+  ended the SSE read loop: the reply stopped where the bad message was.
+- *Client (`apps/client`):* `AgentClient` hands web_core one message at a time. When an
+  `updateComponents` is rejected, each component is applied on its own and a rejected one becomes a
+  placeholder `Text` ("⚠ This part of the answer could not be shown.") under the same id, so the rest
+  of the surface renders. `PriorityBadge` checks the value its binding resolves to against the
+  catalog's own Zod for that prop (`catalog/resolved-value.ts`) and shows a dashed `?` badge when it
+  fails; for a `value | binding` union the message quotes only the value branch, without the binding
+  branch's "Expected object" noise. Both file the problem in `ValidationIssues`; once the reply has rendered
+  (`ApplicationRef.whenStable()`), `AgentClient` POSTs `{ error: { code: 'VALIDATION_FAILED',
+  surfaceId, path, message } }` to `/api/agent` (the first issue; the message counts the others). `path` is a
+  pointer into the message for a rejected component (`/components/3/priority`), into the data model for
+  a bound value (`/tickets/0/priority`). The partly rejected surface stays on screen until the corrected
+  reply's first messages arrive. At most 2 reports without a user action in between (a safety cap; the
+  agent's own rule stops first). `agent-client.ts` still has no A2A names.
+- *Server (`server.ts`):* `{ error }` goes to the agent as an A2A data part `{ version: 'v0.9', error }`
+  (`application/a2ui+json`), like an action. An error without string `code`/`surfaceId`/`message`
+  (and `path` for `VALIDATION_FAILED`) gets a 400. The agent's text parts go to the browser as
+  `{ messages: [], text }` and show above the surface (`agentText`), so the text fallback after a second
+  report is visible instead of a page that stays on the `?` badge (added after review, 2026-11-12).
+- *Agent:* `readInboundMessage` reads the error (`clientError`). The executor remembers each
+  conversation's last turn (`src/client-retry.ts`); on `VALIDATION_FAILED` it logs
+  `--- A2UI client reported VALIDATION_FAILED on surface 'tickets' at /tickets/0/priority: … ---` and
+  re-generates that turn once with `retryQuery(error)`, the server-side retry's query, then publishes
+  the new UI (or the text fallback, if the server-side checks fail twice). A second report about the
+  same turn gets the text fallback with no model call. A new prompt or action resets it.
+- *`STUB_CLIENT_INVALID=true`:* the first attempt of each turn writes `"priority": "critical"` into the
+  **data model** (first ticket of the list, the detail's ticket); the `PriorityBadge` still binds
+  `{path: 'priority'}`. The agent's validation passes it: the shared Zod allows a binding and web_core
+  does not check data values, on either side. Only the renderer resolves the binding, so only it can
+  catch the value. The agent's retry query starts with the retry prefix, so the stub answers it with
+  the valid example. Not faked: no validation is skipped anywhere. A component-level rejection
+  (web_core throwing) cannot be provoked through the agent, which runs the same check first; it is
+  covered by client tests only.
+- *Checked:* `npm test -w agent` (41 tests; new `client-retry.test.ts`: error parsing, the
+  one-retry rule, and three turns through the executor with `STUB_CLIENT_INVALID`: `critical` goes out,
+  the report triggers one retry carrying the error, a second report gets text with no model call).
+  `npm test -w client -- --watch=false` (11 tests; new `validation.spec.ts`: a web_core rejection leaves
+  the valid components plus a placeholder and reports `/components/3/priority`; a bound `critical` shows
+  the `?` badge and reports `/tickets/0/priority`; the corrected reply replaces the drawn surface;
+  report cap). `npm run build:client` green. Headless browser, `STUB_CLIENT_INVALID=true`: list renders
+  with badges `?, high, medium` → `POST /api/agent {error}` with `path /tickets/0/priority` → agent logs the
+  report and retries → badges `urgent, high, medium`; *Open* → detail `?` → report
+  `/ticket/priority` → `urgent`. A second report sent by hand for the same turn: agent logs `This turn
+  was already retried once after a client report. Sending text-only error.`; a malformed error gets
+  400. After review (2026-11-12): client 12 tests (the text fallback shows, the surface stays); stub +
+  SSR server by `curl`, the second report's SSE carries the fallback as `text`, a normal turn carries
+  none. Switch off: plain stub (list → detail → resolved, no error POSTs), `STUB_INVALID_FIRST=true`
+  (server-side retry, list renders), one live turn (5 tickets, no error POST).
+- One thing the plan didn't expect: incident 6 below. Not checked: the client's report after a live
+  model's own bad value (a live model rarely produces one on cue), and Express format with the switch.
+
+**Next:** deck reconciliation (the transport swap, step 7, landed 2026-11-10: `FLOW.md`).
 
 ## Incidents
 
@@ -190,6 +254,16 @@ the two places the plan names: the streaming path's `send()` (every `stream.feed
   browser, never the action or the data, and the renderer shows nothing for a missing child. Ids are
   the model's names; if a name could be sensitive, this would need a stateful filter.
 
+**6 · The corrected reply arrived but the browser kept the rejected badge (2026-11-12, fixed).**
+- *Symptom:* with `STUB_CLIENT_INVALID=true`, the agent retried and streamed a valid list; the page
+  still showed `?`.
+- *Cause:* the surface map is a plain `Map`, not a signal, and `app.ts` tracked surfaces by id. A
+  surface deleted and re-created under the same id between two renders kept its `a2ui-v09-surface`
+  element, whose components stay bound to the deleted `SurfaceModel`. Incident 4's replacement never
+  hit it because the failed attempt had drawn nothing yet.
+- *Fix:* `app.ts` tracks by the `SurfaceModel` object (`track entry[1]`). The client test fails with
+  `track entry[0]` and passes with it.
+
 ## Latency (2026-11-06)
 
 **What happened.** First live run on the ticket domain: every request waited 15-20 s before the
@@ -249,12 +323,13 @@ npm run start:stub -w agent                                # stub: canned ticket
 npm run start -w agent                                     # live: Gemini, reads GEMINI_API_KEY from apps/agent/.env
 STUB_INVALID_FIRST=true npm run start:stub -w agent        # stub whose first attempt fails validation (shows the retry)
 STUB_LEAKY=true npm run start:stub -w agent                # stub that leaks internal_notes (+ Delete), for the policy to strip
+STUB_CLIENT_INVALID=true npm run start:stub -w agent       # stub whose first attempt passes the agent and fails the renderer (VALIDATION_FAILED)
 GEMINI_THINKING_LEVEL=DEFAULT npm run start -w agent       # live with the model's own thinking (slower, see Latency)
 
 # terminal 2, the client
 npm run start:client                                       # http://localhost:4200
 
-npm test -w agent                                          # agent tests (catalog, validate-and-retry, latency, policy)
+npm test -w agent                                          # agent tests (catalog, validate-and-retry, latency, policy, client retry)
 npm test -w client -- --watch=false                        # client tests
 ```
 
