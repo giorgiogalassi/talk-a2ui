@@ -114,7 +114,7 @@ rule: ['The Problem', 'Part 1']
 <div class="ta-cols c3">
 <div v-click>
 
-## Option 1 — Generate HTML or JSX and inject it
+## Option <span class="blob-num">1</span> — Generate HTML or JSX and inject it
 
 Unbounded output, no contract, no validation surface. By the time it renders,
 it's too late to check. Across a trust boundary, you're executing arbitrary code
@@ -123,7 +123,7 @@ from a remote agent in your client application.
 </div>
 <div v-click>
 
-## Option 2 — return data, let the frontend render it
+## Option <span class="blob-num alt">2</span> — return data, let the frontend render it
 
 Clean. Predictable. The frontend decides the screen; the agent only fills it.
 
@@ -135,7 +135,7 @@ The agent is reduced to a JSON API with no say in presentation.
 </div>
 <div v-click>
 
-## Option 3 — nothing
+## Option <span class="blob-num">3</span> — nothing
 
 The agent responds in plain text.
 
