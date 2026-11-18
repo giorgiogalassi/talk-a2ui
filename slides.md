@@ -1113,47 +1113,11 @@ rule: ['Angular as the Rendering Engine', 'Part 6']
 
 A2UI separates component **structure** from **data** into distinct message types:
 
-- `updateComponents` — defines the tree
-- `updateDataModel` — updates a single JSON Pointer path
+- `updateComponents` defines the tree, once
+- `updateDataModel` updates a single JSON Pointer path, as often as the agent streams
 
-<div class="callout">
-
-Only the signal at that path changes (in Angular, an Angular signal). Only the
-`computed()` that reads it re-evaluates. Only the component that depends on it
-re-renders. The rest of the surface is untouched.
-
-</div>
-
-<div class="text-sm text-gray-400">
-
-Source: [a2ui_protocol.md#L21-L28](https://github.com/a2ui-project/a2ui/blob/45633b9/specification/v0_9/docs/a2ui_protocol.md#L21-L28) ·
-[data-model.ts#L84-L90](https://github.com/a2ui-project/a2ui/blob/45633b9/typescript/core/web_core/src/state/data-model.ts#L84-L90) (one signal per path)
-
-</div>
-
-<!--
-Speaker notes:
-This is the architectural payoff of the signal-per-path design, and it's worth
-slowing down for. When the agent streams a data update, it's targeting one
-JSON Pointer path — not re-sending the whole tree. That precision is what
-makes fine-grained reactivity possible at all downstream.
-And because web_core runs on Angular's signals here (previous slide), "the signal at
-that path" is an Angular signal: nothing to translate between the protocol and the
-component.
--->
-
----
-rule: ['Angular as the Rendering Engine', 'Part 6']
----
-
-# Zoneless and streaming
-
-A2UI streams many small `updateDataModel` messages, each targeting one
-JSON Pointer path. In a zoneless app, each one:
-
-- **writes one signal** in the data model
-- re-runs only the **computed signals** that read it
-- updates only the **components** whose templates read those: nothing else is checked
+In a zoneless app, each data message **writes one signal**; only the `computed()`
+that reads it re-runs, and only the component that depends on it re-renders.
 
 <div v-click class="callout">
 
@@ -1164,26 +1128,28 @@ performant and a <span class="hl">sluggish</span> surface.
 
 <div class="text-sm text-gray-400">
 
-We used to have zone.js, where every async message re-ran change detection across
-the whole app. Zoneless is the default since Angular 21 (stable since 20.2) and OnPush
-since 22: the demo needs no setup for either.
+We used to have zone.js, where every async message re-ran change detection across the whole
+app. Zoneless is the default since Angular 21 (stable since 20.2) and OnPush since 22: the demo
+needs no setup for either. ·
+[a2ui_protocol.md#L21-L28](https://github.com/a2ui-project/a2ui/blob/45633b9/specification/v0_9/docs/a2ui_protocol.md#L21-L28) ·
+[data-model.ts#L84-L90](https://github.com/a2ui-project/a2ui/blob/45633b9/typescript/core/web_core/src/state/data-model.ts#L84-L90) (one signal per path)
 
 </div>
 
 <!--
 Speaker notes:
+This is the architectural payoff of the signal-per-path design, and it's worth slowing
+down for. When the agent streams a data update, it targets one JSON Pointer path, not
+the whole tree. That precision is what makes fine-grained reactivity possible at all.
 
-Don't just name-drop Zoneless here — make the specific case, this is the slide
-where a skeptical Angular engineer decides whether you actually understand the
-mechanism or are pattern-matching buzzwords.
+Walk it as one chain: message → one signal → the computed that reads it → the template
+that reads that. Because web_core runs on Angular's signals here (previous slide), "the
+signal at that path" is an Angular signal: nothing to translate. It's the chain the
+signal graph shows in demo stage 7.
 
-Walk the three bullets as one chain: message → one signal → its computeds → the
-templates that read them. That's the same chain the signal graph shows in the demo
-(stage 7: data model signal at the top, computeds, template at the bottom).
-
-zone.js gets one sentence, in the past tense (the footnote): it's how Angular used to
-know "something async happened, check everything". Don't compare at length: the room
-knows it, and on 21+ it's simply gone by default.
+This is the slide where a skeptical Angular engineer decides whether you understand the
+mechanism or are pattern-matching buzzwords: make the case, don't name-drop "zoneless".
+zone.js gets one sentence, in the past tense (the footnote).
 
 [click: callout] The payoff, for the dashboards of Part 3.
 -->
