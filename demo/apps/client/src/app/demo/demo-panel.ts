@@ -46,7 +46,7 @@ const THINKING_LEVELS = ['MINIMAL', 'LOW', 'MEDIUM', 'HIGH', 'DEFAULT'];
           <label class="row" [class.off]="!f.stub">
             <input type="checkbox" [checked]="f.invalidFirst" [disabled]="!f.stub || busy()"
               (change)="set({ invalidFirst: checked($event) }, $event)" />
-            <span>First attempt invalid <small>shows the retry (stage 5)</small></span>
+            <span>First attempt invalid <small>shows the retry (stage 4)</small></span>
           </label>
           <label class="row" [class.off]="!f.stub">
             <input type="checkbox" [checked]="f.leaky" [disabled]="!f.stub || busy()"
@@ -56,7 +56,7 @@ const THINKING_LEVELS = ['MINIMAL', 'LOW', 'MEDIUM', 'HIGH', 'DEFAULT'];
           <label class="row" [class.off]="!f.stub">
             <input type="checkbox" [checked]="f.clientInvalid" [disabled]="!f.stub || busy()"
               (change)="set({ clientInvalid: checked($event) }, $event)" />
-            <span>Renderer rejects first attempt <small>VALIDATION_FAILED back to the agent</small></span>
+            <span>Renderer rejects first attempt <small>VALIDATION_FAILED back to the agent (stage 5)</small></span>
           </label>
           <label class="row" [class.off]="f.stub">
             <span>Thinking</span>
