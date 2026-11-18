@@ -200,39 +200,6 @@ html.dark:has(.ta-deck) .talk-footer { color: #ada593; }
 .ta-thanks .who span { color: var(--ta-muted); font-size: 0.9rem; }
 /* The tags sit inside .who: keep their button look over the muted bio text. */
 .ta-thanks .who span.tag { color: var(--tag-text); font-size: 0.8rem; }
-/* Thank-you chips as on ggalassi.dev's hero (blog #104): paper pill, hairline border, soft
-   shadow, a small accent blob before the label, and a gentle float on its own cycle per chip. */
-.ta-thanks .who .tags .tag {
-  --tag-fill: var(--ta-paper);
-  --tag-text: var(--ta-ink);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45em;
-  border: 1px solid var(--ta-line);
-  box-shadow: 0 10px 24px -14px rgb(17 17 17 / 0.45);
-  animation: ta-chip-float 5s ease-in-out infinite;
-}
-.ta-thanks .who .tags .tag::before {
-  content: '';
-  flex: none;
-  width: 0.55em;
-  aspect-ratio: 1;
-  background: var(--ta-accent);
-  border-radius: 58% 42% 46% 54% / 52% 44% 56% 48%;
-}
-.ta-thanks .who .tags .tag:nth-child(2) { animation-duration: 5.7s; animation-delay: -1.2s; }
-.ta-thanks .who .tags .tag:nth-child(3) { animation-duration: 6.4s; animation-delay: -2.5s; }
-.ta-thanks .who .tags .tag:nth-child(4) { animation-duration: 7.1s; animation-delay: -3.7s; }
-.ta-thanks .who .tags .tag:nth-child(even)::before { border-radius: 44% 56% 52% 48% / 46% 58% 42% 54%; }
-@keyframes ta-chip-float {
-  25% { translate: 3px -5px; }
-  50% { translate: -2px -8px; }
-  75% { translate: -4px -3px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .ta-thanks .who .tags .tag { animation: none; }
-}
-
 /* A number in a blob, inline (the "Option 1/2/3" headings): same shape as the list numbers. */
 .ta-deck .blob-num {
   display: inline-grid;
@@ -305,6 +272,59 @@ html.dark:has(.ta-deck) .talk-footer { color: #ada593; }
 }
 @media (prefers-reduced-motion: reduce) {
   .slidev-layout .ta-blob-photo, .slidev-layout .ta-blob-back { animation: none; }
+}
+
+/* ---- Thank-you chips as liquid (the goo of ggalassi.dev's hero droplets, blog #104).
+   Two identical rows of chips stacked in one grid cell: .ta-goo-row (accent pills, text
+   transparent, under the #ta-goo SVG filter: blur, then sharpen the alpha, so shapes that come
+   close merge and pinch apart like liquid) and .ta-label-row on top (the same chips, transparent,
+   unfiltered, so the text stays sharp). Same markup, so both rows lay out identically. Each chip
+   bobs on its own cycle and puts out a droplet toward its neighbour; the bridges between chips
+   stretch, pinch off and join again. ---- */
+.ta-goo-defs { position: absolute; width: 0; height: 0; }
+.ta-thanks .who .ta-goo-tags { display: grid; }
+.ta-goo-tags > .ta-goo-row,
+.ta-goo-tags > .ta-label-row {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+.ta-goo-tags > .ta-goo-row { filter: url(#ta-goo); }
+.ta-thanks .who .ta-goo-tags .tag {
+  position: relative;
+  font-size: 0.8rem;
+  animation: ta-chip-bob var(--t, 5s) ease-in-out var(--dl, 0s) infinite;
+}
+.ta-thanks .who .ta-goo-row .tag { --tag-fill: var(--ta-accent); color: transparent; }
+.ta-thanks .who .ta-label-row .tag { --tag-fill: transparent; --tag-text: var(--ta-on-accent); }
+/* The droplet each chip puts out toward the next one (goo row only). */
+.ta-goo-row .tag:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -0.55rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  translate: 0 -50%;
+  border-radius: 50%;
+  background: var(--ta-accent);
+  animation: ta-chip-drip var(--t, 5s) ease-in-out var(--dl, 0s) infinite;
+}
+.ta-goo-tags .tag:nth-child(1) { --t: 5.2s; --dl: -0.4s; }
+.ta-goo-tags .tag:nth-child(2) { --t: 6.1s; --dl: -2.2s; }
+.ta-goo-tags .tag:nth-child(3) { --t: 5.7s; --dl: -3.6s; }
+.ta-goo-tags .tag:nth-child(4) { --t: 6.6s; --dl: -1.5s; }
+@keyframes ta-chip-bob {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -5px; }
+}
+@keyframes ta-chip-drip {
+  0%, 100% { scale: 0.2; translate: -40% -50%; }
+  50% { scale: 1; translate: 10% -20%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ta-thanks .who .ta-goo-tags .tag, .ta-goo-row .tag::after { animation: none; }
 }
 
 /* ---- Instagram-style diagram panel (decisions 2026-11-06): dark panel, one bordered lane

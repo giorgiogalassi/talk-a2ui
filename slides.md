@@ -1676,11 +1676,15 @@ rule: ['Thank you', 'ggalassi.dev']
     <div class="who">
       <b>Giorgio Galassi</b>
       <span>Freelance Senior Angular Engineer · GDG Roma Città Organizer</span>
-      <div class="tags" style="margin-top:0.5rem">
-        <span class="tag">Angular</span>
-        <span class="tag">AI</span>
-        <span class="tag">Generative UI</span>
-        <span class="tag">A2UI</span>
+      <div class="tags ta-goo-tags" style="margin-top:0.5rem">
+        <svg class="ta-goo-defs" width="0" height="0" aria-hidden="true" focusable="false">
+          <filter id="ta-goo" x="-10%" y="-60%" width="120%" height="220%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -8" />
+          </filter>
+        </svg>
+        <div class="ta-goo-row" aria-hidden="true"><span class="tag">Angular</span><span class="tag">AI</span><span class="tag">Generative UI</span><span class="tag">A2UI</span></div>
+        <div class="ta-label-row"><span class="tag">Angular</span><span class="tag">AI</span><span class="tag">Generative UI</span><span class="tag">A2UI</span></div>
       </div>
     </div>
     <div class="ta-qrs">
