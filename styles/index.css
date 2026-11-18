@@ -85,6 +85,55 @@
   line-height: 1.45;
 }
 
+/* Blob markers, as on ggalassi.dev (blog #104): plain Markdown lists only. Lists with a class
+   (custom components, symbol-led lists) keep their own markers. Bullets are small static blobs,
+   numbers sit inside larger ones; the two radii alternate like the blog's offer numbers. */
+.slidev-layout ul:not([class]),
+.slidev-layout ol:not([class]) {
+  list-style: none;
+}
+.slidev-layout ul:not([class]) { padding-left: 1.3em; }
+.slidev-layout ol:not([class]) { padding-left: 2.1em; counter-reset: ta-ol; }
+
+.slidev-layout ul:not([class]) > li,
+.slidev-layout ol:not([class]) > li {
+  position: relative;
+}
+
+.slidev-layout ul:not([class]) > li::before {
+  content: '';
+  position: absolute;
+  left: -1em;
+  top: 0.52em;
+  width: 0.42em;
+  aspect-ratio: 1;
+  background: var(--ta-accent);
+  border-radius: 58% 42% 46% 54% / 52% 44% 56% 48%;
+}
+
+.slidev-layout ol:not([class]) > li { counter-increment: ta-ol; }
+.slidev-layout ol:not([class]) > li::before {
+  content: counter(ta-ol);
+  position: absolute;
+  left: -2.05em;
+  top: 0.08em;
+  width: 1.5em;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  font-size: 0.82em;
+  font-weight: 600;
+  line-height: 1;
+  color: #ffffff;
+  background: var(--ta-accent);
+  border-radius: 58% 42% 46% 54% / 52% 44% 56% 48%;
+}
+
+.slidev-layout ul:not([class]) > li:nth-child(even)::before,
+.slidev-layout ol:not([class]) > li:nth-child(even)::before {
+  border-radius: 44% 56% 52% 48% / 46% 58% 42% 54%;
+}
+
 .slidev-layout p {
   margin: 0.5em 0;
   line-height: 1.5;
