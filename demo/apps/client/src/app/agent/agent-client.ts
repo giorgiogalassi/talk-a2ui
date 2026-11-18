@@ -102,6 +102,7 @@ export class AgentClient {
     // (live) one keeps the old view, dimmed, and an error report keeps the partly rejected surface
     // until the corrected reply arrives (or under the agent's text fallback). app.ts tracks
     // surfaces by object, not id, so a surface re-created under the same id is drawn afresh.
+    // A prompt or action whose reply carries no A2UI at all clears them at the end (finally).
     this.clearOnFirstMessage = true;
     // Demo: only this reply's problems are reported.
     this.issues.clear();
@@ -147,7 +148,12 @@ export class AgentClient {
       );
       void reader?.cancel().catch(() => undefined);
     } finally {
-      // A reply without any A2UI (an error, a text-only answer) leaves the old view in place.
+      // Demo: a prompt or action whose reply had no A2UI at all (the agent's text fallback after
+      // a model failure, an error, a timeout) is not an answer the old view belongs to: it goes,
+      // so the text or error stands alone instead of above the previous turn's surfaces. Decided
+      // here, when the whole turn is known to have carried none. An error report keeps the partly
+      // rejected surface: it is this question's own answer, shown under the fallback.
+      if (this.clearOnFirstMessage && !body.error) this.clearSurfaces();
       this.clearOnFirstMessage = false;
       this.isLoading.set(false);
       this.waitingForUi.set(false);

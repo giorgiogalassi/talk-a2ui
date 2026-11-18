@@ -94,7 +94,8 @@ flowchart TD
   the reply's first A2UI message, in one swap: until then they stay on screen, dimmed, while the Ask
   button pulses "Working…" (both after 250 ms, so a fast stub reply doesn't flash). A phase-6 report
   works the same way: the partly rejected surface stays until the corrected reply, or under the
-  agent's text fallback.
+  agent's text fallback. A prompt or action whose reply carries no A2UI at all (the text fallback
+  after a model failure, an error) clears the old surfaces when the turn ends, so the text stands alone.
 - web_core rejects a whole `updateComponents` if one component fails. `process()` then applies the
   components one by one and replaces each rejected one with a placeholder `Text` (same id), so the rest
   renders **(phase 6)**.
