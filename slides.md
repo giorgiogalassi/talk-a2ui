@@ -1497,86 +1497,9 @@ This is the summary slide tying together the reactivity and zoneless slides — 
 mechanism, just name the pieces and let the room recall what they already saw.
 
 [After the Performance click]
-End of the content. Straight to Questions: the wrap-up comes after them.
+End of the content. Next: the wrap-up, then Questions (the MC runs the Q&A).
 -->
 
-
----
-rule: ['Questions', 'A2UI · AngularDay 2026']
----
-
-<div class="ta">
-  <div class="ta-hero">
-    <FitText>Questions?</FitText>
-  </div>
-  <div class="ta-promo">
-    <!-- TODO masterclass: replace the placeholder with <img src="/src/qr-masterclass.png" class="qr-code" alt="QR code to the masterclass sign-up" /> once the link exists -->
-    <div class="qr-placeholder" aria-hidden="true">QR<br>soon</div>
-    <div>
-      <b>Go deeper: the A2UI masterclass</b>
-      <span>Structured generative UI with Angular, hands-on · December · sign up via the QR</span>
-    </div>
-  </div>
-</div>
-
-<!--
-Speaker notes:
-Open the Q&A with the masterclass in one sentence: "If you want to build this
-hands-on, I'm running a masterclass in December: the QR stays up the whole Q&A."
-Then take questions.
-Time-box it: about 5 minutes in a 40-minute slot. You end it, not the organiser:
-"One last question, then I'll wrap up." If someone needs longer, "find me after,
-I'm around all day."
-Then the wrap-up slide (about a minute) and the thank-you.
-
-Q&A prep — likely questions:
-- "Is A2UI production-ready?" → The spec is v1.0 and stable since 6 Nov; the
-  libraries are still 0.x and the demo pins v0.9. The pattern is what to adopt now;
-  the specific library will stabilize. See the Part 2 maturity slide.
-- "What about React/Vue teams?" → A2UI is framework-agnostic (Part 6 opener).
-  The Angular-specific argument is about fit, not exclusivity.
-- "Doesn't the agent still need to know the catalog?" → Yes — that's the point.
-  Capability negotiation sends the catalog to the agent before generation
-  (Part 5). It's a closed, known vocabulary, not an open one.
-- "What stops a compromised agent from requesting a valid-looking but malicious
-  combination of valid components?" → Server-side policy enforcement ("Valid
-  isn't allowed", Part 5) is the layer for this — catalog validation checks
-  shape, not business rules. And say the honest limit ("What the boundary
-  guarantees, and what it doesn't").
-
-- "Where is this heading?" → was Part 7, The Future (moved off the slides 2026-11-14; no published source, it is my projection). Renderers checked on a2ui-project/a2ui main 2026-11-14: Angular, React, Lit (TypeScript), Flutter (Dart), SwiftUI (Swift, via SwiftPM). Jetpack Compose is only named in the README, no renderer in the repo.
-
-# A component that describes itself
-
-Imagine a `<calendar>` component that, alongside its rendering logic, exposes
-a schema describing its own capabilities: what actions it accepts, what data
-it needs, what events it emits.
-
-Any agent, without knowing the component exists, can compose it correctly —
-because the capability negotiation protocol already handles exactly this
-exchange.
-
-The component advertises itself. The agent operates within what it's been shown.
-
-Notes: Ground the future section with this one concrete example before going broad —
-don't jump straight to the abstract vision. This is a natural extension of
-the capability manifest mechanism from Part 4, just pushed further: instead
-of a fixed catalog manifest, individual components self-describe.
-
-# The broader vision
-
-A2UI is already pointing here.
-
-The same agent composes a surface that renders natively in **Angular**,
-**Flutter**, or **SwiftUI** — from the same JSON payload.
-
-The frontend stops being a passive render target and becomes a capability
-system.
-
-Notes: Widen the lens here. Everything in the talk was scoped to one Angular app —
-this is the reminder that the protocol itself doesn't care which renderer
-is on the other end, and that's a deliberate design choice, not an accident.
--->
 
 ---
 rule: ['Wrap-up', 'A2UI · AngularDay 2026']
@@ -1629,7 +1552,83 @@ an interface they can trust, built from our components and shaped by what they j
 asked. Designing that is the next job for frontend developers."
 
 If time's up: skip the columns, say only that.
-Then the thank-you slide.
+Then Questions: the MC runs the Q&A and its time.
+-->
+
+---
+rule: ['Questions', 'A2UI · AngularDay 2026']
+---
+
+<div class="ta">
+  <div class="ta-hero">
+    <FitText>Questions?</FitText>
+  </div>
+  <div class="ta-promo">
+    <!-- TODO masterclass: replace the placeholder with <img src="/src/qr-masterclass.png" class="qr-code" alt="QR code to the masterclass sign-up" /> once the link exists -->
+    <div class="qr-placeholder" aria-hidden="true">QR<br>soon</div>
+    <div>
+      <b>Go deeper: the A2UI masterclass</b>
+      <span>Structured generative UI with Angular, hands-on · December · sign up via the QR</span>
+    </div>
+  </div>
+</div>
+
+<!--
+Speaker notes:
+Open the Q&A with the masterclass in one sentence: "If you want to build this
+hands-on, I'm running a masterclass in December: the QR stays up the whole Q&A."
+Then take questions.
+The wrap-up is already done (previous slide). The MC manages the Q&A and its time;
+if someone needs longer, "find me after, I'm around all day."
+When the MC closes it: the thank-you slide (rate the talk, links).
+
+Q&A prep — likely questions:
+- "Is A2UI production-ready?" → The spec is v1.0 and stable since 6 Nov; the
+  libraries are still 0.x and the demo pins v0.9. The pattern is what to adopt now;
+  the specific library will stabilize. See the Part 2 maturity slide.
+- "What about React/Vue teams?" → A2UI is framework-agnostic (Part 6 opener).
+  The Angular-specific argument is about fit, not exclusivity.
+- "Doesn't the agent still need to know the catalog?" → Yes — that's the point.
+  Capability negotiation sends the catalog to the agent before generation
+  (Part 5). It's a closed, known vocabulary, not an open one.
+- "What stops a compromised agent from requesting a valid-looking but malicious
+  combination of valid components?" → Server-side policy enforcement ("Valid
+  isn't allowed", Part 5) is the layer for this — catalog validation checks
+  shape, not business rules. And say the honest limit ("What the boundary
+  guarantees, and what it doesn't").
+
+- "Where is this heading?" → was Part 7, The Future (moved off the slides 2026-11-14; no published source, it is my projection). Renderers checked on a2ui-project/a2ui main 2026-11-14: Angular, React, Lit (TypeScript), Flutter (Dart), SwiftUI (Swift, via SwiftPM). Jetpack Compose is only named in the README, no renderer in the repo.
+
+# A component that describes itself
+
+Imagine a `<calendar>` component that, alongside its rendering logic, exposes
+a schema describing its own capabilities: what actions it accepts, what data
+it needs, what events it emits.
+
+Any agent, without knowing the component exists, can compose it correctly —
+because the capability negotiation protocol already handles exactly this
+exchange.
+
+The component advertises itself. The agent operates within what it's been shown.
+
+Notes: Ground the future section with this one concrete example before going broad —
+don't jump straight to the abstract vision. This is a natural extension of
+the capability manifest mechanism from Part 4, just pushed further: instead
+of a fixed catalog manifest, individual components self-describe.
+
+# The broader vision
+
+A2UI is already pointing here.
+
+The same agent composes a surface that renders natively in **Angular**,
+**Flutter**, or **SwiftUI** — from the same JSON payload.
+
+The frontend stops being a passive render target and becomes a capability
+system.
+
+Notes: Widen the lens here. Everything in the talk was scoped to one Angular app —
+this is the reminder that the protocol itself doesn't care which renderer
+is on the other end, and that's a deliberate design choice, not an accident.
 -->
 
 ---
