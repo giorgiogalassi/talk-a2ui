@@ -21,9 +21,13 @@ import { ApplicationRef, Injectable, inject, signal } from '@angular/core';
 import { A2uiRendererService } from '@a2ui/angular/v0_9';
 import { A2uiClientAction, A2uiClientError, A2uiMessage, A2uiValidationError } from '@a2ui/web_core/v0_9';
 import { ValidationIssue, ValidationIssues } from './validation-issues';
+import { JsonLog } from '../demo/json-log';
 
 /** Demo: what the renderer reports to the agent, the v0.9 client-to-server `error`. */
 type ValidationFailed = Extract<A2uiClientError, { code: 'VALIDATION_FAILED' }>;
+
+/** One `data:` event of POST /api/agent, as server.ts writes it. */
+type ServerEvent = { messages?: A2uiMessage[]; text?: string; sessionId?: string; error?: string };
 
 /**
  * Demo: reports in a row without a user action in between. The agent allows one retry per
@@ -52,6 +56,8 @@ export class AgentClient {
   private readonly renderer = inject(A2uiRendererService);
   private readonly issues = inject(ValidationIssues);
   private readonly appRef = inject(ApplicationRef);
+  /** Demo: the last turn's messages, for the panel's "Show JSON" drawer. */
+  private readonly jsonLog = inject(JsonLog);
   /** Demo: VALIDATION_FAILED reports sent since the user's last prompt or action. */
   private reports = 0;
   /** The conversation's id, opaque here: the server maps it to the transport's own. */
@@ -96,9 +102,11 @@ export class AgentClient {
     // (live) one keeps the old view, dimmed, and an error report keeps the partly rejected surface
     // until the corrected reply arrives (or under the agent's text fallback). app.ts tracks
     // surfaces by object, not id, so a surface re-created under the same id is drawn afresh.
+    // A prompt or action whose reply carries no A2UI at all clears them at the end (finally).
     this.clearOnFirstMessage = true;
     // Demo: only this reply's problems are reported.
     this.issues.clear();
+    this.jsonLog.start(turnLabel(body));
     let complete = false;
     let reader: ReadableStreamDefaultReader<string> | undefined;
     this.isLoading.set(true);
@@ -125,7 +133,10 @@ export class AgentClient {
         const events = buffer.split('\n\n');
         buffer = events.pop() ?? '';
         for (const event of events) {
-          if (event.startsWith('data: ')) this.handleEvent(JSON.parse(event.slice(6)));
+          if (!event.startsWith('data: ')) continue;
+          const parsed: ServerEvent = JSON.parse(event.slice(6));
+          this.jsonLog.add(parsed);
+          this.handleEvent(parsed);
         }
       }
       complete = true;
@@ -137,7 +148,12 @@ export class AgentClient {
       );
       void reader?.cancel().catch(() => undefined);
     } finally {
-      // A reply without any A2UI (an error, a text-only answer) leaves the old view in place.
+      // Demo: a prompt or action whose reply had no A2UI at all (the agent's text fallback after
+      // a model failure, an error, a timeout) is not an answer the old view belongs to: it goes,
+      // so the text or error stands alone instead of above the previous turn's surfaces. Decided
+      // here, when the whole turn is known to have carried none. An error report keeps the partly
+      // rejected surface: it is this question's own answer, shown under the fallback.
+      if (this.clearOnFirstMessage && !body.error) this.clearSurfaces();
       this.clearOnFirstMessage = false;
       this.isLoading.set(false);
       this.waitingForUi.set(false);
@@ -177,7 +193,7 @@ export class AgentClient {
     await this.send({ error });
   }
 
-  private handleEvent(event: { messages?: A2uiMessage[]; text?: string; sessionId?: string; error?: string }) {
+  private handleEvent(event: ServerEvent) {
     if (event.error) throw new Error(event.error);
     if (event.sessionId) this.sessionId = event.sessionId;
     if (this.clearOnFirstMessage && event.messages?.length) {
@@ -251,6 +267,13 @@ async function errorMessage(response: Response): Promise<string> {
     // Not JSON: a proxy page, or an empty body.
   }
   return `The server answered ${response.status}${response.statusText ? ` ${response.statusText}` : ''}.`;
+}
+
+/** Demo: what started a turn, as the "Show JSON" drawer heads it. */
+function turnLabel(body: { query?: string; event?: unknown; error?: ValidationFailed }): string {
+  if (body.error) return `VALIDATION_FAILED report (${body.error.path})`;
+  if (body.event) return `Action: ${(body.event as { name?: string }).name ?? 'click'}`;
+  return `Prompt: "${body.query ?? ''}"`;
 }
 
 function rejectedKey(surfaceId: string, componentId: unknown): string {

@@ -16,6 +16,8 @@
   --font-display: 'Roboto Flex', system-ui, sans-serif;
   --font-body: 'Google Sans', system-ui, sans-serif;
   --font-accent: 'Instrument Serif', Georgia, serif;
+  /* Demo: the "Show JSON" drawer's column on wide screens (app/demo/json-drawer.ts). */
+  --json-drawer-width: clamp(380px, 44vw, 860px);
 
   /* A2UI basic catalog (Button, TextField, Card, Text…) reads these. */
   --a2ui-color-primary: var(--accent-fill);
@@ -85,6 +87,12 @@ app-root {
   max-width: 880px;
   margin: 0 auto;
   padding: 48px 24px;
+}
+
+/* Demo: while the JSON drawer shows, the page centres in what is left of the window, so the
+   drawer sits next to the UI instead of over it. Narrow windows get it below the UI instead. */
+@media (min-width: 900px) {
+  body:has(app-root.with-json) { padding-right: calc(var(--json-drawer-width) + 16px); }
 }
 
 /* The prompt: full-width input, pill button like the blog's book-a-call CTA. */

@@ -41,6 +41,13 @@ the agent) and the thinking level. A change applies from the next prompt or clic
 `GET/PUT /demo/flags` on the agent (`apps/agent/src/demo/demo-flags.ts`), forwarded by the client's
 `server.ts`; a change is accepted only from this machine. The same switches can start on with
 `STUB_INVALID_FIRST`, `STUB_LEAKY`, `STUB_CLIENT_INVALID` (`true`). `MODEL_NAME` needs a restart.
+The panel's last switch, *Show JSON* (off by default), is the browser's own and not an agent flag:
+it opens a drawer next to the UI with the last turn's A2UI messages (`createSurface`,
+`updateComponents`, `updateDataModel`), pretty-printed, one block per server-sent event, plus the
+agent's text and any error event (stage 6's fallback). It starts over on every request: a prompt,
+a click, or the automatic retry after VALIDATION_FAILED. Chrome DevTools can't show these: the
+client reads `POST /api/agent` with `fetch()` and a stream reader, so Network has no EventStream
+tab and no response body.
 
 **One app at a time**, if you prefer two terminals:
 
@@ -68,6 +75,7 @@ apps/client/src/                      the Angular app
     catalog/                          the components the agent may use: TicketList,
                                       PriorityBadge, AssigneeChip (+ resolved-value checks)
     demo/demo-panel.ts                presenter-only switches (Alt+Shift+D)
+    demo/json-drawer.ts · json-log.ts the "Show JSON" drawer: the last turn's A2UI messages
 
 apps/agent/src/                       the agent
   index.ts                            HTTP server: A2A endpoint, agent card, /demo/flags (sample)

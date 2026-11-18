@@ -175,6 +175,31 @@ describe('client-side validation (phase 6)', () => {
     expect(TestBed.inject(ValidationIssues).list()).toEqual([]);
   });
 
+  it('keeps the ? placeholder on screen while the report is answered, until the corrected reply', async () => {
+    const fixture = TestBed.createComponent(Host);
+    const html = fixture.nativeElement as HTMLElement;
+    let reportSent!: () => void;
+    const reported = new Promise<void>((resolve) => (reportSent = resolve));
+    let release!: () => void;
+    const sse = (messages: unknown[]) => new Response(`data: ${JSON.stringify({ messages, sessionId: 's1' })}\n\n`);
+    const fetch = vi.fn(async () => {
+      if (fetch.mock.calls.length === 1) return sse(ticketList({ path: 'priority' }, 'critical'));
+      reportSent();
+      return new Promise<Response>((resolve) => (release = () => resolve(sse(ticketList({ path: 'priority' }, 'urgent')))));
+    });
+    vi.stubGlobal('fetch', fetch);
+
+    const turn = TestBed.inject(AgentClient).ask('Show me the open tickets');
+    await reported;
+    fixture.detectChanges();
+    expect(html.querySelector('.priority-badge.invalid')?.textContent).toBe('?');
+
+    release();
+    await turn;
+    await fixture.whenStable();
+    expect(html.querySelector('.priority-badge')?.textContent).toBe('urgent');
+  });
+
   it("shows the agent's text fallback and keeps the rejected surface on screen", async () => {
     const fixture = TestBed.createComponent(Host);
     fakeAgent([ticketList({ path: 'priority' }, 'critical'), { text: 'Sorry, I could not show that view.' }]);
