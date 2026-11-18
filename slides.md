@@ -1149,42 +1149,25 @@ rule: ['Angular as the Rendering Engine', 'Part 6']
 # Zoneless and streaming
 
 A2UI streams many small `updateDataModel` messages, each targeting one
-JSON Pointer path.
+JSON Pointer path. In a zoneless app, each one:
 
-<div class="ta-cols" style="grid-template-columns: 1fr 1.45fr">
-<div>
+- **writes one signal** in the data model
+- re-runs only the **computed signals** that read it
+- updates only the **components** whose templates read those: nothing else is checked
 
-## With Zone.js
+<div v-click class="callout">
 
-Every incoming async message from a WebSocket or SSE stream
-triggers **application-wide** change detection — even when one field on one
-component changed.
+For a data-heavy dashboard receiving live updates: the difference between a
+performant and a <span class="hl">sluggish</span> surface.
 
 </div>
-<div v-click>
-
-## With Zoneless + OnPush
-
-```ts
-bootstrapApplication(AppComponent, {
-  providers: [provideZonelessChangeDetection()] // default since Angular 21
-});
-```
-
-Only the computed signals that actually changed are re-evaluated.
-
-For a data-heavy dashboard receiving live updates: the difference between
-a performant and a sluggish surface.
 
 <div class="text-sm text-gray-400">
 
-In the demo there's nothing to add: zoneless is the default since Angular 21, so
-`app.config.ts` has no provider for it. Zoneless is stable since Angular 20.2. The demo runs
-on Angular 22 with no Zone.js at all.
+We used to have zone.js, where every async message re-ran change detection across
+the whole app. Zoneless is the default since Angular 21 (stable since 20.2) and OnPush
+since 22: the demo needs no setup for either.
 
-</div>
-
-</div>
 </div>
 
 <!--
@@ -1194,10 +1177,15 @@ Don't just name-drop Zoneless here — make the specific case, this is the slide
 where a skeptical Angular engineer decides whether you actually understand the
 mechanism or are pattern-matching buzzwords.
 
-[click: With Zoneless + OnPush]
-On 21+ the provider line is not needed; it's on the slide to name the
-mechanism. OnPush plus signals already gets you most of the win. Zoneless removes the last bit of
-coarse-grained triggering on top of that.
+Walk the three bullets as one chain: message → one signal → its computeds → the
+templates that read them. That's the same chain the signal graph shows in the demo
+(stage 7: data model signal at the top, computeds, template at the bottom).
+
+zone.js gets one sentence, in the past tense (the footnote): it's how Angular used to
+know "something async happened, check everything". Don't compare at length: the room
+knows it, and on 21+ it's simply gone by default.
+
+[click: callout] The payoff, for the dashboards of Part 3.
 -->
 
 ---
