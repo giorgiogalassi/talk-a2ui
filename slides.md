@@ -1271,7 +1271,52 @@ screen.
    through signals). Checked in Stub 2026-11-18; Live still to check.
 
 If the model is slow or down: switch to Stub in the panel and say so openly. The
-recording is the last resort.
+recording is the last resort (~/Desktop/angularday-a2ui-demo.mp4).
+
+REHEARSAL NOTES (walk-through of 18 Nov, all 7 stages in Stub)
+Before: run `npm run demo:live` in YOUR terminal (the agent log is half the demo).
+DevTools closed or undocked (docked, it squeezes the app). Panel: Alt+Shift+D.
+Live failed 3/3 on 18 Nov (Gemini 503 "high demand"): if it happens on stage, say
+"the model is down and the app still answers" (that IS stage 6), switch to Stub.
+
+1. capabilities line = the negotiation. Only the catalog id travels, the agent
+   already holds the Zod catalog. The browser never sends it: server.ts adds it.
+2. Three messages: createSurface (surface + catalog id), updateComponents (the
+   tree; components point at data with "path"), updateDataModel (the data).
+   Only catalog components, no HTML/script. Browser sees { messages, sessionId }.
+   Why the drawer and not Network: fetch() + getReader(), Chrome shows nothing.
+3. Leaky replies are schema-VALID. Schema: "is this a valid UI?"; policy: "may
+   this user see or do this?". Filters mid-stream re-sends too. Live rarely leaks:
+   that's why the stub switch exists, say so.
+4. "critical" as a LITERAL in the component: the agent's Zod (enum branch) rejects
+   it before sending, retries once with the error. Browser sees only the valid list.
+5. "critical" in the DATA MODEL, the badge binds {"path":"priority"}: the agent
+   passes it (a binding only has to be {path: string}). The browser resolves the
+   binding (/tickets/0 + priority = /tickets/0/priority), checks the value against
+   the enum (resolved-value.ts: same schema minus the binding branch), shows "?",
+   sends VALIDATION_FAILED with path + message, the agent redoes the turn once.
+   In Stub the "?" lasts a blink: announce it BEFORE clicking; proof = the agent
+   log + the drawer header ("VALIDATION_FAILED report (/tickets/0/priority)").
+6. The floor: a placeholder for one bad value; plain text (FALLBACK_TEXT) after a
+   second failure or a model error. Never a half-rendered surface.
+7. Signal graph: blue = writable, green = computed, grey = the template. Top
+   "Unnamed Array(3)" = the data model's /tickets signal. "Unnamed" = created by
+   web_core's data model through Angular's signal() (setSignalImplementation, slide
+   27); the compiler only names signals declared as class fields or inputs.
+
+IF ASKED
+- Same schema on both sides? Yes, one source (@demo/catalog): three checks. Agent
+  checks the message it writes; web_core re-checks it on arrival; the browser
+  checks the VALUES it renders (next slide).
+- Why bind instead of a literal? Lists (one row template, N rows), updates
+  without re-sending components (stage 7), data that flows back (forms, action
+  context), values from your backend. Literals for constants ("Open").
+- Why not check the value on arrival? Without the union the binding itself fails;
+  the data may arrive later or change (streaming, user input); one binding = many
+  values (one per row context).
+- Is the value check A2UI's? No: web_core 0.14 checks only the binding's shape.
+  The demo adds it, top-level props only (a nested prop isn't covered). Upstream
+  issue drafted.
 -->
 
 ---
@@ -1303,6 +1348,52 @@ the talk.
 On model choice, if asked: Gemini through @google/genai, one tool (get_tickets),
 thinking MINIMAL for latency. No response_schema: the catalog in the prompt and the
 Zod check after it do that job. The architecture is model-agnostic.
+-->
+
+---
+rule: ['Demo', 'Part 7']
+---
+
+# One schema, <span class="hl">three checks</span>
+
+Same `PriorityBadgeApi` everywhere: `priority` is the enum **or** a binding `{path}`.
+
+```mermaid {scale: 0.72}
+flowchart LR
+  subgraph AG["Agent · before sending"]
+    A["① the message<br/>{path: 'priority'}<br/>a binding ✓"]
+  end
+  subgraph BR["Browser"]
+    W["② on arrival<br/>same message ✓"]
+    D[("data model<br/>/tickets/0/priority<br/>= 'critical'")]
+    R["③ at render<br/>'critical' vs the enum ✗"]
+  end
+  A -- "SSE" --> W
+  W --> R
+  D --> R
+  R -. "VALIDATION_FAILED · /tickets/0/priority" .-> A
+```
+
+<div class="callout">
+
+The agent checks the <span class="hl">message it writes</span>; the browser checks the <span class="hl">values it renders</span>.
+
+</div>
+
+<!--
+Optional: show it if there's time after "What you just saw", or jump here when
+someone asks about bindings (dev.to comment, 18 Nov).
+
+One schema, from @demo/catalog: priority is the enum OR a binding.
+1 + 2 check the component message: {"path":"priority"} matches the binding
+branch, so both pass, whatever the data holds. The binding schema only checks the
+shape {path: string}.
+3 is the only place a value exists: the renderer resolves the path against the
+data model (row context /tickets/0), and resolved-value.ts checks it against the
+same schema minus the binding branch. 'critical' fails: "?" on the badge,
+VALIDATION_FAILED back to the agent, one retry.
+Honest caveat: check 3 is the demo's code, not web_core 0.14, and covers
+top-level props only. That's the upstream issue.
 -->
 
 ---
