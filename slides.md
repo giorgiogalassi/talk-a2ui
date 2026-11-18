@@ -1231,7 +1231,7 @@ A support desk. One prompt: *"Show me the open tickets"*. Then seven moments.
 4. **The agent rejects its own answer**: a value outside the catalog, caught and retried ◆
 5. **The browser rejects a value**: `VALIDATION_FAILED` goes back, the turn is redone ◆
 6. **Never a broken screen**: a placeholder for the bad part, or a plain text answer
-7. **Streaming**: the list fills in, and only the rows that changed re-render
+7. **Streaming**: the list fills in, and only what reads the changed data updates
 
 <!--
 Speaker notes:
@@ -1246,8 +1246,10 @@ screen.
 1. Negotiation. Ask "Show me the open tickets". Show the agent terminal:
    "--- capabilities: {"v0.9":{"supportedCatalogIds":[...]}} -> v0.9 ---". The
    browser never sends this; our server adds it. Only catalog ids travel.
-2. JSON. Network tab: the SSE response of POST /api/agent, data: {messages:[...]}.
-   createSurface, updateComponents, updateDataModel. Readable.
+2. JSON. Panel: "Show JSON" on. The drawer next to the app shows the last turn's
+   messages, one block per SSE event: createSurface, updateComponents,
+   updateDataModel. Readable. (Not DevTools Network: the client reads the stream
+   with fetch(), so Chrome shows no EventStream tab and no response body.)
 3. Policy. Panel: Stub + "Leaky replies" on. Ask again, open a ticket. Agent log:
    "--- policy: stripped /tickets/0/internal_notes ---", "removed Button delete".
    The detail view has no Delete and no notes. Live, the model rarely gives the
@@ -1260,9 +1262,13 @@ screen.
    /tickets/0/priority", "Retrying the last turn", corrected list.
 6. Never broken: the "?" placeholder was it; a second failure gets text
    (FALLBACK_TEXT), never a broken surface.
-7. Streaming: Live mode. Angular DevTools profiler while the list fills: only the
-   ticket rows re-evaluate. Check at rehearsal; if it shows one burst, show the
-   re-sends in the network tab instead and say so.
+7. Streaming. Show JSON drawer: the updateDataModel blocks arrive one per event.
+   Then Angular DevTools -> Components -> app-ticket-list -> Show Signal Graph:
+   the data model signal at the top, computeds down to children/title, the
+   template at the bottom. "updateDataModel writes one signal; only what reads
+   it updates." Profiler only as a one-liner: one cycle, only the app shell
+   checked (it doesn't list the A2UI components as checked: their updates come
+   through signals). Checked in Stub 2026-11-18; Live still to check.
 
 If the model is slow or down: switch to Stub in the panel and say so openly. The
 recording is the last resort.
