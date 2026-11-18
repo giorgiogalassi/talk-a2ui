@@ -3,6 +3,8 @@ import { BasicCatalog, provideA2Ui, provideMarkdownRenderer } from '@a2ui/angula
 import { renderMarkdown } from '@a2ui/markdown-it';
 import { AgentClient } from './agent-client';
 import { createTicketCatalog } from '../catalog/ticket-catalog';
+import { JsonLog } from '../demo/json-log';
+import { TICKET_CATALOG_ID } from '@demo/catalog';
 
 // Demo: AgentClient on the paths that matter on stage: one turn at a time, and readable errors.
 
@@ -51,5 +53,26 @@ describe('AgentClient', () => {
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({}, { status: 500 })));
     await agent.ask('x');
     expect(agent.error()).toBe('The server answered 500.');
+  });
+
+  it('logs each event of the last turn for the JSON drawer, and starts over on the next request', async () => {
+    const reply = (surfaceId: string) =>
+      new Response(
+        `data: ${JSON.stringify({ messages: [{ version: 'v0.9', createSurface: { surfaceId, catalogId: TICKET_CATALOG_ID } }], sessionId: 's1' })}\n\n` +
+          `data: ${JSON.stringify({ messages: [], text: 'Done.', sessionId: 's1' })}\n\n`,
+      );
+    vi.stubGlobal('fetch', vi.fn(async () => reply('first')));
+    const agent = TestBed.inject(AgentClient);
+    const log = TestBed.inject(JsonLog);
+    await agent.ask('Show me the open tickets');
+    expect(log.turn()).toBe('Prompt: "Show me the open tickets"');
+    expect(log.events().map((e) => [e.messages.length, e.text])).toEqual([[1, undefined], [0, 'Done.']]);
+    expect(log.events()[0].messages[0].json).toContain('"first"');
+
+    vi.stubGlobal('fetch', vi.fn(async () => reply('second')));
+    await agent.handleAction({ name: 'open_ticket', surfaceId: 's', sourceComponentId: 'b', timestamp: '', context: {} } as any);
+    expect(log.turn()).toBe('Action: open_ticket');
+    expect(JSON.stringify(log.events())).not.toContain('"first"');
+    expect(log.events()[0].messages[0].json).toContain('"second"');
   });
 });
