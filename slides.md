@@ -1109,7 +1109,7 @@ How the React renderer does it, I haven't checked.
 rule: ['Angular as the Rendering Engine', 'Part 6']
 ---
 
-# Why the message split matters
+# Structure once, data <span class="hl">path by path</span>
 
 A2UI separates component **structure** from **data** into distinct message types:
 
