@@ -2,11 +2,15 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { A2uiRendererService, SurfaceComponent } from '@a2ui/angular/v0_9';
 import { AgentClient } from './agent/agent-client';
 import { DemoPanel } from './demo/demo-panel';
+import { JsonDrawer } from './demo/json-drawer';
+import { JsonLog } from './demo/json-log';
 
 @Component({
   selector: 'app-root',
-  imports: [SurfaceComponent, DemoPanel],
+  imports: [SurfaceComponent, DemoPanel, JsonDrawer],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // Demo: styles.css makes room on the right for the JSON drawer while it shows.
+  host: { '[class.with-json]': 'jsonLog.visible()' },
   template: `
     <form (submit)="submit($event, prompt.value)">
       <input #prompt name="prompt" aria-label="Ask the agent" value="Show me the open tickets" [disabled]="agent.isLoading()" />
@@ -34,6 +38,11 @@ import { DemoPanel } from './demo/demo-panel';
       }
     </div>
 
+    <!-- Demo: the last turn's A2UI messages, next to the UI (panel switch "Show JSON"). -->
+    @if (jsonLog.visible()) {
+      <app-json-drawer />
+    }
+
     <app-demo-panel />
   `,
   // Demo: while the agent works, the Ask button pulses "Working…" and the old view dims, so a
@@ -60,6 +69,7 @@ import { DemoPanel } from './demo/demo-panel';
 export class App {
   protected readonly agent = inject(AgentClient);
   protected readonly renderer = inject(A2uiRendererService);
+  protected readonly jsonLog = inject(JsonLog);
 
   protected submit(event: Event, prompt: string) {
     event.preventDefault();

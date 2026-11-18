@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, afterNextRender, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, afterNextRender, inject, signal } from '@angular/core';
+import { JsonLog } from './json-log';
 
 /** The agent's stage switches, as GET/PUT /demo/flags carries them (agent: src/demo/demo-flags.ts). */
 interface DemoFlagsState {
@@ -17,6 +18,7 @@ const THINKING_LEVELS = ['MINIMAL', 'LOW', 'MEDIUM', 'HIGH', 'DEFAULT'];
  * Demo: a presenter-only panel for the agent's switches, so stub/live, the invalid first
  * attempt, the leaky replies and the renderer-rejected first attempt change between turns without restarting the agent.
  * Hidden by default; Alt+Shift+D (⌥⇧D) shows and hides it. Changes apply from the next turn.
+ * "Show JSON" is the browser's own switch (JsonLog), not one of the agent's flags.
  */
 @Component({
   selector: 'app-demo-panel',
@@ -44,7 +46,7 @@ const THINKING_LEVELS = ['MINIMAL', 'LOW', 'MEDIUM', 'HIGH', 'DEFAULT'];
           <label class="row" [class.off]="!f.stub">
             <input type="checkbox" [checked]="f.invalidFirst" [disabled]="!f.stub || busy()"
               (change)="set({ invalidFirst: checked($event) }, $event)" />
-            <span>First attempt invalid <small>shows the retry (stage 5)</small></span>
+            <span>First attempt invalid <small>shows the retry (stage 4)</small></span>
           </label>
           <label class="row" [class.off]="!f.stub">
             <input type="checkbox" [checked]="f.leaky" [disabled]="!f.stub || busy()"
@@ -54,7 +56,7 @@ const THINKING_LEVELS = ['MINIMAL', 'LOW', 'MEDIUM', 'HIGH', 'DEFAULT'];
           <label class="row" [class.off]="!f.stub">
             <input type="checkbox" [checked]="f.clientInvalid" [disabled]="!f.stub || busy()"
               (change)="set({ clientInvalid: checked($event) }, $event)" />
-            <span>Renderer rejects first attempt <small>VALIDATION_FAILED back to the agent</small></span>
+            <span>Renderer rejects first attempt <small>VALIDATION_FAILED back to the agent (stage 5)</small></span>
           </label>
           <label class="row" [class.off]="f.stub">
             <span>Thinking</span>
@@ -73,6 +75,12 @@ const THINKING_LEVELS = ['MINIMAL', 'LOW', 'MEDIUM', 'HIGH', 'DEFAULT'];
         @if (error(); as error) {
           <p class="error">{{ error }}</p>
         }
+
+        <!-- Demo: client-only, so it works even when the agent's flags don't load. -->
+        <label class="row json">
+          <input type="checkbox" [checked]="jsonLog.visible()" (change)="jsonLog.visible.set(checked($event))" />
+          <span>Show JSON <small>the last turn's A2UI messages, next to the UI (stage 2)</small></span>
+        </label>
       </aside>
     }
   `,
@@ -150,6 +158,7 @@ const THINKING_LEVELS = ['MINIMAL', 'LOW', 'MEDIUM', 'HIGH', 'DEFAULT'];
     .row select:disabled { cursor: not-allowed; }
     .hint { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
     .error { margin: 8px 0 0; font-size: 12px; color: var(--accent-text); }
+    .row.json { padding-top: 12px; border-top: 1px solid var(--line-soft); }
   `,
 })
 export class DemoPanel {
@@ -158,6 +167,7 @@ export class DemoPanel {
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly levels = THINKING_LEVELS;
+  protected readonly jsonLog = inject(JsonLog);
 
   constructor() {
     // The browser only: the server render has no agent to ask.
