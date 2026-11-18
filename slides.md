@@ -8,6 +8,7 @@ drawings:
   persist: false
 transition: slide-left
 mdc: true
+colorSchema: light
 fonts:
   sans: Roboto
   mono: Roboto Mono
@@ -60,7 +61,7 @@ rule: ['Part 1', 'The Problem']
 </div>
 
 <!--
-~5 minutes.
+~4 minutes.
 -->
 
 ---
@@ -96,7 +97,7 @@ It's agents that need to hand something visual and interactive back to a user,
 in a system they do not fully control.
 Pause after "they hit a wall" — let that land before moving to the quote.
 
-[click: Google says it plainly]
+[click: the quote]
 Ground the problem in Google's own framing from the A2UI README before offering
 your own take. This isn't me inventing a problem — Google's own team building this
 standard describes it the same way.
@@ -203,7 +204,7 @@ rule: ['Part 2', 'The Paradigm Shift']
 </div>
 
 <!--
-~5 minutes.
+~4 minutes.
 -->
 
 ---
@@ -240,7 +241,7 @@ Check the star count on the day: the number moves.
 rule: ['The Paradigm Shift', 'Part 2']
 ---
 
-# The core diagram
+# Intent in, <span class="hl">native UI</span> out
 
 ```
 User Intent → LLM → A2UI JSON → Renderer → Native UI
@@ -291,7 +292,7 @@ and known in advance. That's the actual mechanism, not a vibe about data vs. cod
 rule: ['The Paradigm Shift', 'Part 2']
 ---
 
-# Acknowledge maturity, up front
+# Where A2UI is today
 
 The A2UI spec reached **v1.0** on 6 Nov, declared stable.
 The SDKs are still **0.x** and lag behind it. This demo runs **v0.9**, on purpose.
@@ -334,7 +335,7 @@ rule: ['Part 3', 'Where This Actually Makes Sense']
 </div>
 
 <!--
-~5 minutes. One slide for the pattern (the industry examples are in its notes), one
+~4 minutes. One slide for the pattern (the industry examples are in its notes), one
 for the sub-agent case, plus the "when NOT to use this" closing slide — do not skip it. The audience will ask "when would I actually
 build this?" before buying into the architecture in Parts 4 to 6.
 -->
@@ -423,6 +424,16 @@ reporting agent.
 The sub-agent returns an A2UI payload. The parent renders it inline
 **without knowing its structure in advance**.
 
+```mermaid {scale: 0.7}
+flowchart LR
+  U["User"] --> P["Parent agent"]
+  P -- "task" --> S["Booking sub-agent"]
+  S -- "A2UI payload" --> P
+  P -- "rendered inline" --> UI["Your app"]
+  C[("Shared catalog")] -.- S
+  C -.- UI
+```
+
 <div class="callout">
 
 The catalog defines the <span class="hl">contract</span> both agents work within.
@@ -473,7 +484,7 @@ rule: ['Part 4', 'Anatomy of an A2UI System']
 </div>
 
 <!--
-~10 minutes. This is the technical core.
+~4 minutes. The pieces, then the pipeline: everything after this zooms into it.
 -->
 
 ---
@@ -903,30 +914,17 @@ rule: ['Part 6', 'Angular as the Rendering Engine']
     <FitText>Angular as the</FitText>
     <FitText>Rendering Engine.</FitText>
   </div>
+  <div class="ta-aside" style="grid-template-columns:1fr;margin-top:1.2rem">
+    <p>A2UI is framework-agnostic: the same JSON renders in Flutter, Lit, React or SwiftUI. Angular is here because its primitives map almost exactly onto what the protocol needs.</p>
+  </div>
 </div>
 
 <!--
-~15 minutes.
--->
-
----
-rule: ['Angular as the Rendering Engine', 'Part 6']
----
-
-# A2UI is framework-agnostic
-
-The same JSON payload can be rendered in Flutter, Lit, React, or SwiftUI.
-
-You're using Angular because it fits this architecture exceptionally well —
-here's the specific technical case for why.
-
-<!--
-Speaker notes:
-Own this directly and don't undersell it. Nobody in the room should think
-you're claiming Angular is required. The claim is narrower and stronger:
-Angular's existing primitives happen to map almost exactly onto what this
-protocol needs, and that's worth walking through concretely rather than
-asserting.
+~7 minutes: the integration, the catalog, the reactivity, structure vs data.
+Own the framework-agnostic point directly and don't undersell it. Nobody should think
+you're claiming Angular is required. The claim is narrower and stronger: Angular's
+existing primitives map almost exactly onto what this protocol needs, and the next
+four slides walk through that concretely rather than asserting it.
 -->
 
 ---
@@ -980,6 +978,15 @@ On `track entry[1]`: track the surface object, not its id. A corrected reply
 re-creates a surface under the same id; tracked by id, Angular keeps the old
 drawing (incident 6 in the demo README).
 
+What the library does behind that one element, if asked: `<a2ui-v09-surface>`
+(SurfaceComponent, @a2ui/angular/v0_9) feeds each message to web_core's
+MessageProcessor (A2uiRendererService.processMessages()), resolves component types
+from your catalog, instantiates your Angular components dynamically
+(ComponentHostComponent) and wires the reactive prop bindings (ComponentBinder). Your
+components extend `CatalogComponent<typeof XApi>`, which types `props()` from the Zod
+ComponentApi. All standalone components: that's what lets the host load them one by
+one, with no module graph.
+
 Everything else lives in the catalog you write next.
 -->
 
@@ -1012,40 +1019,6 @@ pairs. Each `Api` is the Zod schema from Part 5, imported from the same
 `packages/catalog` the agent validates with. Each implementation is a normal
 Angular component. The basic components (Text, Row, Card…) are the library's
 own, filtered to the ones the catalog lists. No special DSL beyond this.
--->
-
----
-rule: ['Angular as the Rendering Engine', 'Part 6']
----
-
-# What the renderer does for you
-
-`@a2ui/angular/v0_9` ships a `SurfaceComponent` (`<a2ui-v09-surface>`) you drop into your app.
-
-It handles, internally:
-- receiving A2UI messages: `A2uiRendererService.processMessages()` feeds the `MessageProcessor` from `web_core`
-- resolving component types from your catalog
-- dynamically instantiating Angular components via `ComponentHostComponent`
-- wiring up reactive property bindings via `ComponentBinder`
-
-<div class="text-sm text-gray-400">
-
-Source: [surface.component.ts#L43-L52](https://github.com/a2ui-project/a2ui/blob/45633b9/typescript/renderers/angular/src/core/surface.component.ts#L43-L52) ·
-[component-host.component.ts#L252](https://github.com/a2ui-project/a2ui/blob/45633b9/typescript/renderers/angular/src/core/component-host.component.ts#L252)
-
-</div>
-
-<!--
-Speaker notes:
-Start the section here — this reframes everything correctly before diving into
-mechanism. What you write is a catalog. What the library gives you is a renderer.
-Your custom components extend `CatalogComponent<typeof XApi>`, which types
-`props()` straight from the Zod `ComponentApi`; each prop is a bound property
-whose `value()` is an Angular signal (web_core runs on Angular's own signals,
-next slide). (`BasicCatalogComponent` is the subclass the library's own basic
-components use; the demo's custom ones don't need it.)
-The example to pull up live if time allows: the demo's PriorityBadge,
-demo/apps/client/src/app/catalog/priority-badge.ts.
 -->
 
 ---
@@ -1152,28 +1125,6 @@ mechanism or are pattern-matching buzzwords: make the case, don't name-drop "zon
 zone.js gets one sentence, in the past tense (the footnote).
 
 [click: callout] The payoff, for the dashboards of Part 3.
--->
-
----
-rule: ['Angular as the Rendering Engine', 'Part 6']
----
-
-# Standalone components and the registry pattern
-
-Each registered component is:
-
-- fully self-contained, with its own imports
-- free of NgModule coupling that could cause side effects when loaded dynamically
-- individually tree-shakeable
-
-The dynamic loading in `ComponentHostComponent` relies on exactly this.
-
-<!--
-Speaker notes:
-Quick, confident close to the section. Standalone components aren't incidental
-here — the dynamic-instantiation model in `ComponentHostComponent` needs
-components that can be loaded in isolation, without a module graph to resolve
-first. That's precisely what standalone gives you.
 
 Then: "Let's see it." Switch to the demo section.
 -->
@@ -1189,7 +1140,7 @@ rule: ['Part 7', 'Demo']
 </div>
 
 <!--
-~10 minutes. Next slide: tell the room what to watch for, then switch the second
+~9 minutes. Next slide: tell the room what to watch for, then switch the second
 screen to the app, full screen. Your run-sheet is in the next slide's notes.
 -->
 
@@ -1277,8 +1228,8 @@ Live failed 3/3 on 18 Nov (Gemini 503 "high demand"): if it happens on stage, sa
    second failure or a model error. Never a half-rendered surface.
 7. Signal graph: blue = writable, green = computed, grey = the template. Top
    "Unnamed Array(3)" = the data model's /tickets signal. "Unnamed" = created by
-   web_core's data model through Angular's signal() (setSignalImplementation, slide
-   27); the compiler only names signals declared as class fields or inputs.
+   web_core's data model through Angular's signal() (setSignalImplementation, the
+   "Reactivity" slide); the compiler only names signals declared as class fields or inputs.
 
 IF ASKED
 - Same schema on both sides? Yes, one source (@demo/catalog): three checks. Agent
@@ -1340,120 +1291,48 @@ rule: ['Part 8', 'Production Reality']
 </div>
 
 <!--
-~5 minutes.
+~2 minutes. One slide: what you still have to plan for.
 -->
 
 ---
 rule: ['Production Reality', 'Part 8']
 ---
 
-# Security
+# What you still have to plan for
 
-The catalog and the policy are the boundary (Part 5). Around them, the Angular
-README names three threats to plan for:
+The catalog, the policy and the two retry loops (Parts 5 and 7) are the core. Around them:
 
 - **UI spoofing**: a valid component made to look like something it isn't
-- **Property injection (XSS)**: strings that reach the DOM
-- **Denial of service** via layout complexity: deep or wide trees
+- **Property injection (XSS)**: strings that reach the DOM; Angular's bindings sanitize them
+- **Denial of service** via layout: deep or wide trees; bound depth and fan-out
+- **Observability**: every payload is a structured artifact, so log what the agent *intended*
+- **Latency and availability**: 4–7 s to the first UI on a good day; plan for the model being down
 
 <div class="text-sm text-gray-400">
 
-Source: [samples/client/angular/README.md#L58-L64](https://github.com/a2ui-project/a2ui/blob/45633b9/samples/client/angular/README.md#L58-L64)
+Threats from the Angular sample's README: [samples/client/angular/README.md#L58-L64](https://github.com/a2ui-project/a2ui/blob/45633b9/samples/client/angular/README.md#L58-L64)
 
 </div>
 
 <!--
 Speaker notes:
-Don't repeat the catalog and the policy: point back to Part 5 in one sentence.
-Angular's native property binding sanitization handles the XSS case directly —
-no extra library needed, it's the same sanitizer Angular already runs for
-every binding. The flat adjacency list format used for the component tree
-makes complexity-based DoS attacks easier to detect and limit than a nested
-tree would be, since depth and fan-out are cheap to bound-check.
--->
+One slide, about two minutes. Don't repeat the catalog, the policy or the retries: the
+room has just seen them in the demo. Point back in one sentence, then the five lines.
 
----
-rule: ['Production Reality', 'Part 8']
----
+Spoofing: the catalog can't tell a "Confirm" button from a misleading one; that's the
+"not guaranteed" column of Part 5.
+XSS: Angular's property binding sanitization handles strings reaching the DOM, the same
+sanitizer it runs for every binding; no extra library.
+DoS: the component tree is a flat adjacency list, so depth and fan-out are cheap to
+bound-check before rendering.
+Observability: with generated HTML you can log a string; with A2UI the payload is the
+audit trail ("did the agent try something it wasn't allowed to do?").
+Latency and availability: 4–7 s to the first UI live (Gemini, 12 Nov); on 18 Nov the
+model was overloaded for hours. Define fallback surfaces per failure level before you
+need them. If the demo had to run on the stub, say: "that's exactly why."
 
-<div class="ta-cols c3">
-<div>
-
-## Reliability
-
-Two loops, both with one retry: the agent checks every message before it ships,
-and the renderer reports what it rejects (`VALIDATION_FAILED`).
-
-<div class="callout">
-
-This is not a silent drop. It's a feedback loop.
-
-</div>
-
-Define fallback surfaces for each failure level before you need them. Budget for
-latency: 4–7 s to the first UI live (Gemini, 12 Nov).
-
-</div>
-<div v-click>
-
-## Observability
-
-Every A2UI payload is a **structured, loggable artifact**.
-
-You can trace exactly what the agent *intended* versus what the renderer
-*produced*.
-
-<div class="text-sm text-gray-400">
-
-A significant advantage over AI-generated HTML, which gives you no equivalent
-structured trace.
-
-</div>
-
-</div>
-<div v-click>
-
-## Performance
-
-Separate `updateComponents` / `updateDataModel` message types.
-
-Per-path signals: Angular's own, plugged into `web_core`. Computed signals with
-OnPush. Zoneless.
-
-<div class="callout">
-
-These compose into a genuinely efficient streaming surface.
-
-</div>
-
-</div>
-</div>
-
-<!--
-Speaker notes:
-
-[Reliability]
-Tie this back to demo stages 4 and 5: the room just saw both loops.
-On the client, the protocol defines the same signal: a `VALIDATION_FAILED`
-error message from renderer to agent. The demo sends it (app code, not web_core)
-and the agent retries once on it. The point: failure is communicated back to the agent,
-which means the agent can potentially retry or degrade gracefully, rather than
-the user just seeing a broken page with no explanation anywhere in the system.
-
-[click: Observability]
-Quick slide — the point is simple and doesn't need much elaboration. With raw
-HTML generation you can log the string, but you have no structured way to ask
-"did the agent try to do something it wasn't allowed to do." With A2UI, the
-payload itself is the audit trail.
-
-[click: Performance]
-This is the summary slide tying together the reactivity and zoneless slides — don't re-explain the
-mechanism, just name the pieces and let the room recall what they already saw.
-
-[After the Performance click]
 End of the content. Next: the wrap-up, then Questions (the MC runs the Q&A).
 -->
-
 
 ---
 rule: ['Wrap-up', 'A2UI · AngularDay 2026']
@@ -1551,38 +1430,11 @@ Q&A prep — likely questions:
   shape, not business rules. And say the honest limit ("What the boundary
   guarantees, and what it doesn't").
 
-- "Where is this heading?" → was Part 7, The Future (moved off the slides 2026-11-14; no published source, it is my projection). Renderers checked on a2ui-project/a2ui main 2026-11-14: Angular, React, Lit (TypeScript), Flutter (Dart), SwiftUI (Swift, via SwiftPM). Jetpack Compose is only named in the README, no renderer in the repo.
-
-# A component that describes itself
-
-Imagine a `<calendar>` component that, alongside its rendering logic, exposes
-a schema describing its own capabilities: what actions it accepts, what data
-it needs, what events it emits.
-
-Any agent, without knowing the component exists, can compose it correctly —
-because the capability negotiation protocol already handles exactly this
-exchange.
-
-The component advertises itself. The agent operates within what it's been shown.
-
-Notes: Ground the future section with this one concrete example before going broad —
-don't jump straight to the abstract vision. This is a natural extension of
-the capability manifest mechanism from Part 4, just pushed further: instead
-of a fixed catalog manifest, individual components self-describe.
-
-# The broader vision
-
-A2UI is already pointing here.
-
-The same agent composes a surface that renders natively in **Angular**,
-**Flutter**, or **SwiftUI** — from the same JSON payload.
-
-The frontend stops being a passive render target and becomes a capability
-system.
-
-Notes: Widen the lens here. Everything in the talk was scoped to one Angular app —
-this is the reminder that the protocol itself doesn't care which renderer
-is on the other end, and that's a deliberate design choice, not an accident.
+- "Where is this heading?" → My projection, no published source: components that
+  describe themselves (a <calendar> exposing its own schema, so any agent can compose it
+  through capability negotiation), and one payload rendered natively everywhere.
+  Renderers on a2ui-project/a2ui main (checked 2026-11-14): Angular, React, Lit, Flutter,
+  SwiftUI. Jetpack Compose is only named in the README.
 -->
 
 ---
