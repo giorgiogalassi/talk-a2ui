@@ -334,8 +334,8 @@ rule: ['Part 3', 'Where This Actually Makes Sense']
 </div>
 
 <!--
-~5 minutes. Needs a dedicated slide per use case, plus a "when NOT to use this"
-closing slide — do not skip it. The audience will ask "when would I actually
+~5 minutes. One slide for the pattern (the industry examples are in its notes), one
+for the sub-agent case, plus the "when NOT to use this" closing slide — do not skip it. The audience will ask "when would I actually
 build this?" before buying into the architecture in Parts 4 to 6.
 -->
 
@@ -367,106 +367,73 @@ and gives it a validation boundary.
 rule: ['Where This Actually Makes Sense', 'Part 3']
 ---
 
-<div class="ta-cols">
-<div>
+# One pattern behind every use case
 
-## Enterprise internal tooling at scale
+Enterprise platforms, finance, healthcare: the flavour changes, the shape doesn't.
 
-Platforms like Salesforce, ServiceNow, or SAP serve thousands of customers,
-each with different data models, roles, and workflows.
+- **The screen can't be enumerated**: it depends on the customer's data model, the user's
+  role and the question they ask
+- **Today it's a configuration layer**: JSON config, feature flags, a library of pre-built
+  views, or a custom dashboard per request
+- **Every rendered element must be allowed and traceable**: per-role access, compliance
+  reviews, audit
 
-Today: configuration systems — low-code UI builders made of JSON config,
-feature flags, conditional rendering logic.
+<div v-click class="callout">
 
-**A2UI replaces the configuration layer** with an agent that reads the
-customer's data model and composes the appropriate surface on demand.
+A2UI replaces the configuration layer with an agent that composes from a
+<span class="hl">validated catalog</span>, behind the access rules you already enforce.
 
-</div>
-<div v-click>
-
-## Financial services dashboards
-
-Analysts ask highly specific questions:
-*"show me exposure across these five positions with this risk metric,
-broken down by region."*
-
-The answer is always a different surface.
-
-Today: either a huge library of pre-built views, or a custom dashboard per request.
-
-</div>
 </div>
 
 <!--
 Speaker notes:
+One slide, three industries: say the pattern, then pick ONE example for the room (the
+one closest to the audience) and keep the others for questions.
 
-[Enterprise internal tooling at scale]
-The policy enforcement layer maps directly onto the per-customer access
-restrictions these platforms already have to enforce today. You're not adding
-a new security model — you're moving an existing one to sit in front of
-generation instead of behind it.
+Enterprise internal tooling (Salesforce, ServiceNow, SAP): thousands of customers, each
+with its own data model, roles and workflows. Today they run configuration systems,
+low-code builders made of JSON config, feature flags and conditional rendering. The
+agent reads the customer's data model and composes the surface on demand. The policy
+layer maps onto the per-customer access restrictions they already enforce: you're not
+adding a security model, you're moving it in front of generation instead of behind it.
 
-[click: Financial services dashboards]
-An agent composing from a validated catalog of financial components is strictly
-safer than one generating arbitrary HTML, and it maps cleanly onto compliance
-requirements around what data specific roles are allowed to see — the catalog
-and the role-based policy layer are doing the same enforcement job.
+Financial services dashboards: "show me exposure across these five positions with this
+risk metric, broken down by region." Every answer is a different surface; today it's a
+huge library of pre-built views or a custom dashboard per request. A validated catalog
+of financial components is strictly safer than generated HTML, and the catalog plus the
+role-based policy do the compliance job (what each role may see).
+
+Healthcare and clinical decision support: a cardiologist's workflow looks nothing like an
+oncologist's, and both change with the patient's data. The catalog is what makes a
+compliance review possible at all: you can point to the exact, enumerable set of things
+that could ever have been rendered, for any payload. Arbitrary HTML would never pass.
+
+[click] The callout is the whole pitch of Part 3 in one line.
 -->
 
 ---
 rule: ['Where This Actually Makes Sense', 'Part 3']
 ---
 
-<div class="ta-cols">
-<div>
+# Remote sub-agents in an orchestrator
 
-## Healthcare and clinical decision support
+A parent agent delegates a task to a specialised sub-agent: a booking agent, a
+reporting agent.
 
-A cardiologist's workflow looks nothing like an oncologist's — and both change
-depending on the specific patient's data.
-
-Dynamic composition from a **safe, auditable component catalog** fits the
-regulatory requirement that every rendered element be traceable and controllable.
-
-<div class="text-sm text-gray-400">
-
-Arbitrary HTML generation would never pass a compliance review.
-
-</div>
-
-</div>
-<div v-click>
-
-## Remote sub-agents in an orchestrator
-
-A parent agent delegates a task to a specialized sub-agent —
-a booking agent, a reporting agent.
-
-The sub-agent returns an A2UI payload.
-The parent renders it inline **without knowing its structure in advance**.
+The sub-agent returns an A2UI payload. The parent renders it inline
+**without knowing its structure in advance**.
 
 <div class="callout">
 
-The catalog defines the contract both agents work within.
+The catalog defines the <span class="hl">contract</span> both agents work within.
 
-</div>
-
-</div>
 </div>
 
 <!--
 Speaker notes:
-
-[Healthcare and clinical decision support]
-A2UI gives the flexibility of dynamic composition with the auditability
-healthcare demands. The catalog is what makes a compliance review possible
-at all — you can point to the exact enumerable set of things that could
-ever have been rendered, for any payload, at any time.
-
-[click: Remote sub-agents in an orchestrator]
-This is the multi-agent case, and it's worth calling out separately because it's
-the one that generalizes furthest. The parent doesn't need to know anything about
-the sub-agent's internals — the shared catalog is the entire interface between them.
+This is the multi-agent case, and it gets its own slide because it's the one that
+generalizes furthest. The parent doesn't need to know anything about the sub-agent's
+internals: the shared catalog is the entire interface between them.
 -->
 
 ---
@@ -743,6 +710,61 @@ both checks and the component's types all change together.
 [click: callout] For an audience that knows Zod from runtime validation, this is
 the reframe, and the sentence people should be quoting after the talk. Let it
 breathe.
+-->
+
+---
+rule: ['The Trust Boundary', 'Part 5']
+hide: true
+---
+
+# A binding is checked <span class="hl">at render</span>
+
+Same `PriorityBadgeApi` everywhere: `priority` is the enum **or** a binding `{path}`.
+
+```mermaid {scale: 0.6}
+flowchart LR
+  subgraph AG["Agent · before sending"]
+    A["① the message<br/>{path: 'priority'}<br/>a binding ✓"]
+  end
+  subgraph BR["Browser"]
+    W["② on arrival<br/>same message ✓"]
+    D[("data model<br/>/tickets/0/priority<br/>= 'critical'")]
+    R["③ at render<br/>'critical' vs the enum ✗"]
+  end
+  A -- "SSE" --> W
+  W --> R
+  D --> R
+  R -. "VALIDATION_FAILED · /tickets/0/priority" .-> A
+```
+
+<div class="callout">
+
+The agent checks the <span class="hl">message it writes</span>; the browser checks the <span class="hl">values it renders</span>.
+
+</div>
+
+<!--
+HIDDEN backup slide (hide: true). For Q&A: when someone asks about bindings (the dev.to
+comment of 18 Nov), press G and type "binding" to jump here. To show it in the talk,
+remove `hide: true`. It follows "One catalog, checked three times": same catalog, but
+for a bound prop the value only exists at render, so the browser checks it there.
+
+One schema, from @demo/catalog: priority is the enum OR a binding.
+1 + 2 check the component message: {"path":"priority"} matches the binding
+branch, so both pass, whatever the data holds. The binding schema only checks the
+shape {path: string}.
+3 is the only place a value exists: the renderer resolves the path against the
+data model (row context /tickets/0), and resolved-value.ts checks it against the
+same schema minus the binding branch. 'critical' fails: "?" on the badge,
+VALIDATION_FAILED back to the agent, one retry.
+Honest caveat: check 3 is the demo's code, not web_core 0.14, and covers
+top-level props only. That's the upstream issue (drafted, links a2ui #989).
+Spec caveat, if asked: in v0.9, VALIDATION_FAILED's "path" points into the
+MESSAGE (e.g. /components/0/text), not the data model. The demo sends the
+data-model path (/tickets/0/priority): it stretches the spec. Say "a data-model
+path, which the spec doesn't quite cover yet"; the closer existing code is
+EXPRESSION_ERROR (what web_core uses for function arguments that fail after
+resolving).
 -->
 
 ---
@@ -1307,7 +1329,8 @@ Live failed 3/3 on 18 Nov (Gemini 503 "high demand"): if it happens on stage, sa
 IF ASKED
 - Same schema on both sides? Yes, one source (@demo/catalog): three checks. Agent
   checks the message it writes; web_core re-checks it on arrival; the browser
-  checks the VALUES it renders (next slide).
+  checks the VALUES it renders (hidden slide after "One catalog, checked
+  three times": press G, type "binding").
 - Why bind instead of a literal? Lists (one row template, N rows), updates
   without re-sending components (stage 7), data that flows back (forms, action
   context), values from your backend. Literals for constants ("Open").
@@ -1350,58 +1373,6 @@ the talk.
 On model choice, if asked: Gemini through @google/genai, one tool (get_tickets),
 thinking MINIMAL for latency. No response_schema: the catalog in the prompt and the
 Zod check after it do that job. The architecture is model-agnostic.
--->
-
----
-rule: ['Demo', 'Part 7']
----
-
-# One schema, <span class="hl">three checks</span>
-
-Same `PriorityBadgeApi` everywhere: `priority` is the enum **or** a binding `{path}`.
-
-```mermaid {scale: 0.6}
-flowchart LR
-  subgraph AG["Agent · before sending"]
-    A["① the message<br/>{path: 'priority'}<br/>a binding ✓"]
-  end
-  subgraph BR["Browser"]
-    W["② on arrival<br/>same message ✓"]
-    D[("data model<br/>/tickets/0/priority<br/>= 'critical'")]
-    R["③ at render<br/>'critical' vs the enum ✗"]
-  end
-  A -- "SSE" --> W
-  W --> R
-  D --> R
-  R -. "VALIDATION_FAILED · /tickets/0/priority" .-> A
-```
-
-<div class="callout">
-
-The agent checks the <span class="hl">message it writes</span>; the browser checks the <span class="hl">values it renders</span>.
-
-</div>
-
-<!--
-Optional: show it if there's time after "What you just saw", or jump here when
-someone asks about bindings (dev.to comment, 18 Nov).
-
-One schema, from @demo/catalog: priority is the enum OR a binding.
-1 + 2 check the component message: {"path":"priority"} matches the binding
-branch, so both pass, whatever the data holds. The binding schema only checks the
-shape {path: string}.
-3 is the only place a value exists: the renderer resolves the path against the
-data model (row context /tickets/0), and resolved-value.ts checks it against the
-same schema minus the binding branch. 'critical' fails: "?" on the badge,
-VALIDATION_FAILED back to the agent, one retry.
-Honest caveat: check 3 is the demo's code, not web_core 0.14, and covers
-top-level props only. That's the upstream issue (drafted, links a2ui #989).
-Spec caveat, if asked: in v0.9, VALIDATION_FAILED's "path" points into the
-MESSAGE (e.g. /components/0/text), not the data model. The demo sends the
-data-model path (/tickets/0/priority): it stretches the spec. Say "a data-model
-path, which the spec doesn't quite cover yet"; the closer existing code is
-EXPRESSION_ERROR (what web_core uses for function arguments that fail after
-resolving).
 -->
 
 ---
