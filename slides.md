@@ -1317,6 +1317,8 @@ IF ASKED
 - Is the value check A2UI's? No: web_core 0.14 checks only the binding's shape.
   The demo adds it, top-level props only (a nested prop isn't covered). Upstream
   issue drafted.
+- VALIDATION_FAILED with a data-model path? The v0.9 spec means a path into the
+  message; ours stretches it. Closer code: EXPRESSION_ERROR. Open question upstream.
 -->
 
 ---
@@ -1358,7 +1360,7 @@ rule: ['Demo', 'Part 7']
 
 Same `PriorityBadgeApi` everywhere: `priority` is the enum **or** a binding `{path}`.
 
-```mermaid {scale: 0.72}
+```mermaid {scale: 0.6}
 flowchart LR
   subgraph AG["Agent · before sending"]
     A["① the message<br/>{path: 'priority'}<br/>a binding ✓"]
@@ -1393,7 +1395,13 @@ data model (row context /tickets/0), and resolved-value.ts checks it against the
 same schema minus the binding branch. 'critical' fails: "?" on the badge,
 VALIDATION_FAILED back to the agent, one retry.
 Honest caveat: check 3 is the demo's code, not web_core 0.14, and covers
-top-level props only. That's the upstream issue.
+top-level props only. That's the upstream issue (drafted, links a2ui #989).
+Spec caveat, if asked: in v0.9, VALIDATION_FAILED's "path" points into the
+MESSAGE (e.g. /components/0/text), not the data model. The demo sends the
+data-model path (/tickets/0/priority): it stretches the spec. Say "a data-model
+path, which the spec doesn't quite cover yet"; the closer existing code is
+EXPRESSION_ERROR (what web_core uses for function arguments that fail after
+resolving).
 -->
 
 ---
