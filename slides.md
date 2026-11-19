@@ -530,7 +530,7 @@ Built on `web_core`, with signals.
 
 <div v-click class="text-sm text-gray-400">
 
-Not from A2UI: the transport (A2A, `@a2a-js/sdk`) and the model (Gemini, `@google/genai`).
+Not from A2UI: the transport (A2A used app-to-agent, `@a2a-js/sdk`) and the model (Gemini, `@google/genai`).
 In the demo: `web_core` 0.14, `agent` 0.0.2, `angular` 0.13, all on protocol v0.9.
 
 </div>
@@ -551,7 +551,7 @@ and checks what the model sends back, message by message, while it streams.
 [click: @a2ui/angular] The renderer: a provider, an element per surface, and the
 components you register.
 
-[click: footer] What A2UI doesn't give you: how messages travel (we use A2A) and which model
+[click: footer] What A2UI doesn't give you: how messages travel (we use A2A, app-to-agent: our server to the agent) and which model
 writes them (Gemini). Those are your choices.
 -->
 
@@ -572,7 +572,7 @@ sequenceDiagram
   participant A as Agent<br/>@a2ui/agent
   participant M as Gemini
   B->>S: POST /api/agent { query }
-  S->>A: A2A message + supportedCatalogIds
+  S->>A: A2A (app-to-agent) + supportedCatalogIds
   rect rgba(224, 122, 80, 0.16)
   A->>M: prompt + catalog.toJson() ◆
   end
@@ -581,7 +581,7 @@ sequenceDiagram
   Note over A,M: ◆ Zod check every message, retry once
   end
   Note over A,M: policy: strip notes, remove Delete
-  A-->>S: A2UI messages (A2A stream)
+  A-->>S: A2UI messages (A2A stream, app-to-agent)
   S-->>B: A2UI messages (SSE)
   rect rgba(224, 122, 80, 0.16)
   Note over B,S: ◆ Zod check (web_core), then render
@@ -608,10 +608,11 @@ used here app-to-agent: our server to the agent). The browser never sees an A2A 
 it only gets A2UI (Agent-to-User Interface) messages.
 
 2, server to agent: the only A2A (app-to-agent) hop. server.ts is the only file that
-knows A2A exists, so swapping the transport for AG-UI (Agent-User Interaction
-Protocol), MCP (Model Context Protocol) or plain REST (Representational State
-Transfer) means rewriting one file. One agent, no agent-to-agent delegation here;
-that's what A2A (agent-to-agent) would add later.
+knows A2A exists, so swapping it for AG-UI (Agent-User Interaction Protocol), MCP
+(Model Context Protocol) or plain REST (Representational State Transfer) only
+touches the edges: server.ts, plus the browser's agent-client.ts if the browser's
+format changes too. The next two slides show it. One agent, no agent-to-agent
+delegation here; that's what A2A (agent-to-agent) would add later.
 
 3 and 4, inside the agent: pick the catalog from supportedCatalogIds, put
 catalog.toJson() in the prompt, and check every streamed message against the Zod
@@ -625,6 +626,130 @@ then Angular renders your components.
 through our server; the agent redoes the turn once, then answers in text.
 
 The ◆ marks are where Zod checks the agent's output. That's the next section.
+-->
+
+---
+rule: ['Anatomy of an A2UI System', 'Part 4']
+---
+
+# Swap the transport: <span class="hl">AG-UI</span>
+
+<div class="dg dg-seq">
+
+```mermaid {scale: 0.64}
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "13px", "actorBkg": "#333333", "actorBorder": "#569cd6", "actorTextColor": "#f0ebe4", "actorLineColor": "#4a4740", "signalColor": "#9aa0a6", "signalTextColor": "#e6e1d8", "noteBkgColor": "#2a2722", "noteBorderColor": "#4a4740", "noteTextColor": "#e6e1d8", "sequenceNumberColor": "#1d1b18"}, "sequence": {"mirrorActors": false, "width": 170, "actorMargin": 100, "messageMargin": 14, "noteMargin": 5, "boxMargin": 4, "height": 40, "diagramMarginY": 12, "showSequenceNumbers": true}}}%%
+sequenceDiagram
+  autonumber
+  participant B as Browser<br/>@a2ui/angular
+  participant S as App server<br/>server.ts
+  participant A as Agent<br/>@a2ui/agent
+  participant M as Gemini
+  rect rgba(86, 156, 214, 0.22)
+  B->>S: AG-UI run (POST)
+  end
+  S->>A: A2A (app-to-agent) + supportedCatalogIds
+  A->>M: prompt + catalog.toJson() ◆
+  M-->>A: A2UI JSON, streamed
+  Note over A,M: ◆ Zod check, retry once · policy
+  A-->>S: A2UI messages (A2A stream, app-to-agent)
+  rect rgba(86, 156, 214, 0.22)
+  S-->>B: AG-UI events (SSE), carrying A2UI
+  end
+  Note over B,S: ◆ Zod check (web_core), then render
+```
+
+</div>
+
+<div class="text-sm text-gray-400">
+
+Blue: what changes. Two files, `server.ts` and `agent-client.ts`. Same agent, same catalog, same policy, same renderer.
+
+</div>
+
+<!--
+Speaker notes:
+Same pipeline as before; only the blue hops change.
+
+1 and 6: instead of our own POST /api/agent and our own { messages, sessionId } over
+SSE, the browser speaks AG-UI (Agent-User Interaction Protocol, CopilotKit's): a
+standard run request and a standard event stream (run started, text, tool calls,
+state, run finished). It's still HTTP POST and SSE underneath; what changes is that
+the format is a standard instead of ours. The A2UI messages ride inside those events.
+Honest footnote if asked: there's no official spec yet for how A2UI travels inside
+AG-UI; CopilotKit defines it in its own implementation.
+
+2: server.ts still talks A2A (app-to-agent) to the agent. It becomes a bridge from
+AG-UI to A2A (app-to-agent); the AG-UI project ships an adapter for that, @ag-ui/a2a.
+
+What I touch: server.ts and the browser's agent-client.ts. What I don't: the agent,
+the catalog, the policy, the Angular renderer. That's the "transport sits at the
+edges" claim, made concrete: two files, one on each end of the browser hop.
+
+We don't do this in the demo; this slide is the "how", not a live swap.
+-->
+
+---
+rule: ['Anatomy of an A2UI System', 'Part 4']
+---
+
+# Swap the stack: <span class="hl">CopilotKit</span>
+
+<div class="dg dg-seq">
+
+```mermaid {scale: 0.64}
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "JetBrains Mono, monospace", "fontSize": "13px", "actorBkg": "#333333", "actorBorder": "#569cd6", "actorTextColor": "#f0ebe4", "actorLineColor": "#4a4740", "signalColor": "#9aa0a6", "signalTextColor": "#e6e1d8", "noteBkgColor": "#2a2722", "noteBorderColor": "#4a4740", "noteTextColor": "#e6e1d8", "sequenceNumberColor": "#1d1b18"}, "sequence": {"mirrorActors": false, "width": 170, "actorMargin": 100, "messageMargin": 14, "noteMargin": 5, "boxMargin": 4, "height": 40, "diagramMarginY": 12, "showSequenceNumbers": true}}}%%
+sequenceDiagram
+  autonumber
+  participant B as Browser<br/>@copilotkit/angular
+  participant R as Copilot Runtime<br/>/api/copilotkit
+  participant A as Agent<br/>@a2ui/agent
+  participant M as Gemini
+  rect rgba(86, 156, 214, 0.22)
+  B->>R: AG-UI run (POST) + session token
+  Note over R: onRequest: valid session?
+  R->>A: A2A (app-to-agent), @ag-ui/a2a
+  end
+  A->>M: prompt + catalog.toJson() ◆
+  M-->>A: A2UI JSON, streamed
+  Note over A,M: ◆ Zod check, retry once · policy
+  A-->>R: A2UI messages (A2A stream, app-to-agent)
+  rect rgba(86, 156, 214, 0.22)
+  R-->>B: AG-UI events (SSE), carrying A2UI
+  Note over B,R: ◆ catalog check (web_core), then render
+  end
+```
+
+</div>
+
+<div class="text-sm text-gray-400">
+
+Blue: what CopilotKit replaces, everything outside the agent. The agent, the Zod catalog and the policy stay yours.
+
+</div>
+
+<!--
+Speaker notes:
+Now the whole app side changes, and the agent still doesn't.
+
+1: the browser runs @copilotkit/angular: provideCopilotKit with a runtime URL and
+your catalog, and CopilotKit's own A2UI surface instead of a2ui-v09-surface. It's
+built on the same @a2ui/web_core, so it's the same protocol underneath. Your
+components are registered in CopilotKit's catalog; the props are Zod schemas there
+too.
+
+2: the Copilot Runtime replaces server.ts. Its onRequest hook checks the session
+before any agent runs, and forwards the identity to the agent.
+
+3: it can keep talking A2A (app-to-agent) to the agent we already have (@ag-ui/a2a),
+so the agent, the prompt, the Zod check with its retry, and the policy don't move.
+
+The point for this talk: a valid session token is not a policy. CopilotKit checks
+who you are; what this user may see is still the policy in the agent. Their docs
+say it directly: a valid token doesn't grant access to every agent, tenant or thread.
+
+If asked: @copilotkit/angular needs Angular 22 (the demo is on 22), and it pins its
+own web_core version, older than ours. Not tried in this demo; this is the shape,
+not a tested migration.
 -->
 
 ---
@@ -907,11 +1032,12 @@ catalog becomes components.
 
 ---
 rule: ['Part 6', 'Angular as the Rendering Engine']
+ngRule: true
 ---
 
 <div class="ta">
   <div class="ta-hero">
-    <FitText>Angular as the</FitText>
+    <FitText><NgWord display /> as the</FitText>
     <FitText>Rendering Engine.</FitText>
   </div>
   <div class="ta-aside" style="grid-template-columns:1fr;margin-top:1.2rem">
@@ -929,31 +1055,37 @@ four slides walk through that concretely rather than asserting it.
 
 ---
 rule: ['Angular as the Rendering Engine', 'Part 6']
+ngRule: true
+class: dense
 ---
 
 # Your entire <span class="hl">rendering</span> integration
 
-```ts {1-4|6-10|12-13}
+```ts {1-7|9-15|17-19}
 // app.config.ts
+import { BasicCatalog, provideA2Ui } from '@a2ui/angular/v0_9';
+import { createTicketCatalog } from './catalog/ticket-catalog';
+
 provideA2Ui(() => ({
   catalogs: [createTicketCatalog(), new BasicCatalog()],
 }))
 
-// app.ts template: one element per surface, tracked by the surface object
+// app.ts: the template, one element per surface, tracked by the surface object
+import { A2uiRendererService, SurfaceComponent } from '@a2ui/angular/v0_9';
 // (a corrected reply re-creates a surface under the same id)
 @for (entry of renderer.surfaceGroup.surfacesMap; track entry[1]) {
   <a2ui-v09-surface [surfaceId]="entry[0]" />
 }
 
 // agent-client.ts: every A2UI message the agent streams
+import { A2uiRendererService } from '@a2ui/angular/v0_9';
 renderer.processMessages([message]);
 ```
 
 <div class="text-sm text-gray-400">
 
 Around it: the client that brings the messages in and sends actions back (adapted from Google's
-Angular sample, ~100 lines), and the error reporting of stages 5–6 (ours: web_core doesn't send
-`VALIDATION_FAILED` yet).
+Angular sample, ~100 lines).
 
 Source: [app.config.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/apps/client/src/app/app.config.ts) ·
 [app.ts](https://github.com/giorgiogalassi/talk-a2ui/blob/main/demo/apps/client/src/app/app.ts) ·
@@ -992,6 +1124,7 @@ Everything else lives in the catalog you write next.
 
 ---
 rule: ['Angular as the Rendering Engine', 'Part 6']
+ngRule: true
 ---
 
 # What your catalog looks like
@@ -1023,6 +1156,7 @@ own, filtered to the ones the catalog lists. No special DSL beyond this.
 
 ---
 rule: ['Angular as the Rendering Engine', 'Part 6']
+ngRule: true
 ---
 
 # Reactivity: one signal graph, Angular's
@@ -1080,6 +1214,7 @@ How the React renderer does it, I haven't checked.
 
 ---
 rule: ['Angular as the Rendering Engine', 'Part 6']
+ngRule: true
 ---
 
 # Structure once, data <span class="hl">path by path</span>
@@ -1360,8 +1495,8 @@ policy is yours.
 
 ## Angular
 
-It renders the result with signals, zoneless. The transport is one file you can
-swap.
+It renders the result with signals, zoneless. The transport sits at the edges:
+swap it, keep the catalog.
 
 </div>
 </div>
