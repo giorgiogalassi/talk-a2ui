@@ -38,6 +38,35 @@ html.dark .ta-deck, html.dark .ta {
 /* Inline accent words: the blog's Instrument Serif italic. */
 .ta-deck em.serif, .ta-deck .serif { font-family: 'Instrument Serif', Georgia, serif; font-style: italic; font-weight: 400; letter-spacing: -0.01em; }
 .ta-deck h1 em { font-family: 'Instrument Serif', Georgia, serif; font-style: italic; font-weight: 400; letter-spacing: -0.01em; }
+/* .hl: the title slide's "generate HTML." look for one key phrase on a slide: Instrument Serif
+   italic with the hand-drawn accent underline. Works in headings, text, callouts and inside a
+   <FitText> line. Use it once per slide at most. */
+.ta-deck .hl {
+  position: relative;
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  padding-right: 0.06em;
+  white-space: nowrap;
+  /* Instrument Serif runs small next to Google Sans: a touch larger to match. */
+  font-size: 1.12em;
+  line-height: 1;
+}
+/* Inside a FitText line the line sizes itself; keep the phrase at the line's size. */
+.ta-deck .fit-text .hl { font-size: 1em; }
+.ta-deck .hl::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.02em;
+  height: 0.08em;
+  min-height: 2px;
+  background-color: var(--ta-accent);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 12' preserveAspectRatio='none'%3E%3Cpath d='M3 9 C 80 2, 200 1, 297 6' stroke='black' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 12' preserveAspectRatio='none'%3E%3Cpath d='M3 9 C 80 2, 200 1, 297 6' stroke='black' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+}
 /* Headings: the blog's section heading (.lp-h2): Roboto Flex 600, tight tracking. */
 .ta-deck h1 {
   font-family: 'Roboto Flex', Roboto, system-ui, sans-serif;
@@ -58,7 +87,19 @@ html.dark .ta-deck, html.dark .ta {
   background: color-mix(in srgb, var(--ta-accent) 7%, transparent);
 }
 .ta-deck table th { color: var(--ta-accent); }
-.ta-deck .tag { color: var(--ta-accent); border-color: color-mix(in srgb, var(--ta-accent) 55%, transparent); }
+/* Tags: the blog's primary button (ggalassi.dev, "Book a free 30-min call"): solid burnt-orange
+   fill, white text, fully rounded, weight 500. #c2491b is the blog's fill (white on it ~4.9:1, AA);
+   dark mode uses the deck's accent with its on-accent text. */
+.ta-deck .tag {
+  --tag-fill: #c2491b;
+  --tag-text: #ffffff;
+  background: var(--tag-fill);
+  color: var(--tag-text);
+  border: 0;
+  padding: 0.3em 0.95em;
+  line-height: 1.2;
+}
+html.dark .ta-deck .tag { --tag-fill: var(--ta-accent); --tag-text: var(--ta-on-accent); }
 .ta-deck .caption, .ta-deck .text-gray-400 { color: var(--ta-muted); }
 /* Code keeps its syntax colours: setup/shiki.ts picks github-light/dark, whose tokens hold AA contrast. */
 
@@ -157,6 +198,24 @@ html.dark:has(.ta-deck) .talk-footer { color: #ada593; }
 }
 .ta-thanks .who b { display: block; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; font-size: 1.3rem; font-weight: 600; letter-spacing: -0.02em; }
 .ta-thanks .who span { color: var(--ta-muted); font-size: 0.9rem; }
+/* The tags sit inside .who: keep their button look over the muted bio text. */
+.ta-thanks .who span.tag { color: var(--tag-text); font-size: 0.8rem; }
+/* A number in a blob, inline (the "Option 1/2/3" headings): same shape as the list numbers. */
+.ta-deck .blob-num {
+  display: inline-grid;
+  place-items: center;
+  width: 1.35em;
+  aspect-ratio: 1;
+  margin: 0 0.12em;
+  vertical-align: -0.06em;
+  font-size: 0.95em;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ta-on-accent);
+  background: var(--ta-accent);
+  border-radius: 58% 42% 46% 54% / 52% 44% 56% 48%;
+}
+.ta-deck .blob-num.alt { border-radius: 44% 56% 52% 48% / 46% 58% 42% 54%; }
 .ta-thanks .qr { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; font-size: 0.75rem; color: var(--ta-muted); }
 
 /* ---- Specificity: beat index.css's `.slidev-layout table th` ---- */
@@ -213,6 +272,54 @@ html.dark:has(.ta-deck) .talk-footer { color: #ada593; }
 }
 @media (prefers-reduced-motion: reduce) {
   .slidev-layout .ta-blob-photo, .slidev-layout .ta-blob-back { animation: none; }
+}
+
+/* ---- Thank-you chips as liquid (the goo of ggalassi.dev's hero droplets, blog #104).
+   Two identical rows of chips stacked in one grid cell: .ta-goo-row (accent pills, text
+   transparent, under the #ta-goo SVG filter: blur, then sharpen the alpha, so shapes that come
+   close merge and pinch apart like liquid) and .ta-label-row on top (the same chips, transparent,
+   unfiltered, so the text stays sharp). Same markup, so both rows lay out identically. The chips
+   stay still; each puts out a droplet toward its neighbour on its own cycle; the bridges between chips
+   stretch, pinch off and join again. ---- */
+.ta-goo-defs { position: absolute; width: 0; height: 0; }
+.ta-thanks .who .ta-goo-tags { display: grid; }
+.ta-goo-tags > .ta-goo-row,
+.ta-goo-tags > .ta-label-row {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+.ta-goo-tags > .ta-goo-row { filter: url(#ta-goo); }
+.ta-thanks .who .ta-goo-tags .tag {
+  position: relative;
+  font-size: 0.8rem;
+}
+.ta-thanks .who .ta-goo-row .tag { --tag-fill: var(--ta-accent); color: transparent; }
+.ta-thanks .who .ta-label-row .tag { --tag-fill: transparent; --tag-text: var(--ta-on-accent); }
+/* The droplet each chip puts out toward the next one (goo row only). */
+.ta-goo-row .tag:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -0.55rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  translate: 0 -50%;
+  border-radius: 50%;
+  background: var(--ta-accent);
+  animation: ta-chip-drip var(--t, 5s) ease-in-out var(--dl, 0s) infinite;
+}
+.ta-goo-tags .tag:nth-child(1) { --t: 5.2s; --dl: -0.4s; }
+.ta-goo-tags .tag:nth-child(2) { --t: 6.1s; --dl: -2.2s; }
+.ta-goo-tags .tag:nth-child(3) { --t: 5.7s; --dl: -3.6s; }
+.ta-goo-tags .tag:nth-child(4) { --t: 6.6s; --dl: -1.5s; }
+@keyframes ta-chip-drip {
+  0%, 100% { scale: 0.2; translate: -40% -50%; }
+  50% { scale: 1; translate: 10% -20%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ta-goo-row .tag::after { animation: none; }
 }
 
 /* ---- Instagram-style diagram panel (decisions 2026-11-06): dark panel, one bordered lane
@@ -329,3 +436,9 @@ html.dark:has(.ta-deck) .talk-footer { color: #ada593; }
 .ta-promo span { color: var(--ta-muted); font-size: 0.95rem; }
 .slidev-layout .ta-promo img.qr-code, .ta-promo .qr-placeholder { width: 5.4rem; height: 5.4rem; flex: none; margin: 0; background: #fff; padding: 0.25rem; border-radius: 4px; }
 .ta-promo .qr-placeholder { display: grid; place-items: center; text-align: center; font-size: 0.75rem; line-height: 1.2; color: var(--ta-muted); border: 1.5px dashed var(--ta-line); background: transparent; }
+
+/* ---- .dg-seq: the pipeline as one sequence diagram (2026-11-16): time runs down, requests
+   go right, answers come back left. Mermaid's own lane lines replace the bordered lanes. ---- */
+.ta-deck .dg.dg-seq { justify-content: center; padding: 0.4rem 0.7rem; }
+.ta-deck .dg.dg-seq .mermaid,
+.ta-deck .dg.dg-seq svg { margin: auto; }

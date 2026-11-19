@@ -101,7 +101,7 @@ sync whenever a decision changes while building the demo.
 
 ## Author
 
-**Giorgio Galassi** — Senior Frontend Engineer (Freelancer) · GDG Roma Città Organizer
+**Giorgio Galassi** — Freelance Senior Angular Engineer · GDG Roma Città Organizer
 
 ## License
 
