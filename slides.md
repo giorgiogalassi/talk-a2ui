@@ -1221,7 +1221,7 @@ ngRule: true
 
 A2UI separates component **structure** from **data** into distinct message types:
 
-- `updateComponents` defines the tree, once
+- `updateComponents` defines the tree, once per view
 - `updateDataModel` updates a single JSON Pointer path, as often as the agent streams
 
 In a zoneless app, each data message **writes one signal**; only the `computed()`
@@ -1262,6 +1262,45 @@ zone.js gets one sentence, in the past tense (the footnote).
 [click: callout] The payoff, for the dashboards of Part 3.
 
 Then: "Let's see it." Switch to the demo section.
+
+If asked "once, really?": once per view, not once per session. The spec says
+updateComponents "can be sent multiple times to update the component tree of an
+existing surface". In practice: one tree per user intent (a list, a detail view),
+re-sent only when the layout changes. While streaming, the agent re-sends the
+message as it grows, and a corrected reply re-creates the surface. The data then
+moves through updateDataModel, path by path.
+
+The four message types, as the demo's agent sends them (v0.9; from
+apps/agent/data/examples/v0.9/ticket_list.json, components trimmed):
+
+createSurface: open a surface and name its catalog.
+{ "version": "v0.9", "createSurface": { "surfaceId": "tickets",
+  "catalogId": "https://github.com/giorgiogalassi/talk-a2ui/demo/catalogs/tickets/v0_9/catalog.json" } }
+
+updateComponents: the tree. Flat list, linked by id, one "root"; props bind to paths.
+{ "version": "v0.9", "updateComponents": { "surfaceId": "tickets", "components": [
+  { "id": "root", "component": "TicketList", "title": { "path": "/title" },
+    "children": { "componentId": "ticket_row", "path": "/tickets" } },
+  { "id": "ticket_row", "component": "Row", "children": ["ticket_id", "ticket_title"] },
+  { "id": "ticket_id", "component": "Text", "text": { "path": "id" } },
+  { "id": "ticket_title", "component": "Text", "text": { "path": "title" } } ] } }
+
+updateDataModel: the data, at a JSON Pointer path. "/" sets it all ...
+{ "version": "v0.9", "updateDataModel": { "surfaceId": "tickets", "path": "/",
+  "value": { "title": "Open tickets", "tickets": [
+    { "id": "TCK-1042", "title": "Checkout fails with a 502 on card payments",
+      "status": "open", "priority": "urgent" } ] } } }
+
+... and one path changes one value (one signal, one re-render):
+{ "version": "v0.9", "updateDataModel": { "surfaceId": "tickets",
+  "path": "/tickets/0/status", "value": "resolved" } }
+
+deleteSurface: close it.
+{ "version": "v0.9", "deleteSurface": { "surfaceId": "tickets" } }
+
+Who handles them: @a2ui/web_core's MessageProcessor (processMessages →
+processUpdateComponentsOp / processUpdateDataModelOp); @a2ui/angular renders the
+resulting surface.
 -->
 
 ---
