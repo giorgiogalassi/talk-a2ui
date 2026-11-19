@@ -1575,15 +1575,16 @@ rule: ['Questions', 'A2UI · AngularDay 2026']
     <div class="qr-placeholder" aria-hidden="true">QR<br>soon</div>
     <div>
       <b>Go deeper: the A2UI masterclass</b>
-      <span>Structured generative UI with Angular, hands-on · December · sign up via the QR</span>
+      <span>Structured generative UI with Angular, a live deep dive into the code · online · December · sign up via the QR</span>
     </div>
   </div>
 </div>
 
 <!--
 Speaker notes:
-Open the Q&A with the masterclass in one sentence: "If you want to build this
-hands-on, I'm running a masterclass in December: the QR stays up the whole Q&A."
+Open the Q&A with the masterclass in one sentence: "If you want to go through this
+code line by line, I'm running a live online masterclass in December: the QR stays
+up the whole Q&A."
 Then take questions.
 The wrap-up is already done (previous slide). The MC manages the Q&A and its time;
 if someone needs longer, "find me after, I'm around all day."
