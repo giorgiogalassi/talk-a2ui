@@ -346,36 +346,13 @@ rule: ['Where This Actually Makes Sense', 'Part 3']
 
 # Why the standard approach breaks down
 
-Hardcoded components with conditional rendering work well when the number of
-possible UI states is enumerable and stable. They break down when:
-
-- **The combinations explode** — 50 data dimensions × 10 roles is not 500 templates,
-  it's a composition system you're building anyway
-- **The interface responds to data you don't control** — enterprise customers bring
-  their own schemas, clinical data varies per patient
-- **Maintenance cost compounds** — every new template is a liability
-
-<!--
-Speaker notes:
-Teams that build large configuration-driven UI systems eventually reinvent
-something close to what A2UI formalizes — without the protocol, without the
-validation layer, and without the capability negotiation. That's the honest
-pitch: you're already halfway to building this. A2UI just names the pattern
-and gives it a validation boundary.
--->
-
----
-rule: ['Where This Actually Makes Sense', 'Part 3']
----
-
-# One pattern behind every use case
-
-Enterprise platforms, finance, healthcare: the flavour changes, the shape doesn't.
+Hardcoded components with conditional rendering work while the UI states are enumerable.
+Enterprise platforms, finance, healthcare: the flavour changes, the wall doesn't.
 
 - **The screen can't be enumerated**: it depends on the customer's data model, the user's
-  role and the question they ask
-- **Today it's a configuration layer**: JSON config, feature flags, a library of pre-built
-  views, or a custom dashboard per request
+  role and the question they ask. 50 data dimensions × 10 roles isn't 500 templates
+- **So you build a configuration layer**: JSON config, feature flags, a library of
+  pre-built views, and every new template is a liability
 - **Every rendered element must be allowed and traceable**: per-role access, compliance
   reviews, audit
 
@@ -388,8 +365,12 @@ A2UI replaces the configuration layer with an agent that composes from a
 
 <!--
 Speaker notes:
-One slide, three industries: say the pattern, then pick ONE example for the room (the
-one closest to the audience) and keep the others for questions.
+Teams that build large configuration-driven UI systems eventually reinvent something
+close to what A2UI formalizes, without the protocol, the validation layer or the
+capability negotiation. That's the honest pitch: you're already halfway to building this.
+
+Say the pattern, then pick ONE example for the room (the one closest to the audience) and
+keep the others for questions.
 
 Enterprise internal tooling (Salesforce, ServiceNow, SAP): thousands of customers, each
 with its own data model, roles and workflows. Today they run configuration systems,
@@ -1129,13 +1110,18 @@ ngRule: true
 
 # What your catalog looks like
 
-```ts {3|4-6}
+```ts {1-4|7,10|11}
+import { AngularCatalog, BASIC_COMPONENTS, createComponentImplementation } from '@a2ui/angular/v0_9';
+import { BasicCatalogThemeSchema } from '@a2ui/web_core/v0_9/basic_catalog';
+import { PriorityBadgeApi, TICKET_BASIC_COMPONENTS, TICKET_CATALOG_ID } from '@demo/catalog';
+import { PriorityBadgeComponent } from './priority-badge';
+
 // Pair each Zod ComponentApi with the Angular component that draws it
+const basicNames = new Set(TICKET_BASIC_COMPONENTS.map((api) => api.name));
+
 new AngularCatalog(TICKET_CATALOG_ID, 'v0.9', [
   ...BASIC_COMPONENTS.filter((impl) => basicNames.has(impl.name)),
-  createComponentImplementation(TicketListApi, TicketListComponent),
   createComponentImplementation(PriorityBadgeApi, PriorityBadgeComponent),
-  createComponentImplementation(AssigneeChipApi, AssigneeChipComponent),
 ], [], BasicCatalogThemeSchema);
 ```
 
