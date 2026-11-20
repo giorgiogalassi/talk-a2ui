@@ -1630,7 +1630,7 @@ rule: ['Thank you', 'ggalassi.dev']
         <span><b>Rate this talk</b>in the AngularDay app</span>
       </div>
       <div class="qr-row">
-        <img src="/src/qrcode_allmylinks.png" alt="QR code to all my links" class="qr-code" />
+        <img src="/src/qrcode_allmylinks.png" alt="QR code to all my links" class="qr-code" style="background:transparent;padding:0;border-radius:0" />
         <span><b>All my links</b></span>
       </div>
     </div>
