@@ -270,6 +270,29 @@ that wants chat UI, shared state and frontend tools out of the box, it is the sh
 
 **Not to be confused with** GitHub Copilot or Microsoft Copilot: assistants, not part of this stack.
 
+
+### "How can I manage the layout, and not only the components?" *(added 2026-11-20)*
+**On stage, short:** "Have a layout system in your app that the agent can reason about. In A2UI
+that means layout is part of the catalog: the agent places components inside layout components
+you define, the same way it picks the components themselves."
+
+**Two levels:**
+- **Inside a surface:** layout components are catalog components. The demo's catalog allows the
+  library's `Row`, `Column`, `Card` and `Divider` (`TICKET_BASIC_COMPONENTS` in
+  `packages/catalog/src/components.ts`); the agent nests the content in them in
+  `updateComponents`. For your own layout system, add components such as `Grid`, `SplitView` or
+  `Section` to the catalog, with Zod props that only allow your options (`columns: 1 | 2 | 3`,
+  `density`, named areas), never free CSS. Same validation, same policy, same review.
+- **Around the surfaces:** where each surface sits on the page is the app's job, not the agent's.
+  The app owns the shell and places `<a2ui-v09-surface>` elements (the demo uses one element per
+  surface, `app.ts`).
+
+**Not layout:** the `theme` in `createSurface` (`BasicCatalogThemeSchema`) only covers
+`primaryColor`, `iconUrl` and `agentDisplayName`. It is visual styling, not structure.
+
+**Why this keeps the point of the talk:** the agent still composes from a closed vocabulary. A
+layout option it can't name in the catalog is a layout it can't produce.
+
 ---
 
 ## See also
